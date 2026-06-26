@@ -14,7 +14,7 @@ module.exports = [
     ],
   },
   {
-    files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
+    files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
@@ -30,12 +30,6 @@ module.exports = [
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'warn',
-    },
-  },
-  {
-    files: ['**/*.js', '**/*.jsx', '**/*.cjs'],
-    rules: {
-      '@typescript-eslint/no-require-imports': 'off',
     },
   },
   eslintConfigPrettier,
