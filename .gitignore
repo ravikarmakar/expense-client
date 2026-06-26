@@ -1,0 +1,40 @@
+# Dependency Directories
+node_modules/
+.pnpm-debug.log*
+
+# Next.js Build Outputs
+.next/
+out/
+
+# Expo / React Native Build Outputs
+.expo/
+dist/
+web-build/
+ios/build/
+android/build/
+*.jks
+*.p12
+*.key
+*.mobileprovision
+
+# Turborepo Cache & Logs
+.turbo/
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# System / Editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
