@@ -11,11 +11,17 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "eslint": "^9.5.0",
-    "husky": "^9.0.11",
-    "lint-staged": "^15.2.7",
-    "prettier": "^3.3.2",
-    "turbo": "^2.0.4",
-    "typescript": "^5.4.5"
+    "eslint": "^9.39.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
+    "prettier": "^3.8.4",
+    "turbo": "^2.10.0",
+    "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "@types/react": "~19.1.10",
+    "@types/react-dom": "~19.1.3"
   }
 }

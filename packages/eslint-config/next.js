@@ -2,6 +2,7 @@ const baseConfig = require('./base.js');
 const nextPlugin = require('@next/eslint-plugin-next');
 const reactPlugin = require('eslint-plugin-react');
 const hooksPlugin = require('eslint-plugin-react-hooks');
+const path = require('path');
 
 module.exports = [
   ...baseConfig,
@@ -29,6 +30,9 @@ module.exports = [
     settings: {
       react: {
         version: 'detect',
+      },
+      next: {
+        rootDir: path.join(__dirname, '../../apps/web'),
       },
     },
   },

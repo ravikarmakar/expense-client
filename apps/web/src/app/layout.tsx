@@ -1,16 +1,33 @@
 import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import React from 'react';
 
+const inter = Inter({ subsets: ['latin'] });
+
 export const metadata: Metadata = {
-  title: 'Expense Tracker',
-  description: 'Manage your personal expenses with ease',
+  title: 'SplitShare - Financial Clarity & Shared Expenses',
+  description:
+    'SplitShare is the unified finance platform to track, split, and settle group expenses. Scan receipts, manage roommates, travel bills, and get total financial clarity.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" style={{ scrollBehavior: 'smooth' }}>
+      <head>
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body
-        style={{ margin: 0, fontFamily: 'sans-serif', backgroundColor: '#fafafa', color: '#333' }}
+        className={inter.className}
+        style={{
+          margin: 0,
+          backgroundColor: '#07090e',
+          color: '#f3f4f6',
+          overflowX: 'hidden',
+        }}
       >
         {children}
       </body>
