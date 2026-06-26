@@ -15,30 +15,19 @@ import { router } from 'expo-router';
 import { COLORS } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRegister, getErrorMessage } from '@workspace/api';
 
 export default function SignupScreen() {
-  const { signup, skipAuth } = useAuth();
+  const { skipAuth, onAuthSuccess } = useAuth();
+  const registerMutation = useRegister();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  /*
-  const handleGoogleLogin = async () => {
-    setErrorMessage('');
-    setLoading(true);
-    try {
-      await loginWithGoogle();
-    } catch {
-      setErrorMessage('Failed to sign in with Google');
-    } finally {
-      setLoading(false);
-    }
-  };
-  */
+  const loading = registerMutation.isPending;
 
-  const handleSignUp = async () => {
+  const handleSignUp = () => {
     if (!name.trim() || !email.trim() || !password.trim()) {
       setErrorMessage('Please fill in all fields');
       return;
@@ -47,24 +36,25 @@ export default function SignupScreen() {
       setErrorMessage('Please enter a valid email address');
       return;
     }
-    if (password.length < 6) {
-      setErrorMessage('Password must be at least 6 characters long');
+    if (password.length < 8) {
+      setErrorMessage('Password must be at least 8 characters');
       return;
     }
 
     setErrorMessage('');
-    setLoading(true);
-    try {
-      const success = await signup(name, email, password);
-      if (success) {
-        // Navigate to OTP screen for email verification
-        router.push('/otp');
+    registerMutation.mutate(
+      { name: name.trim(), email: email.trim(), password },
+      {
+        onSuccess: (data) => {
+          onAuthSuccess(data.data.user);
+          // OTP screen is UI-only for now; navigate to dashboard directly
+          // router.push('/otp');
+        },
+        onError: (err) => {
+          setErrorMessage(getErrorMessage(err, 'Registration failed. Please try again.'));
+        },
       }
-    } catch {
-      setErrorMessage('An error occurred during sign up. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    );
   };
 
   return (

@@ -14,14 +14,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { COLORS } from '../../constants/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useForgotPassword, getErrorMessage } from '@workspace/api';
 
 export default function ForgotPasswordScreen() {
+  const forgotPasswordMutation = useForgotPassword();
   const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const handleSendLink = async () => {
+  const loading = forgotPasswordMutation.isPending;
+
+  const handleSendLink = () => {
     if (!email.trim()) {
       setErrorMessage('Please enter your email address');
       return;
@@ -30,19 +33,15 @@ export default function ForgotPasswordScreen() {
       setErrorMessage('Please enter a valid email address');
       return;
     }
-
     setErrorMessage('');
-    setLoading(true);
-
-    try {
-      // Mock sending reset link
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      setIsSubmitted(true);
-    } catch {
-      setErrorMessage('An error occurred. Please try again later.');
-    } finally {
-      setLoading(false);
-    }
+    forgotPasswordMutation.mutate(
+      { email: email.trim() },
+      {
+        onSuccess: () => setIsSubmitted(true),
+        onError: (err) =>
+          setErrorMessage(getErrorMessage(err, 'An error occurred. Please try again later.')),
+      }
+    );
   };
 
   return (

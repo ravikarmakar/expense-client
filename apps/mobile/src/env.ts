@@ -6,7 +6,7 @@ import Constants from 'expo-constants';
  */
 
 export const env = {
-  API_URL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000',
+  API_URL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000',
   NODE_ENV: process.env.NODE_ENV || 'development',
   EXPO_PROJECT_ID: Constants.expoConfig?.extra?.eas?.projectId || '',
 } as const;

@@ -15,27 +15,16 @@ import { router } from 'expo-router';
 import { COLORS } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLogin, getErrorMessage } from '@workspace/api';
 
 export default function LoginScreen() {
-  const { login, skipAuth } = useAuth();
+  const { skipAuth, onAuthSuccess } = useAuth();
+  const loginMutation = useLogin();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  /*
-  const handleGoogleLogin = async () => {
-    setErrorMessage('');
-    setLoading(true);
-    try {
-      await loginWithGoogle();
-    } catch {
-      setErrorMessage('Failed to sign in with Google');
-    } finally {
-      setLoading(false);
-    }
-  };
-  */
+  const loading = loginMutation.isPending;
 
   const handleSignIn = async () => {
     if (!email.trim() || !password.trim()) {
@@ -46,17 +35,19 @@ export default function LoginScreen() {
       setErrorMessage('Please enter a valid email address');
       return;
     }
-
     setErrorMessage('');
-    setLoading(true);
-    try {
-      await login(email, password);
-      // Auth context triggers RootLayoutNav to switch stacks automatically
-    } catch {
-      setErrorMessage('Failed to sign in. Please check your credentials.');
-    } finally {
-      setLoading(false);
-    }
+    loginMutation.mutate(
+      { email: email.trim(), password },
+      {
+        onSuccess: (data) => {
+          onAuthSuccess(data.data.user);
+          // RootLayoutNav switches stacks automatically
+        },
+        onError: (err) => {
+          setErrorMessage(getErrorMessage(err, 'Invalid email or password'));
+        },
+      }
+    );
   };
 
   return (

@@ -1,81 +1,115 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { TOKEN_KEY, onAuthError } from '@workspace/api';
+import type { AuthUser } from '@workspace/api';
 
-interface User {
-  name: string;
-  email: string;
-}
+// ─────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────
 
 interface AuthContextType {
+  /** true once we've checked AsyncStorage for a saved token */
+  isReady: boolean;
   isAuthenticated: boolean;
-  user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (name: string, email: string, password: string) => Promise<boolean>;
-  verifyOtp: (code: string) => Promise<boolean>;
+  user: AuthUser | null;
+  /** Call after a successful login/register mutation to sync context state */
+  onAuthSuccess: (user: AuthUser) => void;
   logout: () => void;
+  /** Skip auth during development / guest mode */
   skipAuth: () => void;
-  loginWithGoogle: () => Promise<boolean>;
 }
+
+// ─────────────────────────────────────────────────────
+// Context
+// ─────────────────────────────────────────────────────
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// ─────────────────────────────────────────────────────
+// Provider
+// ─────────────────────────────────────────────────────
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isReady, setIsReady] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
 
-  const login = async (email: string, _password: string): Promise<boolean> => {
-    // Mock successful login
-    setUser({ name: 'Alexander Wright', email });
+  // Keep a ref so the onAuthError listener closure always has the latest setter
+  const setIsAuthenticatedRef = useRef(setIsAuthenticated);
+  setIsAuthenticatedRef.current = setIsAuthenticated;
+
+  // ── Restore session on startup ──────────────────────
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const token = await AsyncStorage.getItem(TOKEN_KEY);
+        if (!token) {
+          setIsReady(true);
+          return;
+        }
+        // Token present — we'll let useMe() in screens fetch the user profile.
+        // For now, mark as authenticated so the app can render the tab stack.
+        // useMe() will populate the user object shortly after.
+        setIsAuthenticated(true);
+      } catch {
+        // Storage read failed — treat as unauthenticated
+      } finally {
+        setIsReady(true);
+      }
+    };
+
+    restoreSession();
+  }, []);
+
+  // ── Listen for 401 events from the axios interceptor ──
+  useEffect(() => {
+    const cleanup = onAuthError(() => {
+      setIsAuthenticatedRef.current(false);
+      setUser(null);
+    });
+    return cleanup;
+  }, []);
+
+  // ── Called by login/register screens after mutation success ──
+  const onAuthSuccess = useCallback((authUser: AuthUser) => {
+    setUser(authUser);
     setIsAuthenticated(true);
-    return true;
-  };
+  }, []);
 
-  const signup = async (name: string, email: string, _password: string): Promise<boolean> => {
-    // Mock successful signup, transitions to OTP step
-    setUser({ name, email });
-    return true;
-  };
-
-  const verifyOtp = async (_code: string): Promise<boolean> => {
-    // Mock successful verification
-    setIsAuthenticated(true);
-    return true;
-  };
-
-  const logout = () => {
+  // ── Logout ──────────────────────────────────────────
+  const logout = useCallback(async () => {
+    try {
+      await AsyncStorage.removeItem(TOKEN_KEY);
+    } catch {
+      // ignore storage errors on logout
+    }
     setUser(null);
     setIsAuthenticated(false);
-  };
+  }, []);
 
-  const skipAuth = () => {
-    setUser({ name: 'Alexander (Guest)', email: 'guest@splitshare.com' });
+  // ── Skip auth (guest / dev bypass) ──────────────────
+  const skipAuth = useCallback(() => {
+    setUser({
+      id: 'guest',
+      name: 'Guest User',
+      email: 'guest@splitshare.app',
+      role: 'USER',
+    });
     setIsAuthenticated(true);
-  };
-
-  const loginWithGoogle = async (): Promise<boolean> => {
-    // Mock Google Sign-In delay
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-    setUser({ name: 'Google User', email: 'google.user@gmail.com' });
-    setIsAuthenticated(true);
-    return true;
-  };
+  }, []);
 
   return (
     <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        user,
-        login,
-        signup,
-        verifyOtp,
-        logout,
-        skipAuth,
-        loginWithGoogle,
-      }}
+      value={{ isReady, isAuthenticated, user, onAuthSuccess, logout, skipAuth }}
     >
       {children}
     </AuthContext.Provider>
   );
 };
+
+// ─────────────────────────────────────────────────────
+// Hook
+// ─────────────────────────────────────────────────────
 
 export const useAuth = () => {
   const context = useContext(AuthContext);

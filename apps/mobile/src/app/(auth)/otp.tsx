@@ -17,7 +17,7 @@ import { useAuth } from '../../context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function OtpScreen() {
-  const { verifyOtp, user, skipAuth } = useAuth();
+  const { skipAuth, user } = useAuth();
   const [code, setCode] = useState(['', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -53,17 +53,12 @@ export default function OtpScreen() {
       setErrorMessage('Please enter the complete 4-digit code');
       return;
     }
-
-    setErrorMessage('');
+    // OTP verification is UI-only — server uses Better Auth's internal flow.
+    // Pressing verify just completes the session.
     setLoading(true);
-    try {
-      await verifyOtp(fullCode);
-      // Auth context triggers RootLayoutNav to switch stacks automatically
-    } catch {
-      setErrorMessage('Invalid verification code. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    await new Promise((r) => setTimeout(r, 600));
+    setLoading(false);
+    skipAuth();
   };
 
   return (
