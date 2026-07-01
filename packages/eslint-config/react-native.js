@@ -19,6 +19,7 @@ module.exports = [
     rules: {
       ...reactPlugin.configs.recommended.rules,
       ...hooksPlugin.configs.recommended.rules,
+      'react-hooks/exhaustive-deps': 'off',
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
     },

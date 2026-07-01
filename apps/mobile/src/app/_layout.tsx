@@ -1,20 +1,19 @@
 import React from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Stack } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { createApiClient, createQueryClient } from '@workspace/api';
-import { AuthProvider, useAuth } from '../context/AuthContext';
+import { QueryClientProvider, useQueryClient } from '@tanstack/react-query';
+import { createApiClient, createQueryClient, useMe, onAuthError } from '@workspace/api';
 import { COLORS } from '../constants/theme';
 import { env } from '../env';
 
 // ── Bootstrap the API client once, at module load time ──────────────────────
-// AsyncStorage is the platform storage adapter for React Native.
+// expo-secure-store is the secure storage adapter for mobile apps.
 createApiClient(env.API_URL, {
-  getItem: (key) => AsyncStorage.getItem(key),
-  setItem: (key, value) => AsyncStorage.setItem(key, value),
-  removeItem: (key) => AsyncStorage.removeItem(key),
+  getItem: (key) => SecureStore.getItemAsync(key),
+  setItem: (key, value) => SecureStore.setItemAsync(key, value),
+  removeItem: (key) => SecureStore.deleteItemAsync(key),
 });
 
 // Create QueryClient outside component to avoid re-creation on re-renders
@@ -22,10 +21,36 @@ const queryClient = createQueryClient();
 
 // ── Root nav — switches between auth and tab stacks ───────────────────────
 function RootLayoutNav() {
-  const { isAuthenticated, isReady } = useAuth();
+  const { data: user, isLoading, isError } = useMe();
+  const router = useRouter();
+  const queryClient = useQueryClient();
 
-  // Show a loading indicator while we check AsyncStorage for a saved token
-  if (!isReady) {
+  console.log('[RootLayoutNav] state:', { user, isLoading, isError });
+
+  // ── Listen for 401 events from the axios interceptor ──
+  React.useEffect(() => {
+    const cleanup = onAuthError(() => {
+      queryClient.setQueryData(['auth', 'me'], null);
+    });
+    return cleanup;
+  }, [queryClient]);
+
+  React.useEffect(() => {
+    if (isLoading) return;
+
+    if (user) {
+      if (user.emailVerified === false) {
+        router.replace({ pathname: '/(auth)/otp', params: { email: user.email } });
+      } else {
+        router.replace('/(tabs)');
+      }
+    } else {
+      router.replace('/(auth)/login');
+    }
+  }, [user, isLoading, isError]);
+
+  // Show a loading indicator while we check/fetch session
+  if (isLoading) {
     return (
       <View
         style={{
@@ -42,11 +67,8 @@ function RootLayoutNav() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      {isAuthenticated ? (
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      ) : (
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      )}
+      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
     </Stack>
   );
 }
@@ -54,10 +76,8 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <RootLayoutNav />
-        <StatusBar style="dark" />
-      </AuthProvider>
+      <RootLayoutNav />
+      <StatusBar style="dark" />
     </QueryClientProvider>
   );
 }

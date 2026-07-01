@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -11,54 +11,102 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS } from '../../constants/theme';
-import { useAuth } from '../../context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  useVerifyEmail,
+  useResendVerification,
+  getErrorMessage,
+  clientVerifyEmailSchema,
+} from '@workspace/api';
+
+const CODE_LENGTH = 6;
 
 export default function OtpScreen() {
-  const { skipAuth, user } = useAuth();
-  const [code, setCode] = useState(['', '', '', '']);
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const params = useLocalSearchParams<{ email?: string }>();
+  const email = params.email ?? '';
 
-  // Refs for focusing next inputs
-  const inputRef0 = useRef<TextInput>(null);
-  const inputRef1 = useRef<TextInput>(null);
-  const inputRef2 = useRef<TextInput>(null);
-  const inputRef3 = useRef<TextInput>(null);
-  const refs = [inputRef0, inputRef1, inputRef2, inputRef3];
+  const verifyMutation = useVerifyEmail();
+  const resendMutation = useResendVerification();
+
+  const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''));
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+
+  const inputRefs = useRef<(TextInput | null)[]>(Array(CODE_LENGTH).fill(null));
+
+  const loading = verifyMutation.isPending;
+  const isSubmitDisabled = code.some((digit) => !digit) || loading;
+  const resendLoading = resendMutation.isPending;
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const handleTextChange = (text: string, index: number) => {
+    // Allow only digits
+    const digit = text.replace(/[^0-9]/g, '').slice(-1);
     const newCode = [...code];
-    newCode[index] = text;
+    newCode[index] = digit;
     setCode(newCode);
 
-    // If character entered, move to next input
-    if (text.length > 0 && index < 3) {
-      refs[index + 1].current?.focus();
+    if (digit.length > 0 && index < CODE_LENGTH - 1) {
+      inputRefs.current[index + 1]?.focus();
     }
   };
 
   const handleKeyPress = (e: { nativeEvent: { key: string } }, index: number) => {
-    // If backspace pressed and input is empty, move to previous input
     if (e.nativeEvent.key === 'Backspace' && code[index] === '' && index > 0) {
-      refs[index - 1].current?.focus();
+      inputRefs.current[index - 1]?.focus();
     }
   };
 
-  const handleVerify = async () => {
+  const handleVerify = () => {
     const fullCode = code.join('');
-    if (fullCode.length < 4) {
-      setErrorMessage('Please enter the complete 4-digit code');
+    const result = clientVerifyEmailSchema.safeParse({ email, code: fullCode });
+    if (!result.success) {
+      setErrorMessage(result.error.issues[0].message);
       return;
     }
-    // OTP verification is UI-only — server uses Better Auth's internal flow.
-    // Pressing verify just completes the session.
-    setLoading(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setLoading(false);
-    skipAuth();
+
+    setErrorMessage('');
+    verifyMutation.mutate(result.data, {
+      onSuccess: () => {
+        // RootLayoutNav automatically switches to the tabs stack thanks to TanStack cache update
+      },
+      onError: (err) => {
+        setErrorMessage(getErrorMessage(err, 'Invalid or expired code. Please try again.'));
+        // Clear the code boxes on error
+        setCode(Array(CODE_LENGTH).fill(''));
+        inputRefs.current[0]?.focus();
+      },
+    });
+  };
+
+  const handleResend = () => {
+    if (!email || cooldown > 0) return;
+    setErrorMessage('');
+    setSuccessMessage('');
+    resendMutation.mutate(
+      { email },
+      {
+        onSuccess: () => {
+          setSuccessMessage('A new verification code has been sent to your email.');
+          setCode(Array(CODE_LENGTH).fill(''));
+          inputRefs.current[0]?.focus();
+          setCooldown(60);
+        },
+        onError: (err) => {
+          setErrorMessage(getErrorMessage(err, 'Failed to resend code. Please try again.'));
+        },
+      }
+    );
   };
 
   return (
@@ -67,14 +115,6 @@ export default function OtpScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        {/* Skip Header */}
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={skipAuth} style={styles.skipButton} activeOpacity={0.7}>
-            <Text style={styles.skipText}>Skip for now</Text>
-            <Ionicons name="arrow-forward" size={16} color={COLORS.outline} />
-          </TouchableOpacity>
-        </View>
-
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -92,8 +132,8 @@ export default function OtpScreen() {
             </View>
             <Text style={styles.headerTitle}>Verify Email</Text>
             <Text style={styles.headerSubtitle}>
-              We sent a 4-digit verification code to{' '}
-              <Text style={styles.emailHighlight}>{user?.email || 'your email address'}</Text>
+              {'We sent a 6-digit verification code to '}
+              <Text style={styles.emailHighlight}>{email || 'your email address'}</Text>
             </Text>
           </View>
 
@@ -106,12 +146,28 @@ export default function OtpScreen() {
               </View>
             ) : null}
 
-            {/* OTP Code Box Grid */}
+            {successMessage ? (
+              <View style={styles.successContainer}>
+                <Ionicons name="checkmark-circle" size={18} color={COLORS.secondary} />
+                <Text style={styles.successText}>{successMessage}</Text>
+              </View>
+            ) : null}
+
+            {/* OTP Code Box Grid — 6 digits */}
             <View style={styles.otpGrid}>
               {code.map((digit, idx) => (
-                <View key={idx} style={styles.otpBoxContainer}>
+                <View
+                  key={idx}
+                  style={[
+                    styles.otpBoxContainer,
+                    digit ? styles.otpBoxFilled : null,
+                    (loading || resendLoading) && { opacity: 0.6 },
+                  ]}
+                >
                   <TextInput
-                    ref={refs[idx]}
+                    ref={(ref) => {
+                      inputRefs.current[idx] = ref;
+                    }}
                     value={digit}
                     onChangeText={(text) => handleTextChange(text, idx)}
                     onKeyPress={(e) => handleKeyPress(e, idx)}
@@ -121,6 +177,7 @@ export default function OtpScreen() {
                     maxLength={1}
                     selectTextOnFocus
                     style={styles.otpInput}
+                    editable={!(loading || resendLoading)}
                   />
                 </View>
               ))}
@@ -129,22 +186,32 @@ export default function OtpScreen() {
             {/* Resend Action */}
             <View style={styles.resendContainer}>
               <Text style={styles.resendText}>{"Didn't receive the code? "}</Text>
-              <TouchableOpacity activeOpacity={0.7}>
-                <Text style={styles.resendLink}>Resend Code</Text>
+              <TouchableOpacity
+                onPress={handleResend}
+                activeOpacity={0.7}
+                disabled={resendLoading || cooldown > 0}
+              >
+                {resendLoading ? (
+                  <ActivityIndicator size="small" color={COLORS.secondary} />
+                ) : (
+                  <Text style={[styles.resendLink, cooldown > 0 && styles.disabledLink]}>
+                    {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend Code'}
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
 
             {/* Verify Button */}
             <TouchableOpacity
               onPress={handleVerify}
-              style={[styles.primaryButton, loading && styles.disabledButton]}
+              style={[styles.primaryButton, isSubmitDisabled && styles.disabledButton]}
               activeOpacity={0.8}
-              disabled={loading}
+              disabled={isSubmitDisabled}
             >
               {loading ? (
                 <ActivityIndicator color="#ffffff" />
               ) : (
-                <Text style={styles.primaryButtonText}>Verify & Proceed</Text>
+                <Text style={styles.primaryButtonText}>Verify & Continue</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -164,26 +231,7 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
-  headerActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  skipButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    backgroundColor: COLORS.surfaceContainer,
-  },
-  skipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.outline,
-  },
+
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'space-between',
@@ -247,27 +295,48 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
   },
+  successContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(22, 163, 74, 0.08)',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(22, 163, 74, 0.15)',
+  },
+  successText: {
+    fontSize: 12,
+    color: COLORS.secondary,
+    fontWeight: '600',
+    flex: 1,
+  },
   otpGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 8,
     marginBottom: 24,
   },
   otpBoxContainer: {
     flex: 1,
-    height: 64,
-    borderRadius: 16,
+    height: 58,
+    borderRadius: 14,
     backgroundColor: COLORS.surfaceContainerLow,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: COLORS.surfaceContainer,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  otpBoxFilled: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.surface,
   },
   otpInput: {
     width: '100%',
     height: '100%',
     textAlign: 'center',
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
     color: COLORS.onSurface,
   },
@@ -286,6 +355,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: COLORS.secondary,
+  },
+  disabledLink: {
+    color: COLORS.outline,
+    opacity: 0.6,
   },
   primaryButton: {
     backgroundColor: COLORS.primary,

@@ -19,4 +19,16 @@ config.resolver.nodeModulesPaths = [
 // 3. Force Metro to resolve symlinks
 config.resolver.disableHierarchicalLookup = false;
 
+// 4. Exclude web app and Next.js build files from being watched/resolved
+const defaultBlockList = config.resolver.blockList;
+config.resolver.blockList = [
+  ...(Array.isArray(defaultBlockList)
+    ? defaultBlockList
+    : defaultBlockList
+      ? [defaultBlockList]
+      : []),
+  /[\\/\\\\]apps[\\/\\\\]web[\\/\\\\]/,
+  /[\\/\\\\]\.next[\\/\\\\]/,
+];
+
 module.exports = config;

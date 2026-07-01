@@ -7,6 +7,8 @@ export interface AuthUser {
   email: string;
   name: string;
   role: 'USER' | 'ADMIN';
+  emailVerified?: boolean;
+  image?: string | null;
 }
 
 export interface AuthSession {
@@ -18,8 +20,9 @@ export interface AuthResponse {
   success: boolean;
   data: {
     user: AuthUser;
-    session: AuthSession;
-    token: string;
+    session?: AuthSession;
+    token?: string;
+    requiresVerification?: boolean;
   };
 }
 
@@ -48,7 +51,31 @@ export interface ForgotPasswordInput {
 }
 
 export interface ResetPasswordInput {
-  token: string;
+  email: string;
+  code: string;
+  newPassword: string;
+}
+
+export interface VerifyEmailInput {
+  email: string;
+  code: string;
+}
+
+export interface ResendVerificationInput {
+  email: string;
+}
+
+export interface VerifyResetCodeInput {
+  email: string;
+  code: string;
+}
+
+export interface VerifyPasswordInput {
+  password: string;
+}
+
+export interface ChangePasswordInput {
+  currentPassword: string;
   newPassword: string;
 }
 

@@ -13,48 +13,41 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { COLORS } from '../../constants/theme';
-import { useAuth } from '../../context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRegister, getErrorMessage } from '@workspace/api';
+import { useRegister, getErrorMessage, clientRegisterSchema } from '@workspace/api';
 
 export default function SignupScreen() {
-  const { skipAuth, onAuthSuccess } = useAuth();
   const registerMutation = useRegister();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const loading = registerMutation.isPending;
+  const isSubmitDisabled = !name.trim() || !email.trim() || !password.trim() || loading;
 
   const handleSignUp = () => {
-    if (!name.trim() || !email.trim() || !password.trim()) {
-      setErrorMessage('Please fill in all fields');
-      return;
-    }
-    if (!email.includes('@')) {
-      setErrorMessage('Please enter a valid email address');
-      return;
-    }
-    if (password.length < 8) {
-      setErrorMessage('Password must be at least 8 characters');
+    const result = clientRegisterSchema.safeParse({
+      name: name.trim(),
+      email: email.trim(),
+      password,
+    });
+    if (!result.success) {
+      setErrorMessage(result.error.issues[0].message);
       return;
     }
 
     setErrorMessage('');
-    registerMutation.mutate(
-      { name: name.trim(), email: email.trim(), password },
-      {
-        onSuccess: (data) => {
-          onAuthSuccess(data.data.user);
-          // OTP screen is UI-only for now; navigate to dashboard directly
-          // router.push('/otp');
-        },
-        onError: (err) => {
-          setErrorMessage(getErrorMessage(err, 'Registration failed. Please try again.'));
-        },
-      }
-    );
+    registerMutation.mutate(result.data, {
+      onSuccess: () => {
+        // Server sends OTP email — navigate to verification screen
+        router.push({ pathname: '/otp', params: { email: email.trim() } });
+      },
+      onError: (err) => {
+        setErrorMessage(getErrorMessage(err, 'Registration failed. Please try again.'));
+      },
+    });
   };
 
   return (
@@ -63,14 +56,6 @@ export default function SignupScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        {/* Skip Header */}
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={skipAuth} style={styles.skipButton} activeOpacity={0.7}>
-            <Text style={styles.skipText}>Skip for now</Text>
-            <Ionicons name="arrow-forward" size={16} color={COLORS.outline} />
-          </TouchableOpacity>
-        </View>
-
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -94,7 +79,7 @@ export default function SignupScreen() {
 
             {/* Name Input */}
             <Text style={styles.inputLabel}>Full Name</Text>
-            <View style={styles.inputContainer}>
+            <View style={[styles.inputContainer, loading && { opacity: 0.6 }]}>
               <Ionicons
                 name="person-outline"
                 size={20}
@@ -109,12 +94,13 @@ export default function SignupScreen() {
                 autoCapitalize="words"
                 autoCorrect={false}
                 style={styles.textInput}
+                editable={!loading}
               />
             </View>
 
             {/* Email Input */}
             <Text style={styles.inputLabel}>Email Address</Text>
-            <View style={styles.inputContainer}>
+            <View style={[styles.inputContainer, loading && { opacity: 0.6 }]}>
               <Ionicons
                 name="mail-outline"
                 size={20}
@@ -130,12 +116,13 @@ export default function SignupScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 style={styles.textInput}
+                editable={!loading}
               />
             </View>
 
             {/* Password Input */}
             <Text style={styles.inputLabel}>Password</Text>
-            <View style={styles.inputContainer}>
+            <View style={[styles.inputContainer, loading && { opacity: 0.6 }]}>
               <Ionicons
                 name="lock-closed-outline"
                 size={20}
@@ -145,21 +132,33 @@ export default function SignupScreen() {
               <TextInput
                 value={password}
                 onChangeText={setPassword}
-                placeholder="Minimum 6 characters"
+                placeholder="Min 8 chars (A-Z, a-z, 0-9, !@#)"
                 placeholderTextColor={COLORS.outlineVariant}
-                secureTextEntry
+                secureTextEntry={!isPasswordVisible}
                 autoCapitalize="none"
                 autoCorrect={false}
                 style={styles.textInput}
+                editable={!loading}
               />
+              <TouchableOpacity
+                onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+                activeOpacity={0.7}
+                disabled={loading}
+              >
+                <Ionicons
+                  name={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color={COLORS.outline}
+                />
+              </TouchableOpacity>
             </View>
 
             {/* Sign Up Button */}
             <TouchableOpacity
               onPress={handleSignUp}
-              style={[styles.primaryButton, loading && styles.disabledButton]}
+              style={[styles.primaryButton, isSubmitDisabled && styles.disabledButton]}
               activeOpacity={0.8}
-              disabled={loading}
+              disabled={isSubmitDisabled}
             >
               {loading ? (
                 <ActivityIndicator color="#ffffff" />
@@ -172,7 +171,11 @@ export default function SignupScreen() {
           {/* Switch to Login */}
           <View style={styles.footerSection}>
             <Text style={styles.footerLabel}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => router.push('/login')} activeOpacity={0.7}>
+            <TouchableOpacity
+              onPress={() => router.push('/login')}
+              activeOpacity={0.7}
+              disabled={loading}
+            >
               <Text style={styles.footerLink}>Sign In</Text>
             </TouchableOpacity>
           </View>
@@ -190,26 +193,7 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
-  headerActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  skipButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    backgroundColor: COLORS.surfaceContainer,
-  },
-  skipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.outline,
-  },
+
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'space-between',

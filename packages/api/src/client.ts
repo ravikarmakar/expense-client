@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosError } from 'axios';
 import type { StorageAdapter } from './auth/auth.types';
 
-export const TOKEN_KEY = '@expense/auth_token';
+export const TOKEN_KEY = 'expense_auth_token';
 
 // ─────────────────────────────────────────────────────
 // Event system so apps can react to auth errors
