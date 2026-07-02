@@ -13,6 +13,7 @@ import {
   verifyResetCodeApi,
   verifyPasswordApi,
   changePasswordApi,
+  updateProfileApi,
 } from './auth.api';
 import type {
   LoginInput,
@@ -136,7 +137,20 @@ export const useVerifyPassword = () =>
     mutationFn: verifyPasswordApi,
   });
 
-export const useChangePassword = () =>
-  useMutation<MessageResponse, Error, ChangePasswordInput>({
+export const useChangePassword = () => {
+  return useMutation<MessageResponse, Error, ChangePasswordInput>({
     mutationFn: changePasswordApi,
   });
+};
+
+export const useUpdateProfile = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateProfileApi,
+    onSuccess: (data) => {
+      queryClient.setQueryData(authKeys.me, data);
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+    },
+  });
+};

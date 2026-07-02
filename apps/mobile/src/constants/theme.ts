@@ -22,6 +22,20 @@ export const COLORS = {
   surfaceContainerHigh: '#e7e8e9',
 };
 
+export const CATEGORY_ICONS: Record<
+  string,
+  { icon: string; lib: 'Ionicons' | 'MaterialIcons'; color: string; bg: string }
+> = {
+  All: { icon: 'apps', lib: 'Ionicons', color: COLORS.primary, bg: '#e8f0fe' },
+  Food: { icon: 'restaurant', lib: 'MaterialIcons', color: '#e65100', bg: '#fff3e0' },
+  Transport: { icon: 'directions-car', lib: 'MaterialIcons', color: '#1565c0', bg: '#e3f2fd' },
+  Shopping: { icon: 'shopping-bag', lib: 'MaterialIcons', color: '#c62828', bg: '#fce4ec' },
+  Bills: { icon: 'receipt-long', lib: 'MaterialIcons', color: '#2e7d32', bg: '#e8f5e9' },
+  Travel: { icon: 'flight', lib: 'MaterialIcons', color: '#00695c', bg: '#e0f7fa' },
+  Health: { icon: 'favorite', lib: 'MaterialIcons', color: '#b71c1c', bg: '#ffebee' },
+  Other: { icon: 'more-horiz', lib: 'MaterialIcons', color: '#424242', bg: '#f5f5f5' },
+};
+
 // Premium high-quality avatars matching the design mockup
 export const avatars = {
   womanWithGlasses:
@@ -33,5 +47,28 @@ export const avatars = {
   minimalistWoman:
     'https://lh3.googleusercontent.com/aida-public/AB6AXuD6erY7eCAowHNemv8kHNZ_vU5EVoghv6bEahNN2ZFDlCYFIfvuePAZl5yb31uMy56UQCM6nBMW6_FOqk84q_Nv5fEp5UATPm-f8ejLczRho3hGQIMxIEWPHKKAaLNLsjrEZi4rK8JcgYdi27Xo_HiXNlD20AC-goE8m6y1gLPn_CEEhkuqCD-71w_y4XtHss8QtnMx6qMDwQqxrCwCLEQJAxOOIVeEZ3WYI10uWcE_ljnALx7a20kjycg31rpNk1PCVNK7kYVie-eX',
 };
+
+export const PREDEFINED_AVATARS = [
+  'https://api.dicebear.com/7.x/avataaars/png?seed=Felix&backgroundColor=b6e3f4',
+  'https://api.dicebear.com/7.x/avataaars/png?seed=Aneka&backgroundColor=ffdfbf',
+  'https://api.dicebear.com/7.x/avataaars/png?seed=Jack&backgroundColor=c0aede',
+  'https://api.dicebear.com/7.x/avataaars/png?seed=Tigger&backgroundColor=d1d4f9',
+  'https://api.dicebear.com/7.x/avataaars/png?seed=Kiki&backgroundColor=ffd5dc',
+  'https://api.dicebear.com/7.x/avataaars/png?seed=Scooter&backgroundColor=c8edd8',
+  'https://api.dicebear.com/7.x/avataaars/png?seed=Mimi&backgroundColor=fce8b2',
+  'https://api.dicebear.com/7.x/avataaars/png?seed=Rocky&backgroundColor=d3e2fd',
+  'https://api.dicebear.com/7.x/avataaars/png?seed=Oliver&backgroundColor=f4dcd6',
+  'https://api.dicebear.com/7.x/avataaars/png?seed=Jasper&backgroundColor=f2ffc4',
+  'https://api.dicebear.com/7.x/avataaars/png?seed=Chloe&backgroundColor=f2d6ff',
+  'https://api.dicebear.com/7.x/avataaars/png?seed=Buddy&backgroundColor=d6ffe7',
+  'https://api.dicebear.com/7.x/avataaars/png?seed=Bella&backgroundColor=ffe2d6',
+  'https://api.dicebear.com/7.x/avataaars/png?seed=Daisy&backgroundColor=e8ffd6',
+  'https://api.dicebear.com/7.x/avataaars/png?seed=Zoe&backgroundColor=ffd6f5',
+  'https://api.dicebear.com/7.x/avataaars/png?seed=Max&backgroundColor=d6fff5',
+  'https://api.dicebear.com/7.x/avataaars/png?seed=Lucy&backgroundColor=fff5d6',
+  'https://api.dicebear.com/7.x/avataaars/png?seed=Charlie&backgroundColor=d6e8ff',
+  'https://api.dicebear.com/7.x/avataaars/png?seed=Milo&backgroundColor=ffd6d6',
+  'https://api.dicebear.com/7.x/avataaars/png?seed=Coco&backgroundColor=e5ffd6',
+];
 
 export const CURRENCY_SYMBOL = '₹';

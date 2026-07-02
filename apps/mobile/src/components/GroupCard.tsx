@@ -43,7 +43,12 @@ export function GroupCard({
           {memberAvatars.slice(0, 2).map((uri, idx) => (
             <Image
               key={idx}
-              source={{ uri }}
+              source={{
+                uri:
+                  uri && uri.trim() !== ''
+                    ? uri
+                    : 'https://lh3.googleusercontent.com/aida-public/AB6AXuD5T5AJUovvhA_WnRPgEHHUebHGXF5_1EiHG95y-QfKq2nOO07Mu6O3nzSp4AjHOG8hjAGd0Le9T3VMsQ554EcRvn-FBqlSpjy3oLYsJUgXfzsRNskrMk9B58aBpvnyrr9dunlwrQ3t-uLtHtQ5AeVKOCn-64fTFblLeVHlXrsHWRLrpvOIYhhnMeriv4c4aLSPUpLcih10KZ6yXzN32ixRZd3TUiAozHsESLzxhXawBgffwZTpUF4UXguT6m8ijF1N9kQL0fwVx9xM',
+              }}
               style={[styles.overlapAvatar, idx > 0 && styles.overlapAvatar2]}
             />
           ))}

@@ -45,7 +45,10 @@ export const authUserSchema = z.object({
   id: z.string(),
   email: z.string(),
   name: z.string(),
-  role: z.enum(['USER', 'ADMIN']),
+  role: z.preprocess(
+    (val) => (typeof val === 'string' ? val.toUpperCase() : val),
+    z.enum(['USER', 'ADMIN'])
+  ),
   emailVerified: z.boolean().optional(),
   image: z.string().nullable().optional(),
 });

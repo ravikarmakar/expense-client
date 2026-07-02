@@ -101,3 +101,19 @@ export const changePasswordApi = async (input: ChangePasswordInput): Promise<Mes
   const { data } = await getApiClient().post<unknown>('/auth/change-password', input);
   return messageResponseSchema.parse(data);
 };
+
+export const updateProfileApi = async (input: {
+  name?: string;
+  image?: string;
+}): Promise<AuthUser> => {
+  const { data } = await getApiClient().patch<unknown>('/users/me', input);
+  const parsed = z
+    .object({
+      success: z.boolean(),
+      data: z.object({
+        user: authUserSchema,
+      }),
+    })
+    .parse(data);
+  return parsed.data.user;
+};

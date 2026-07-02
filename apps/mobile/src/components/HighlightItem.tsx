@@ -1,14 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
-
-export type HighlightIconType =
-  | 'shopping-cart'
-  | 'done-all'
-  | 'electric-bolt'
-  | 'local-dining'
-  | 'flight';
 
 interface HighlightItemProps {
   title: string;
@@ -16,7 +9,8 @@ interface HighlightItemProps {
   amount: string;
   secondaryText?: string;
   secondaryTextColor?: 'green' | 'red' | 'gray';
-  iconName: HighlightIconType;
+  iconName: string;
+  iconLib?: 'Ionicons' | 'MaterialIcons';
   iconBgColor: string;
   iconColor: string;
 }
@@ -28,6 +22,7 @@ export function HighlightItem({
   secondaryText,
   secondaryTextColor = 'gray',
   iconName,
+  iconLib = 'MaterialIcons',
   iconBgColor,
   iconColor,
 }: HighlightItemProps) {
@@ -40,7 +35,11 @@ export function HighlightItem({
   return (
     <View style={styles.highlightItem}>
       <View style={[styles.highlightIconBg, { backgroundColor: iconBgColor }]}>
-        <MaterialIcons name={iconName} size={22} color={iconColor} />
+        {iconLib === 'Ionicons' ? (
+          <Ionicons name={iconName as never} size={22} color={iconColor} />
+        ) : (
+          <MaterialIcons name={iconName as never} size={22} color={iconColor} />
+        )}
       </View>
       <View style={styles.highlightDetails}>
         <Text style={styles.highlightTitle}>{title}</Text>

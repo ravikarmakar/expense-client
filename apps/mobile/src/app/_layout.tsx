@@ -25,7 +25,7 @@ function RootLayoutNav() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  console.log('[RootLayoutNav] state:', { user, isLoading, isError });
+  console.warn('[RootLayoutNav] state:', { user, isLoading, isError });
 
   // ── Listen for 401 events from the axios interceptor ──
   React.useEffect(() => {
@@ -69,15 +69,20 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="groups/[id]" options={{ headerShown: false }} />
     </Stack>
   );
 }
 
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
 export default function RootLayout() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <RootLayoutNav />
-      <StatusBar style="dark" />
-    </QueryClientProvider>
+    <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <RootLayoutNav />
+        <StatusBar style="dark" />
+      </QueryClientProvider>
+    </SafeAreaProvider>
   );
 }

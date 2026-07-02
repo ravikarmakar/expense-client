@@ -15,14 +15,15 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { COLORS, avatars } from '../../constants/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { COLORS, PREDEFINED_AVATARS } from '../../constants/theme';
 import { globalStyles } from '../../styles/globalStyles';
-import { TopAppBar } from '../../components/TopAppBar';
 import {
   useMe,
   useLogout,
   useVerifyPassword,
   useChangePassword,
+  useUpdateProfile,
   clientVerifyPasswordSchema,
   clientChangePasswordSchema,
   getErrorMessage,
@@ -42,8 +43,38 @@ export default function SettingsTabScreen() {
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [selectedAvatar, setSelectedAvatar] = useState('');
+  const [profileErrorMessage, setProfileErrorMessage] = useState('');
+
   const verifyPasswordMutation = useVerifyPassword();
   const changePasswordMutation = useChangePassword();
+  const updateProfileMutation = useUpdateProfile();
+
+  const handleSaveProfile = () => {
+    setProfileErrorMessage('');
+    if (!editName.trim()) {
+      setProfileErrorMessage('Name cannot be empty.');
+      return;
+    }
+
+    updateProfileMutation.mutate(
+      {
+        name: editName.trim(),
+        image: selectedAvatar,
+      },
+      {
+        onSuccess: () => {
+          Alert.alert('Success', 'Profile updated successfully.');
+          setProfileModalVisible(false);
+        },
+        onError: (err) => {
+          setProfileErrorMessage(getErrorMessage(err, 'Failed to update profile.'));
+        },
+      }
+    );
+  };
 
   const handleVerifyPassword = () => {
     setErrorMessage('');
@@ -100,22 +131,34 @@ export default function SettingsTabScreen() {
     );
   };
 
-  return (
-    <View style={styles.container}>
-      <TopAppBar onNotificationPress={() => {}} />
+  const insets = useSafeAreaInsets();
 
+  return (
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView
         contentContainerStyle={globalStyles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Profile Section */}
         <View style={styles.profileSection}>
-          <Image source={{ uri: user?.image || avatars.fintechMan }} style={styles.profileAvatar} />
+          <Image
+            source={{ uri: user?.image || PREDEFINED_AVATARS[0] }}
+            style={styles.profileAvatar}
+          />
           <Text style={styles.profileName}>{user?.name || 'Alexander Wright'}</Text>
           <Text style={styles.profileEmail}>
             {user?.email || 'alexander.wright@splitshare.com'}
           </Text>
-          <TouchableOpacity style={styles.editProfileButton} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.editProfileButton}
+            activeOpacity={0.7}
+            onPress={() => {
+              setEditName(user?.name ?? '');
+              setSelectedAvatar(user?.image ?? PREDEFINED_AVATARS[0]);
+              setProfileErrorMessage('');
+              setProfileModalVisible(true);
+            }}
+          >
             <Text style={styles.editProfileButtonText}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
@@ -124,7 +167,16 @@ export default function SettingsTabScreen() {
         <View style={styles.settingsSection}>
           <Text style={styles.settingsGroupTitle}>Account Settings</Text>
 
-          <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.settingsItem}
+            activeOpacity={0.7}
+            onPress={() => {
+              setEditName(user?.name ?? '');
+              setSelectedAvatar(user?.image ?? PREDEFINED_AVATARS[0]);
+              setProfileErrorMessage('');
+              setProfileModalVisible(true);
+            }}
+          >
             <View style={styles.settingsItemLeft}>
               <Ionicons name="person-outline" size={22} color={COLORS.outline} />
               <Text style={styles.settingsItemLabel}>Personal Info</Text>
@@ -416,6 +468,116 @@ export default function SettingsTabScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* ── Modal: Edit Profile ── */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={profileModalVisible}
+        onRequestClose={() => setProfileModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
+          <View style={[styles.modalContent, { maxHeight: '85%' }]}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Profile</Text>
+              <TouchableOpacity
+                onPress={() => setProfileModalVisible(false)}
+                style={styles.closeButton}
+                activeOpacity={0.7}
+                disabled={updateProfileMutation.isPending}
+              >
+                <Ionicons name="close" size={24} color={COLORS.onSurface} />
+              </TouchableOpacity>
+            </View>
+
+            {profileErrorMessage ? (
+              <View style={styles.errorContainer}>
+                <Ionicons name="alert-circle" size={18} color={COLORS.error} />
+                <Text style={styles.errorText}>{profileErrorMessage}</Text>
+              </View>
+            ) : null}
+
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <View style={styles.modalForm}>
+                {/* Current Avatar Preview */}
+                <View style={styles.avatarPreviewContainer}>
+                  <Image source={{ uri: selectedAvatar }} style={styles.largeAvatarPreview} />
+                  <Text style={styles.avatarPreviewLabel}>Selected Avatar</Text>
+                </View>
+
+                {/* Name Input */}
+                <Text style={styles.inputLabel}>Full Name</Text>
+                <View
+                  style={[
+                    styles.inputContainer,
+                    updateProfileMutation.isPending && { opacity: 0.6 },
+                  ]}
+                >
+                  <Ionicons
+                    name="person-outline"
+                    size={20}
+                    color={COLORS.outline}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    value={editName}
+                    onChangeText={setEditName}
+                    placeholder="Enter your name"
+                    placeholderTextColor={COLORS.outlineVariant}
+                    style={styles.textInput}
+                    editable={!updateProfileMutation.isPending}
+                    maxLength={40}
+                  />
+                </View>
+
+                {/* Avatar Grid Selection */}
+                <Text style={styles.inputLabel}>Choose Avatar</Text>
+                <View style={styles.avatarGrid}>
+                  {PREDEFINED_AVATARS.map((avatarUrl, idx) => {
+                    const isSelected = selectedAvatar === avatarUrl;
+                    return (
+                      <TouchableOpacity
+                        key={idx}
+                        style={[styles.avatarGridItem, isSelected && styles.avatarGridItemActive]}
+                        onPress={() => setSelectedAvatar(avatarUrl)}
+                        activeOpacity={0.7}
+                        disabled={updateProfileMutation.isPending}
+                      >
+                        <Image source={{ uri: avatarUrl }} style={styles.gridAvatarImage} />
+                        {isSelected && (
+                          <View style={styles.checkBadge}>
+                            <Ionicons name="checkmark" size={10} color="#fff" />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <TouchableOpacity
+                  onPress={handleSaveProfile}
+                  style={[
+                    styles.primaryButton,
+                    (!editName.trim() || updateProfileMutation.isPending) && styles.disabledButton,
+                  ]}
+                  activeOpacity={0.8}
+                  disabled={!editName.trim() || updateProfileMutation.isPending}
+                >
+                  {updateProfileMutation.isPending ? (
+                    <ActivityIndicator color="#ffffff" />
+                  ) : (
+                    <Text style={styles.primaryButtonText}>Save Changes</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -618,5 +780,61 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '700',
+  },
+  // Profile edit
+  avatarPreviewContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  largeAvatarPreview: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 3,
+    borderColor: COLORS.secondary,
+    marginBottom: 8,
+  },
+  avatarPreviewLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.outline,
+  },
+  avatarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 24,
+    paddingHorizontal: 4,
+  },
+  avatarGridItem: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surfaceContainerLow,
+  },
+  avatarGridItemActive: {
+    borderColor: COLORS.secondary,
+  },
+  gridAvatarImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  checkBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: COLORS.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
