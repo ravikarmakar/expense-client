@@ -116,7 +116,7 @@ export default function GroupsTabScreen() {
               <GroupCard
                 key={group.id}
                 name={`${group.emoji ?? '👥'} ${group.name}`}
-                activity={`${group.memberCount} members · Last activity recently`}
+                activity={`${group.type ?? 'Other'} · ${group.memberCount} members`}
                 memberAvatars={group.members.slice(0, 3).map((m) => m.image ?? '')}
                 totalMembersCount={group.memberCount}
                 balanceText={

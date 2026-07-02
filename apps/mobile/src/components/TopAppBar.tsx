@@ -6,9 +6,12 @@ import { COLORS } from '../constants/theme';
 
 interface TopAppBarProps {
   onNotificationPress?: () => void;
+  title?: string;
+  showBack?: boolean;
+  onBack?: () => void;
 }
 
-export function TopAppBar({ onNotificationPress }: TopAppBarProps) {
+export function TopAppBar({ onNotificationPress, title, showBack, onBack }: TopAppBarProps) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -19,16 +22,31 @@ export function TopAppBar({ onNotificationPress }: TopAppBarProps) {
       ]}
     >
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerLogoContainer} activeOpacity={0.7}>
-          <MaterialIcons name="account-balance-wallet" size={24} color={COLORS.primary} />
-          <Text style={styles.headerTitle}>SplitShare</Text>
-        </TouchableOpacity>
+        {showBack ? (
+          <TouchableOpacity onPress={onBack} style={styles.iconButton}>
+            <Ionicons name="arrow-back" size={24} color={COLORS.onSurface} />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.headerLogoContainer} activeOpacity={0.7}>
+            <MaterialIcons name="account-balance-wallet" size={24} color={COLORS.primary} />
+            <Text style={styles.headerTitle}>SplitShare</Text>
+          </TouchableOpacity>
+        )}
+
+        {title && showBack && (
+          <Text style={styles.centerTitle} numberOfLines={1}>
+            {title}
+          </Text>
+        )}
+
         <TouchableOpacity
           style={styles.iconButton}
           activeOpacity={0.7}
           onPress={onNotificationPress}
         >
-          <Ionicons name="notifications-outline" size={24} color={COLORS.onSurfaceVariant} />
+          {!showBack && (
+            <Ionicons name="notifications-outline" size={24} color={COLORS.onSurfaceVariant} />
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -57,6 +75,13 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     marginLeft: 8,
     letterSpacing: -0.5,
+  },
+  centerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.onSurface,
   },
   iconButton: {
     width: 40,

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+
 import {
   View,
   Text,
@@ -8,6 +9,8 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,13 +21,12 @@ import { SplitSummaryCard } from '../../components/SplitSummaryCard';
 import { ExpenseItem } from '../../components/ExpenseItem';
 import { AddExpenseModal } from '../../components/AddExpenseModal';
 import { EditGroupModal } from '../../components/EditGroupModal';
+
 import {
-  useGroup,
-  useGroupExpenses,
+  useGroupDetail,
   useSettleUp,
   useLeaveGroup,
   useMe,
-  useGroupSettlements,
   getErrorMessage,
   type GroupMember,
 } from '@workspace/api';
@@ -33,17 +35,7 @@ export default function GroupDetailScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: user } = useMe();
-  const { data: group, isLoading, isError, refetch } = useGroup(id);
-  const {
-    data: expensesData,
-    isLoading: expensesLoading,
-    refetch: refetchExpenses,
-  } = useGroupExpenses(id);
-  const {
-    data: settlementsData,
-    isLoading: settlementsLoading,
-    refetch: refetchSettlements,
-  } = useGroupSettlements(id);
+  const { data: detailData, isLoading, isError, refetch } = useGroupDetail(id);
 
   const settleUp = useSettleUp(id);
   const leaveGroup = useLeaveGroup();
@@ -52,11 +44,12 @@ export default function GroupDetailScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [addExpenseVisible, setAddExpenseVisible] = useState(false);
   const [editGroupVisible, setEditGroupVisible] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
   const [settlingUserId, setSettlingUserId] = useState<string | null>(null);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await Promise.all([refetch(), refetchExpenses(), refetchSettlements()]);
+    await refetch();
     setIsRefreshing(false);
   };
 
@@ -122,7 +115,7 @@ export default function GroupDetailScreen() {
     );
   }
 
-  if (isError || !group) {
+  if (isError || !detailData?.group) {
     return (
       <View style={styles.centered}>
         <Ionicons name="alert-circle-outline" size={48} color={COLORS.error} />
@@ -134,7 +127,9 @@ export default function GroupDetailScreen() {
     );
   }
 
-  const expenses = expensesData?.expenses ?? [];
+  const group = detailData.group;
+  const expenses = detailData.expenses;
+  const settlements = detailData.settlements;
   const myBalance = group.myBalance ?? 0;
   const isAdmin = group.members.find((m) => m.userId === user?.id)?.role === 'admin';
 
@@ -148,13 +143,14 @@ export default function GroupDetailScreen() {
         <Text style={styles.headerTitle} numberOfLines={1}>
           {group.emoji ?? '👥'} {group.name}
         </Text>
-        {isAdmin && (
-          <TouchableOpacity onPress={() => setEditGroupVisible(true)} style={styles.editBtn}>
-            <Ionicons name="pencil-outline" size={20} color={COLORS.outline} />
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity onPress={handleLeaveGroup} style={styles.moreBtn}>
-          <Ionicons name="log-out-outline" size={22} color={COLORS.outline} />
+        <TouchableOpacity
+          onPress={() => router.push(`/groups/${id}/wallet`)}
+          style={styles.walletBtn}
+        >
+          <Ionicons name="wallet-outline" size={22} color={COLORS.onSurface} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setMenuVisible(true)} style={styles.moreBtn}>
+          <Ionicons name="ellipsis-vertical" size={24} color={COLORS.onSurface} />
         </TouchableOpacity>
       </View>
 
@@ -251,9 +247,7 @@ export default function GroupDetailScreen() {
           </View>
 
           {activeTab === 'expenses' ? (
-            expensesLoading ? (
-              <ActivityIndicator color={COLORS.secondary} />
-            ) : expenses.length === 0 ? (
+            expenses.length === 0 ? (
               <View style={styles.emptyExpenses}>
                 <Ionicons name="receipt-outline" size={40} color={COLORS.outlineVariant} />
                 <Text style={styles.emptyExpensesText}>No expenses yet</Text>
@@ -268,9 +262,7 @@ export default function GroupDetailScreen() {
                 ))}
               </View>
             )
-          ) : settlementsLoading ? (
-            <ActivityIndicator color={COLORS.secondary} />
-          ) : (settlementsData?.settlements ?? []).length === 0 ? (
+          ) : settlements.length === 0 ? (
             <View style={styles.emptyExpenses}>
               <Ionicons name="checkmark-circle-outline" size={40} color={COLORS.outlineVariant} />
               <Text style={styles.emptyExpensesText}>No settlements yet</Text>
@@ -280,7 +272,7 @@ export default function GroupDetailScreen() {
             </View>
           ) : (
             <View style={styles.settlementsList}>
-              {(settlementsData?.settlements ?? []).map((s) => {
+              {settlements.map((s) => {
                 const isFromMe = s.fromId === user?.id;
                 const isToMe = s.toId === user?.id;
                 const dateStr = new Date(s.createdAt).toLocaleDateString(undefined, {
@@ -344,9 +336,7 @@ export default function GroupDetailScreen() {
         groupId={id}
         groupName={group.name}
         onSuccess={() => {
-          refetchExpenses();
           refetch();
-          refetchSettlements();
         }}
       />
 
@@ -358,6 +348,41 @@ export default function GroupDetailScreen() {
           refetch();
         }}
       />
+
+      {/* ── Overflow Menu Modal ── */}
+      <Modal
+        visible={menuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <Pressable style={styles.menuOverlay} onPress={() => setMenuVisible(false)}>
+          <View style={[styles.menuContainer, { top: insets.top + 50 }]}>
+            {isAdmin && (
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  setMenuVisible(false);
+                  setEditGroupVisible(true);
+                }}
+              >
+                <Ionicons name="pencil-outline" size={20} color={COLORS.onSurface} />
+                <Text style={styles.menuItemText}>Edit Group</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[styles.menuItem, isAdmin && styles.menuItemBorder]}
+              onPress={() => {
+                setMenuVisible(false);
+                handleLeaveGroup();
+              }}
+            >
+              <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
+              <Text style={[styles.menuItemText, { color: COLORS.error }]}>Leave Group</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -411,6 +436,10 @@ const styles = StyleSheet.create({
   editBtn: {
     padding: 4,
     marginRight: 12,
+  },
+  walletBtn: {
+    padding: 4,
+    marginRight: 8,
   },
   moreBtn: {
     padding: 4,
@@ -532,7 +561,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: COLORS.primaryContainer,
+    backgroundColor: COLORS.primaryFixed,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -597,5 +626,39 @@ const styles = StyleSheet.create({
   fabDisabled: {
     backgroundColor: COLORS.outlineVariant,
     shadowColor: COLORS.outlineVariant,
+  },
+  // Overflow Menu
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  menuContainer: {
+    position: 'absolute',
+    right: 16,
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    minWidth: 160,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    gap: 12,
+  },
+  menuItemBorder: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.surfaceContainer,
+  },
+  menuItemText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.onSurface,
   },
 });

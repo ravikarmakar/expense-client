@@ -12,7 +12,7 @@ interface GroupCardProps {
   onPress?: () => void;
 }
 
-export function GroupCard({
+export const GroupCard = React.memo(function GroupCard({
   name,
   activity,
   memberAvatars,
@@ -68,7 +68,7 @@ export function GroupCard({
       </View>
     </TouchableOpacity>
   );
-}
+});
 
 const styles = StyleSheet.create({
   groupCard: {

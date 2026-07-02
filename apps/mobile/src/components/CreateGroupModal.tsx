@@ -20,31 +20,24 @@ import {
   clientCreateGroupSchema,
   getErrorMessage,
   MAX_GROUP_MEMBERS,
+  GROUP_TYPES,
   type UserSearchResult,
+  type GroupType,
 } from '@workspace/api';
 
-// ─────────────────────────────────────────────────────
-// Group emoji options
-// ─────────────────────────────────────────────────────
-
-const GROUP_EMOJIS = [
-  '👥',
-  '🏠',
-  '✈️',
-  '🍽️',
-  '🎉',
-  '💼',
-  '🏋️',
-  '🎮',
-  '📚',
-  '🌍',
-  '🛒',
-  '🎵',
-  '🏖️',
-  '🚗',
-  '💊',
-  '🐾',
-];
+export const TYPE_EMOJIS: Record<GroupType, string> = {
+  Roommates: '🏠',
+  Travel: '✈️',
+  Friends: '👥',
+  Family: '🏠',
+  Office: '💼',
+  Event: '🎉',
+  Couple: '👥',
+  Study: '📚',
+  'Food / Mess': '🍽️',
+  Gaming: '🎮',
+  Other: '👥',
+};
 
 interface CreateGroupModalProps {
   visible: boolean;
@@ -54,11 +47,320 @@ interface CreateGroupModalProps {
 
 type Step = 'INFO' | 'MEMBERS' | 'REVIEW';
 
+const StepInfo = React.memo(function StepInfo({
+  name,
+  onChangeName,
+  description,
+  onChangeDescription,
+  type,
+  onChangeType,
+  isTypeDropdownOpen,
+  onToggleTypeDropdown,
+  onNext,
+}: {
+  name: string;
+  onChangeName: (t: string) => void;
+  description: string;
+  onChangeDescription: (t: string) => void;
+  type: GroupType;
+  onChangeType: (type: GroupType) => void;
+  isTypeDropdownOpen: boolean;
+  onToggleTypeDropdown: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={styles.stepContent}
+    >
+      <Text style={styles.inputLabel}>Group Name *</Text>
+      <View style={styles.inputRow}>
+        <Ionicons name="people-outline" size={18} color={COLORS.outline} style={styles.inputIcon} />
+        <TextInput
+          style={styles.textInput}
+          value={name}
+          onChangeText={onChangeName}
+          placeholder="e.g. Europe Trip 2024"
+          placeholderTextColor={COLORS.outlineVariant}
+          autoFocus
+          maxLength={50}
+        />
+        <Text style={styles.charCount}>{name.length}/50</Text>
+      </View>
+
+      <Text style={styles.inputLabel}>Description (optional)</Text>
+      <View style={[styles.inputRow, styles.inputRowMultiline]}>
+        <TextInput
+          style={[styles.textInput, styles.textInputMultiline]}
+          value={description}
+          onChangeText={onChangeDescription}
+          placeholder="What is this group for?"
+          placeholderTextColor={COLORS.outlineVariant}
+          multiline
+          numberOfLines={3}
+          maxLength={200}
+        />
+      </View>
+
+      {/* Group Type dropdown */}
+      <Text style={styles.inputLabel}>Group Type</Text>
+      <View style={styles.dropdownWrapper}>
+        <TouchableOpacity
+          style={styles.dropdownHeader}
+          onPress={onToggleTypeDropdown}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.dropdownHeaderText}>
+            {TYPE_EMOJIS[type]} {type}
+          </Text>
+          <Ionicons
+            name={isTypeDropdownOpen ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={COLORS.outline}
+          />
+        </TouchableOpacity>
+
+        {isTypeDropdownOpen && (
+          <View style={styles.dropdownList}>
+            {GROUP_TYPES.map((t) => {
+              const isSelected = type === t;
+              return (
+                <TouchableOpacity
+                  key={t}
+                  style={[styles.dropdownItem, isSelected && styles.dropdownItemActive]}
+                  onPress={() => onChangeType(t)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[styles.dropdownItemLabel, isSelected && styles.dropdownItemLabelActive]}
+                  >
+                    {TYPE_EMOJIS[t]} {t}
+                  </Text>
+                  {isSelected && <Ionicons name="checkmark" size={16} color={COLORS.primary} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+      </View>
+
+      <TouchableOpacity
+        style={[styles.primaryBtn, name.trim().length < 3 && styles.primaryBtnDisabled]}
+        onPress={onNext}
+        disabled={name.trim().length < 3}
+        activeOpacity={0.85}
+      >
+        <Text style={styles.primaryBtnText}>Next: Add Members →</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  );
+});
+
+const StepMembers = React.memo(function StepMembers({
+  searchResults,
+  isSearching,
+  searchQuery,
+  onChangeSearchQuery,
+  selectedMembers,
+  onToggleMember,
+  onNext,
+  onBack,
+}: {
+  searchResults: UserSearchResult[];
+  isSearching: boolean;
+  searchQuery: string;
+  onChangeSearchQuery: (t: string) => void;
+  selectedMembers: UserSearchResult[];
+  onToggleMember: (user: UserSearchResult) => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <View style={styles.membersStep}>
+      <FlatList
+        data={searchResults}
+        keyExtractor={(item) => item.id}
+        style={styles.searchList}
+        keyboardShouldPersistTaps="handled"
+        ListHeaderComponent={
+          <View>
+            {/* Member count badge */}
+            <View style={styles.memberCountRow}>
+              <Text style={styles.memberCountLabel}>
+                Members added ({selectedMembers.length}/{MAX_GROUP_MEMBERS - 1})
+              </Text>
+              {selectedMembers.length > 0 && (
+                <View style={styles.memberAvatarRow}>
+                  {selectedMembers.slice(0, 4).map((m, i) => (
+                    <View key={m.id} style={[styles.memberAvatar, { marginLeft: i > 0 ? -8 : 0 }]}>
+                      <Text style={styles.memberAvatarText}>{m.name.charAt(0).toUpperCase()}</Text>
+                    </View>
+                  ))}
+                  {selectedMembers.length > 4 && (
+                    <View style={[styles.memberAvatar, { marginLeft: -8 }]}>
+                      <Text style={styles.memberAvatarText}>+{selectedMembers.length - 4}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+
+            {/* Search input */}
+            <View style={styles.searchRow}>
+              <Ionicons name="search" size={18} color={COLORS.outline} style={styles.inputIcon} />
+              <TextInput
+                style={styles.textInput}
+                value={searchQuery}
+                onChangeText={onChangeSearchQuery}
+                placeholder="Search by name or email…"
+                placeholderTextColor={COLORS.outlineVariant}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+              {isSearching && <ActivityIndicator size="small" color={COLORS.secondary} />}
+            </View>
+          </View>
+        }
+        ListFooterComponent={
+          /* Actions */
+          <View style={styles.membersActions}>
+            <TouchableOpacity onPress={onNext} style={styles.primaryBtn} activeOpacity={0.85}>
+              <Text style={styles.primaryBtnText}>
+                {selectedMembers.length === 0
+                  ? 'Skip & Review →'
+                  : `Review Group (${selectedMembers.length + 1} members) →`}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+              <Text style={styles.backBtnText}>← Back</Text>
+            </TouchableOpacity>
+          </View>
+        }
+        ListEmptyComponent={
+          searchQuery.length >= 2 && !isSearching ? (
+            <Text style={styles.emptySearchText}>No users found</Text>
+          ) : searchQuery.length < 2 ? (
+            <Text style={styles.emptySearchText}>Type at least 2 characters to search</Text>
+          ) : null
+        }
+        renderItem={({ item }) => {
+          const isAdded = selectedMembers.some((m) => m.id === item.id);
+          return (
+            <TouchableOpacity
+              style={styles.searchResultItem}
+              onPress={() => onToggleMember(item)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.searchResultAvatar}>
+                <Text style={styles.searchResultAvatarText}>
+                  {item.name.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+              <View style={styles.searchResultInfo}>
+                <Text style={styles.searchResultName}>{item.name}</Text>
+                <Text style={styles.searchResultEmail}>{item.email}</Text>
+              </View>
+              <View style={[styles.toggleBtn, isAdded && styles.toggleBtnAdded]}>
+                <Ionicons
+                  name={isAdded ? 'checkmark' : 'add'}
+                  size={18}
+                  color={isAdded ? '#fff' : COLORS.secondary}
+                />
+              </View>
+            </TouchableOpacity>
+          );
+        }}
+      />
+    </View>
+  );
+});
+
+const StepReview = React.memo(function StepReview({
+  name,
+  description,
+  type,
+  selectedMembers,
+  onToggleMember,
+  onSubmit,
+  onBack,
+  isPending,
+}: {
+  name: string;
+  description: string;
+  type: GroupType;
+  selectedMembers: UserSearchResult[];
+  onToggleMember: (user: UserSearchResult) => void;
+  onSubmit: () => void;
+  onBack: () => void;
+  isPending: boolean;
+}) {
+  return (
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.stepContent}>
+      {/* Group preview card */}
+      <View style={styles.reviewCard}>
+        <Text style={styles.reviewEmoji}>{TYPE_EMOJIS[type]}</Text>
+        <Text style={styles.reviewName}>{name}</Text>
+        {description ? <Text style={styles.reviewDescription}>{description}</Text> : null}
+        <View style={styles.reviewMeta}>
+          <Ionicons name="people" size={14} color={COLORS.outline} />
+          <Text style={styles.reviewMetaText}>
+            {selectedMembers.length + 1} member{selectedMembers.length !== 0 ? 's' : ''}
+            {selectedMembers.length === 0 ? ' (just you)' : ''}
+          </Text>
+        </View>
+      </View>
+
+      {/* Member list */}
+      {selectedMembers.length > 0 && (
+        <View style={styles.reviewMemberList}>
+          <Text style={styles.inputLabel}>Members</Text>
+          {selectedMembers.map((m) => (
+            <View key={m.id} style={styles.reviewMemberItem}>
+              <View style={styles.reviewMemberAvatar}>
+                <Text style={styles.reviewMemberAvatarText}>{m.name.charAt(0).toUpperCase()}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.reviewMemberName}>{m.name}</Text>
+                <Text style={styles.reviewMemberEmail}>{m.email}</Text>
+              </View>
+              <TouchableOpacity onPress={() => onToggleMember(m)}>
+                <Ionicons name="close-circle" size={20} color={COLORS.outline} />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
+
+      <TouchableOpacity
+        style={[styles.primaryBtn, isPending && styles.primaryBtnDisabled]}
+        onPress={onSubmit}
+        disabled={isPending}
+        activeOpacity={0.85}
+      >
+        {isPending ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <>
+            <Ionicons name="checkmark-circle" size={20} color="#fff" />
+            <Text style={[styles.primaryBtnText, { marginLeft: 8 }]}>Create Group</Text>
+          </>
+        )}
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+        <Text style={styles.backBtnText}>← Back</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  );
+});
+
 export function CreateGroupModal({ visible, onClose, onSuccess }: CreateGroupModalProps) {
   const [step, setStep] = useState<Step>('INFO');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [emoji, setEmoji] = useState('👥');
+  const [type, setType] = useState<GroupType>('Other');
+  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<UserSearchResult[]>([]);
   const [errorMessage, setErrorMessage] = useState('');
@@ -66,22 +368,23 @@ export function CreateGroupModal({ visible, onClose, onSuccess }: CreateGroupMod
   const createGroup = useCreateGroup();
   const { data: searchResults, isLoading: isSearching } = useSearchUsers(searchQuery);
 
-  const resetForm = () => {
+  const resetForm = React.useCallback(() => {
     setStep('INFO');
     setName('');
     setDescription('');
-    setEmoji('👥');
+    setType('Other');
+    setIsTypeDropdownOpen(false);
     setSearchQuery('');
     setSelectedMembers([]);
     setErrorMessage('');
-  };
+  }, []);
 
-  const handleClose = () => {
+  const handleClose = React.useCallback(() => {
     resetForm();
     onClose();
-  };
+  }, [resetForm, onClose]);
 
-  const handleInfoNext = () => {
+  const handleInfoNext = React.useCallback(() => {
     const validation = clientCreateGroupSchema.pick({ name: true }).safeParse({ name });
     if (!validation.success) {
       setErrorMessage(validation.error.issues[0].message);
@@ -89,28 +392,32 @@ export function CreateGroupModal({ visible, onClose, onSuccess }: CreateGroupMod
     }
     setErrorMessage('');
     setStep('MEMBERS');
-  };
+  }, [name]);
 
-  const toggleMember = (user: UserSearchResult) => {
-    const alreadyAdded = selectedMembers.some((m) => m.id === user.id);
-    if (alreadyAdded) {
-      setSelectedMembers((prev) => prev.filter((m) => m.id !== user.id));
-    } else {
-      if (selectedMembers.length >= MAX_GROUP_MEMBERS - 1) {
-        setErrorMessage(`You can add at most ${MAX_GROUP_MEMBERS - 1} members`);
-        return;
+  const toggleMember = React.useCallback(
+    (user: UserSearchResult) => {
+      const alreadyAdded = selectedMembers.some((m) => m.id === user.id);
+      if (alreadyAdded) {
+        setSelectedMembers((prev) => prev.filter((m) => m.id !== user.id));
+      } else {
+        if (selectedMembers.length >= MAX_GROUP_MEMBERS - 1) {
+          setErrorMessage(`You can add at most ${MAX_GROUP_MEMBERS - 1} members`);
+          return;
+        }
+        setErrorMessage('');
+        setSelectedMembers((prev) => [...prev, user]);
       }
-      setErrorMessage('');
-      setSelectedMembers((prev) => [...prev, user]);
-    }
-  };
+    },
+    [selectedMembers]
+  );
 
-  const handleSubmit = () => {
+  const handleSubmit = React.useCallback(() => {
     setErrorMessage('');
     const validation = clientCreateGroupSchema.safeParse({
       name,
       description: description.trim() || undefined,
-      emoji,
+      emoji: TYPE_EMOJIS[type] || '👥',
+      type,
       memberEmails: selectedMembers.map((m) => m.email),
     });
 
@@ -128,7 +435,44 @@ export function CreateGroupModal({ visible, onClose, onSuccess }: CreateGroupMod
         setErrorMessage(getErrorMessage(err, 'Failed to create group. Please try again.'));
       },
     });
-  };
+  }, [name, description, type, selectedMembers, handleClose, onSuccess]);
+
+  const handleChangeName = React.useCallback(
+    (t: string) => {
+      setName(t);
+      if (errorMessage) setErrorMessage('');
+    },
+    [errorMessage]
+  );
+
+  const handleChangeDescription = React.useCallback((t: string) => {
+    setDescription(t);
+  }, []);
+
+  const handleChangeType = React.useCallback((t: GroupType) => {
+    setType(t);
+    setIsTypeDropdownOpen(false);
+  }, []);
+
+  const handleToggleTypeDropdown = React.useCallback(() => {
+    setIsTypeDropdownOpen((prev) => !prev);
+  }, []);
+
+  const handleChangeSearchQuery = React.useCallback((t: string) => {
+    setSearchQuery(t);
+  }, []);
+
+  const handleGoToMembers = React.useCallback(() => {
+    setStep('MEMBERS');
+  }, []);
+
+  const handleGoToReview = React.useCallback(() => {
+    setStep('REVIEW');
+  }, []);
+
+  const handleGoToInfo = React.useCallback(() => {
+    setStep('INFO');
+  }, []);
 
   const progress = step === 'INFO' ? 1 : step === 'MEMBERS' ? 2 : 3;
 
@@ -172,257 +516,45 @@ export function CreateGroupModal({ visible, onClose, onSuccess }: CreateGroupMod
 
           {/* ── Step 1: Group Info ── */}
           {step === 'INFO' && (
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={styles.stepContent}
-            >
-              {/* Emoji picker */}
-              <Text style={styles.inputLabel}>Group Icon</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.emojiRow}
-              >
-                {GROUP_EMOJIS.map((e) => (
-                  <TouchableOpacity
-                    key={e}
-                    style={[styles.emojiBtn, emoji === e && styles.emojiBtnSelected]}
-                    onPress={() => setEmoji(e)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.emojiText}>{e}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-
-              <Text style={styles.inputLabel}>Group Name *</Text>
-              <View style={styles.inputRow}>
-                <Ionicons
-                  name="people-outline"
-                  size={18}
-                  color={COLORS.outline}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={styles.textInput}
-                  value={name}
-                  onChangeText={(t) => {
-                    setName(t);
-                    if (errorMessage) setErrorMessage('');
-                  }}
-                  placeholder="e.g. Europe Trip 2024"
-                  placeholderTextColor={COLORS.outlineVariant}
-                  autoFocus
-                  maxLength={50}
-                />
-                <Text style={styles.charCount}>{name.length}/50</Text>
-              </View>
-
-              <Text style={styles.inputLabel}>Description (optional)</Text>
-              <View style={[styles.inputRow, styles.inputRowMultiline]}>
-                <TextInput
-                  style={[styles.textInput, styles.textInputMultiline]}
-                  value={description}
-                  onChangeText={setDescription}
-                  placeholder="What is this group for?"
-                  placeholderTextColor={COLORS.outlineVariant}
-                  multiline
-                  numberOfLines={3}
-                  maxLength={200}
-                />
-              </View>
-
-              <TouchableOpacity
-                style={[styles.primaryBtn, name.trim().length < 3 && styles.primaryBtnDisabled]}
-                onPress={handleInfoNext}
-                disabled={name.trim().length < 3}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.primaryBtnText}>Next: Add Members →</Text>
-              </TouchableOpacity>
-            </ScrollView>
+            <StepInfo
+              name={name}
+              onChangeName={handleChangeName}
+              description={description}
+              onChangeDescription={handleChangeDescription}
+              type={type}
+              onChangeType={handleChangeType}
+              isTypeDropdownOpen={isTypeDropdownOpen}
+              onToggleTypeDropdown={handleToggleTypeDropdown}
+              onNext={handleInfoNext}
+            />
           )}
 
           {/* ── Step 2: Add Members ── */}
           {step === 'MEMBERS' && (
-            <View style={styles.membersStep}>
-              <FlatList
-                data={searchResults ?? []}
-                keyExtractor={(item) => item.id}
-                style={styles.searchList}
-                keyboardShouldPersistTaps="handled"
-                ListHeaderComponent={
-                  <View>
-                    {/* Member count badge */}
-                    <View style={styles.memberCountRow}>
-                      <Text style={styles.memberCountLabel}>
-                        Members added ({selectedMembers.length}/{MAX_GROUP_MEMBERS - 1})
-                      </Text>
-                      {selectedMembers.length > 0 && (
-                        <View style={styles.memberAvatarRow}>
-                          {selectedMembers.slice(0, 4).map((m, i) => (
-                            <View
-                              key={m.id}
-                              style={[styles.memberAvatar, { marginLeft: i > 0 ? -8 : 0 }]}
-                            >
-                              <Text style={styles.memberAvatarText}>
-                                {m.name.charAt(0).toUpperCase()}
-                              </Text>
-                            </View>
-                          ))}
-                          {selectedMembers.length > 4 && (
-                            <View style={[styles.memberAvatar, { marginLeft: -8 }]}>
-                              <Text style={styles.memberAvatarText}>
-                                +{selectedMembers.length - 4}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                      )}
-                    </View>
-
-                    {/* Search input */}
-                    <View style={styles.searchRow}>
-                      <Ionicons
-                        name="search"
-                        size={18}
-                        color={COLORS.outline}
-                        style={styles.inputIcon}
-                      />
-                      <TextInput
-                        style={styles.textInput}
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        placeholder="Search by name or email…"
-                        placeholderTextColor={COLORS.outlineVariant}
-                        autoCapitalize="none"
-                        keyboardType="email-address"
-                      />
-                      {isSearching && <ActivityIndicator size="small" color={COLORS.secondary} />}
-                    </View>
-                  </View>
-                }
-                ListFooterComponent={
-                  /* Actions */
-                  <View style={styles.membersActions}>
-                    <TouchableOpacity
-                      onPress={() => setStep('REVIEW')}
-                      style={styles.primaryBtn}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={styles.primaryBtnText}>
-                        {selectedMembers.length === 0
-                          ? 'Skip & Review →'
-                          : `Review Group (${selectedMembers.length + 1} members) →`}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => setStep('INFO')} style={styles.backBtn}>
-                      <Text style={styles.backBtnText}>← Back</Text>
-                    </TouchableOpacity>
-                  </View>
-                }
-                ListEmptyComponent={
-                  searchQuery.length >= 2 && !isSearching ? (
-                    <Text style={styles.emptySearchText}>No users found</Text>
-                  ) : searchQuery.length < 2 ? (
-                    <Text style={styles.emptySearchText}>Type at least 2 characters to search</Text>
-                  ) : null
-                }
-                renderItem={({ item }) => {
-                  const isAdded = selectedMembers.some((m) => m.id === item.id);
-                  return (
-                    <TouchableOpacity
-                      style={styles.searchResultItem}
-                      onPress={() => toggleMember(item)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.searchResultAvatar}>
-                        <Text style={styles.searchResultAvatarText}>
-                          {item.name.charAt(0).toUpperCase()}
-                        </Text>
-                      </View>
-                      <View style={styles.searchResultInfo}>
-                        <Text style={styles.searchResultName}>{item.name}</Text>
-                        <Text style={styles.searchResultEmail}>{item.email}</Text>
-                      </View>
-                      <View style={[styles.toggleBtn, isAdded && styles.toggleBtnAdded]}>
-                        <Ionicons
-                          name={isAdded ? 'checkmark' : 'add'}
-                          size={18}
-                          color={isAdded ? '#fff' : COLORS.secondary}
-                        />
-                      </View>
-                    </TouchableOpacity>
-                  );
-                }}
-              />
-            </View>
+            <StepMembers
+              searchResults={searchResults ?? []}
+              isSearching={isSearching}
+              searchQuery={searchQuery}
+              onChangeSearchQuery={handleChangeSearchQuery}
+              selectedMembers={selectedMembers}
+              onToggleMember={toggleMember}
+              onNext={handleGoToReview}
+              onBack={handleGoToInfo}
+            />
           )}
 
           {/* ── Step 3: Review ── */}
           {step === 'REVIEW' && (
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.stepContent}
-            >
-              {/* Group preview card */}
-              <View style={styles.reviewCard}>
-                <Text style={styles.reviewEmoji}>{emoji}</Text>
-                <Text style={styles.reviewName}>{name}</Text>
-                {description ? <Text style={styles.reviewDescription}>{description}</Text> : null}
-                <View style={styles.reviewMeta}>
-                  <Ionicons name="people" size={14} color={COLORS.outline} />
-                  <Text style={styles.reviewMetaText}>
-                    {selectedMembers.length + 1} member{selectedMembers.length !== 0 ? 's' : ''}
-                    {selectedMembers.length === 0 ? ' (just you)' : ''}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Member list */}
-              {selectedMembers.length > 0 && (
-                <View style={styles.reviewMemberList}>
-                  <Text style={styles.inputLabel}>Members</Text>
-                  {selectedMembers.map((m) => (
-                    <View key={m.id} style={styles.reviewMemberItem}>
-                      <View style={styles.reviewMemberAvatar}>
-                        <Text style={styles.reviewMemberAvatarText}>
-                          {m.name.charAt(0).toUpperCase()}
-                        </Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.reviewMemberName}>{m.name}</Text>
-                        <Text style={styles.reviewMemberEmail}>{m.email}</Text>
-                      </View>
-                      <TouchableOpacity onPress={() => toggleMember(m)}>
-                        <Ionicons name="close-circle" size={20} color={COLORS.outline} />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              <TouchableOpacity
-                style={[styles.primaryBtn, createGroup.isPending && styles.primaryBtnDisabled]}
-                onPress={handleSubmit}
-                disabled={createGroup.isPending}
-                activeOpacity={0.85}
-              >
-                {createGroup.isPending ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <>
-                    <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                    <Text style={[styles.primaryBtnText, { marginLeft: 8 }]}>Create Group</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity onPress={() => setStep('MEMBERS')} style={styles.backBtn}>
-                <Text style={styles.backBtnText}>← Back</Text>
-              </TouchableOpacity>
-            </ScrollView>
+            <StepReview
+              name={name}
+              description={description}
+              type={type}
+              selectedMembers={selectedMembers}
+              onToggleMember={toggleMember}
+              onSubmit={handleSubmit}
+              onBack={handleGoToMembers}
+              isPending={createGroup.isPending}
+            />
           )}
         </View>
       </KeyboardAvoidingView>
@@ -581,6 +713,53 @@ const styles = StyleSheet.create({
   charCount: {
     fontSize: 11,
     color: COLORS.outline,
+  },
+  dropdownWrapper: {
+    marginBottom: 20,
+  },
+  dropdownHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.surfaceContainerLow,
+    height: 52,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
+  },
+  dropdownHeaderText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: COLORS.onSurface,
+  },
+  dropdownList: {
+    marginTop: 6,
+    backgroundColor: COLORS.surfaceContainerLow,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
+    padding: 6,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+  },
+  dropdownItemActive: {
+    backgroundColor: COLORS.surfaceContainer,
+  },
+  dropdownItemLabel: {
+    fontSize: 14,
+    color: COLORS.onSurfaceVariant,
+    fontWeight: '500',
+  },
+  dropdownItemLabelActive: {
+    color: COLORS.primary,
+    fontWeight: '700',
   },
   primaryBtn: {
     flexDirection: 'row',

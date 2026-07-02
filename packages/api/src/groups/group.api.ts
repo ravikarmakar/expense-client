@@ -5,6 +5,7 @@ import {
   userSearchListSchema,
   settleUpSchema,
   settlementListSchema,
+  groupDetailConsolidatedSchema,
   type Group,
   type UserSearchResult,
   type CreateGroupInput,
@@ -12,7 +13,17 @@ import {
   type AddMemberInput,
   type SettleUpInput,
   type Settlement,
+  type GroupDetailConsolidated,
 } from './group.types';
+
+/**
+ * Get consolidated group details (includes group metadata, members list, expenses, and settlements).
+ */
+export const getGroupDetailApi = async (id: string): Promise<GroupDetailConsolidated['data']> => {
+  const { data } = await getApiClient().get<unknown>(`/groups/${id}/detail`);
+  const parsed = groupDetailConsolidatedSchema.parse(data);
+  return parsed.data;
+};
 
 // ─────────────────────────────────────────────────────
 // Group API functions

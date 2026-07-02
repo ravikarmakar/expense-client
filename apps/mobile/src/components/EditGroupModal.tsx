@@ -18,27 +18,24 @@ import {
   useUpdateGroup,
   clientCreateGroupSchema,
   getErrorMessage,
+  GROUP_TYPES,
   type Group,
+  type GroupType,
 } from '@workspace/api';
 
-const GROUP_EMOJIS = [
-  '👥',
-  '🏠',
-  '✈️',
-  '🍽️',
-  '🎉',
-  '💼',
-  '🏋️',
-  '🎮',
-  '📚',
-  '🌍',
-  '🛒',
-  '🎵',
-  '🏖️',
-  '🚗',
-  '💊',
-  '🐾',
-];
+export const TYPE_EMOJIS: Record<GroupType, string> = {
+  Roommates: '🏠',
+  Travel: '✈️',
+  Friends: '👥',
+  Family: '🏠',
+  Office: '💼',
+  Event: '🎉',
+  Couple: '👥',
+  Study: '📚',
+  'Food / Mess': '🍽️',
+  Gaming: '🎮',
+  Other: '👥',
+};
 
 interface EditGroupModalProps {
   visible: boolean;
@@ -50,7 +47,8 @@ interface EditGroupModalProps {
 export function EditGroupModal({ visible, onClose, group, onSuccess }: EditGroupModalProps) {
   const [name, setName] = useState(group.name);
   const [description, setDescription] = useState(group.description ?? '');
-  const [emoji, setEmoji] = useState(group.emoji ?? '👥');
+  const [type, setType] = useState<GroupType>((group.type as GroupType) ?? 'Other');
+  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   const updateGroup = useUpdateGroup();
@@ -60,7 +58,8 @@ export function EditGroupModal({ visible, onClose, group, onSuccess }: EditGroup
     if (visible) {
       setName(group.name);
       setDescription(group.description ?? '');
-      setEmoji(group.emoji ?? '👥');
+      setType((group.type as GroupType) ?? 'Other');
+      setIsTypeDropdownOpen(false);
       setErrorMessage('');
     }
   }, [visible, group]);
@@ -73,11 +72,12 @@ export function EditGroupModal({ visible, onClose, group, onSuccess }: EditGroup
   const handleSubmit = () => {
     setErrorMessage('');
     const validation = clientCreateGroupSchema
-      .pick({ name: true, description: true, emoji: true })
+      .pick({ name: true, description: true, emoji: true, type: true })
       .safeParse({
         name,
         description: description.trim() || undefined,
-        emoji,
+        emoji: TYPE_EMOJIS[type] || '👥',
+        type,
       });
 
     if (!validation.success) {
@@ -90,7 +90,8 @@ export function EditGroupModal({ visible, onClose, group, onSuccess }: EditGroup
         id: group.id,
         name: name.trim(),
         description: description.trim() || undefined,
-        emoji,
+        emoji: TYPE_EMOJIS[type] || '👥',
+        type,
       },
       {
         onSuccess: () => {
@@ -138,25 +139,6 @@ export function EditGroupModal({ visible, onClose, group, onSuccess }: EditGroup
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.stepContent}
           >
-            {/* Emoji picker */}
-            <Text style={styles.inputLabel}>Group Icon</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.emojiRow}
-            >
-              {GROUP_EMOJIS.map((e) => (
-                <TouchableOpacity
-                  key={e}
-                  style={[styles.emojiBtn, emoji === e && styles.emojiBtnSelected]}
-                  onPress={() => setEmoji(e)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.emojiText}>{e}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
             <Text style={styles.inputLabel}>Group Name *</Text>
             <View style={styles.inputRow}>
               <Ionicons
@@ -191,6 +173,56 @@ export function EditGroupModal({ visible, onClose, group, onSuccess }: EditGroup
                 numberOfLines={3}
                 maxLength={200}
               />
+            </View>
+
+            {/* Group Type dropdown */}
+            <Text style={styles.inputLabel}>Group Type</Text>
+            <View style={styles.dropdownWrapper}>
+              <TouchableOpacity
+                style={styles.dropdownHeader}
+                onPress={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.dropdownHeaderText}>
+                  {TYPE_EMOJIS[type]} {type}
+                </Text>
+                <Ionicons
+                  name={isTypeDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                  size={18}
+                  color={COLORS.outline}
+                />
+              </TouchableOpacity>
+
+              {isTypeDropdownOpen && (
+                <View style={styles.dropdownList}>
+                  {GROUP_TYPES.map((t) => {
+                    const isSelected = type === t;
+                    return (
+                      <TouchableOpacity
+                        key={t}
+                        style={[styles.dropdownItem, isSelected && styles.dropdownItemActive]}
+                        onPress={() => {
+                          setType(t);
+                          setIsTypeDropdownOpen(false);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Text
+                          style={[
+                            styles.dropdownItemLabel,
+                            isSelected && styles.dropdownItemLabelActive,
+                          ]}
+                        >
+                          {TYPE_EMOJIS[t]} {t}
+                        </Text>
+                        {isSelected && (
+                          <Ionicons name="checkmark" size={16} color={COLORS.primary} />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
             </View>
 
             <TouchableOpacity
@@ -342,6 +374,53 @@ const styles = StyleSheet.create({
   charCount: {
     fontSize: 11,
     color: COLORS.outline,
+  },
+  dropdownWrapper: {
+    marginBottom: 20,
+  },
+  dropdownHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.surfaceContainerLow,
+    height: 52,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
+  },
+  dropdownHeaderText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: COLORS.onSurface,
+  },
+  dropdownList: {
+    marginTop: 6,
+    backgroundColor: COLORS.surfaceContainerLow,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
+    padding: 6,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+  },
+  dropdownItemActive: {
+    backgroundColor: COLORS.surfaceContainer,
+  },
+  dropdownItemLabel: {
+    fontSize: 14,
+    color: COLORS.onSurfaceVariant,
+    fontWeight: '500',
+  },
+  dropdownItemLabelActive: {
+    color: COLORS.primary,
+    fontWeight: '700',
   },
   primaryBtn: {
     flexDirection: 'row',

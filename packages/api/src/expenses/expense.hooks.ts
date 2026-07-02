@@ -90,6 +90,7 @@ export const useCreateExpense = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['wallet'] });
     },
   });
 };
@@ -104,6 +105,7 @@ export const useCreateGroupExpense = (groupId: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['wallet'] });
     },
   });
 };
@@ -119,6 +121,7 @@ export const useUpdateExpense = () => {
       queryClient.setQueryData(expenseKeys.detail(data.id), data);
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['wallet'] });
     },
   });
 };
@@ -134,6 +137,7 @@ export const useDeleteExpense = () => {
       queryClient.removeQueries({ queryKey: expenseKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['wallet'] });
     },
   });
 };

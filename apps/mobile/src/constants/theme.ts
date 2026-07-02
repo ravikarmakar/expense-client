@@ -30,6 +30,7 @@ export const CATEGORY_ICONS: Record<
   Food: { icon: 'restaurant', lib: 'MaterialIcons', color: '#e65100', bg: '#fff3e0' },
   Transport: { icon: 'directions-car', lib: 'MaterialIcons', color: '#1565c0', bg: '#e3f2fd' },
   Shopping: { icon: 'shopping-bag', lib: 'MaterialIcons', color: '#c62828', bg: '#fce4ec' },
+  Entertainment: { icon: 'movie', lib: 'MaterialIcons', color: '#6a1b9a', bg: '#f3e5f5' },
   Bills: { icon: 'receipt-long', lib: 'MaterialIcons', color: '#2e7d32', bg: '#e8f5e9' },
   Travel: { icon: 'flight', lib: 'MaterialIcons', color: '#00695c', bg: '#e0f7fa' },
   Health: { icon: 'favorite', lib: 'MaterialIcons', color: '#b71c1c', bg: '#ffebee' },

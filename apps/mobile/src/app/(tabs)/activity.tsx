@@ -58,6 +58,7 @@ export default function ActivityTabScreen() {
   const [paidByMe, setPaidByMe] = useState(false);
   const [sortBy, setSortBy] = useState<SortValue>('date-desc');
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
+  const [useWalletOnly, setUseWalletOnly] = useState(false);
   const { data: user } = useMe();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -92,6 +93,7 @@ export default function ActivityTabScreen() {
   } = useExpenses({
     ...(activeFilter !== 'All' && { category: activeFilter }),
     ...(paidByMe && { paidByMe: true }),
+    ...(useWalletOnly && { useWallet: true }),
     ...dateFilter,
   });
 
@@ -141,6 +143,14 @@ export default function ActivityTabScreen() {
                 </TouchableOpacity>
               </View>
             )}
+            {useWalletOnly && (
+              <View style={styles.activeFilterBadge}>
+                <Text style={styles.activeFilterBadgeText}>Wallet</Text>
+                <TouchableOpacity onPress={() => setUseWalletOnly(false)}>
+                  <Ionicons name="close-circle" size={14} color={COLORS.primary} />
+                </TouchableOpacity>
+              </View>
+            )}
             {sortBy !== 'date-desc' && (
               <View style={styles.activeFilterBadge}>
                 <Text style={styles.activeFilterBadgeText}>
@@ -156,29 +166,34 @@ export default function ActivityTabScreen() {
               </View>
             )}
           </View>
-          <TouchableOpacity
-            style={[
-              styles.filterBtn,
-              (activeFilter !== 'All' || sortBy !== 'date-desc' || paidByMe) &&
-                styles.filterBtnActive,
-            ]}
-            onPress={() => setFilterModalVisible(true)}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name={
-                activeFilter !== 'All' || sortBy !== 'date-desc' || paidByMe
-                  ? 'funnel'
-                  : 'funnel-outline'
-              }
-              size={20}
-              color={
-                activeFilter !== 'All' || sortBy !== 'date-desc' || paidByMe
-                  ? '#ffffff'
-                  : COLORS.primary
-              }
-            />
-          </TouchableOpacity>
+          <View style={styles.headerRightActions}>
+            <TouchableOpacity style={styles.searchBtn} activeOpacity={0.8}>
+              <Ionicons name="search-outline" size={20} color={COLORS.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.filterBtn,
+                (activeFilter !== 'All' || sortBy !== 'date-desc' || paidByMe || useWalletOnly) &&
+                  styles.filterBtnActive,
+              ]}
+              onPress={() => setFilterModalVisible(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name={
+                  activeFilter !== 'All' || sortBy !== 'date-desc' || paidByMe || useWalletOnly
+                    ? 'funnel'
+                    : 'funnel-outline'
+                }
+                size={20}
+                color={
+                  activeFilter !== 'All' || sortBy !== 'date-desc' || paidByMe || useWalletOnly
+                    ? '#ffffff'
+                    : COLORS.primary
+                }
+              />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Summary strip */}
@@ -542,6 +557,28 @@ export default function ActivityTabScreen() {
                   </View>
                   {paidByMe && <Ionicons name="checkmark-sharp" size={18} color={COLORS.primary} />}
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.sortItem, useWalletOnly && styles.sortItemActive]}
+                  onPress={() => setUseWalletOnly(!useWalletOnly)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.sortItemLeft}>
+                    <Ionicons
+                      name="wallet"
+                      size={18}
+                      color={useWalletOnly ? COLORS.primary : COLORS.outline}
+                    />
+                    <Text
+                      style={[styles.sortItemLabel, useWalletOnly && styles.sortItemLabelActive]}
+                    >
+                      Paid via Wallet
+                    </Text>
+                  </View>
+                  {useWalletOnly && (
+                    <Ionicons name="checkmark-sharp" size={18} color={COLORS.primary} />
+                  )}
+                </TouchableOpacity>
               </View>
 
               {/* Action Buttons */}
@@ -552,6 +589,7 @@ export default function ActivityTabScreen() {
                     setActiveFilter('All');
                     setDateRange('all-time');
                     setPaidByMe(false);
+                    setUseWalletOnly(false);
                     setSortBy('date-desc');
                     setIsCategoryDropdownOpen(false);
                     setIsDateRangeDropdownOpen(false);
@@ -612,6 +650,26 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: COLORS.primary,
+  },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  searchBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
   },
   filterBtn: {
     width: 44,

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { expenseSchema } from '../expenses/expense.types';
 
 // ─────────────────────────────────────────────────────
 // Group member roles
@@ -6,6 +7,21 @@ import { z } from 'zod';
 
 export const GROUP_MEMBER_ROLES = ['admin', 'member'] as const;
 export type GroupMemberRole = (typeof GROUP_MEMBER_ROLES)[number];
+
+export const GROUP_TYPES = [
+  'Roommates',
+  'Travel',
+  'Friends',
+  'Family',
+  'Office',
+  'Event',
+  'Couple',
+  'Study',
+  'Food / Mess',
+  'Gaming',
+  'Other',
+] as const;
+export type GroupType = (typeof GROUP_TYPES)[number];
 
 // ─────────────────────────────────────────────────────
 // Zod schemas
@@ -27,6 +43,7 @@ export const groupSchema = z.object({
   description: z.string().nullable().optional(),
   image: z.string().nullable().optional(),
   emoji: z.string().optional().default('👥'),
+  type: z.enum(GROUP_TYPES).default('Other'),
   members: z.array(groupMemberSchema),
   totalExpenses: z.number().default(0),
   myBalance: z.number().default(0), // net balance for the logged-in user in this group
@@ -69,8 +86,8 @@ export const settleUpSchema = groupDetailSchema;
 export const settlementSchema = z.object({
   id: z.string(),
   groupId: z.string(),
-  fromId: z.string(),
-  toId: z.string(),
+  fromId: z.string().nullable(),
+  toId: z.string().nullable(),
   amount: z.number(),
   from: z.object({
     userId: z.string(),
@@ -93,6 +110,15 @@ export const settlementListSchema = z.object({
   }),
 });
 
+export const groupDetailConsolidatedSchema = z.object({
+  success: z.boolean(),
+  data: z.object({
+    group: groupSchema,
+    expenses: z.array(expenseSchema),
+    settlements: z.array(settlementSchema),
+  }),
+});
+
 // ─────────────────────────────────────────────────────
 // TypeScript types
 // ─────────────────────────────────────────────────────
@@ -101,6 +127,7 @@ export type GroupMember = z.infer<typeof groupMemberSchema>;
 export type Group = z.infer<typeof groupSchema>;
 export type UserSearchResult = z.infer<typeof userSearchResultSchema>;
 export type Settlement = z.infer<typeof settlementSchema>;
+export type GroupDetailConsolidated = z.infer<typeof groupDetailConsolidatedSchema>;
 
 // ─────────────────────────────────────────────────────
 // Input types for mutations
@@ -110,6 +137,7 @@ export interface CreateGroupInput {
   name: string;
   description?: string;
   emoji?: string;
+  type?: GroupType;
   memberEmails?: string[]; // invite on create
 }
 
@@ -118,6 +146,7 @@ export interface UpdateGroupInput {
   name?: string;
   description?: string;
   emoji?: string;
+  type?: GroupType;
 }
 
 export interface AddMemberInput {

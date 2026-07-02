@@ -11,6 +11,7 @@ import {
   settleUpApi,
   leaveGroupApi,
   getGroupSettlementsApi,
+  getGroupDetailApi,
 } from './group.api';
 import type {
   Group,
@@ -30,6 +31,7 @@ export const groupKeys = {
   list: () => [...groupKeys.lists()] as const,
   details: () => [...groupKeys.all, 'detail'] as const,
   detail: (id: string) => [...groupKeys.details(), id] as const,
+  detailConsolidated: (id: string) => [...groupKeys.detail(id), 'consolidated'] as const,
   search: (q: string) => ['users', 'search', q] as const,
   settlements: (groupId: string) => ['groups', groupId, 'settlements'] as const,
 };
@@ -55,6 +57,17 @@ export const useGroup = (id: string) =>
   useQuery({
     queryKey: groupKeys.detail(id),
     queryFn: () => getGroupApi(id),
+    enabled: !!id,
+    staleTime: 3 * 60 * 1000,
+  });
+
+/**
+ * Fetch consolidated group details (metadata + recent expenses + recent settlements).
+ */
+export const useGroupDetail = (id: string) =>
+  useQuery({
+    queryKey: groupKeys.detailConsolidated(id),
+    queryFn: () => getGroupDetailApi(id),
     enabled: !!id,
     staleTime: 3 * 60 * 1000,
   });
@@ -108,6 +121,7 @@ export const useUpdateGroup = () => {
     mutationFn: updateGroupApi,
     onSuccess: (data) => {
       queryClient.setQueryData(groupKeys.detail(data.id), data);
+      queryClient.invalidateQueries({ queryKey: groupKeys.detailConsolidated(data.id) });
       queryClient.invalidateQueries({ queryKey: groupKeys.lists() });
     },
   });
@@ -122,6 +136,7 @@ export const useDeleteGroup = () => {
     mutationFn: deleteGroupApi,
     onSuccess: (_, id) => {
       queryClient.removeQueries({ queryKey: groupKeys.detail(id) });
+      queryClient.removeQueries({ queryKey: groupKeys.detailConsolidated(id) });
       queryClient.invalidateQueries({ queryKey: groupKeys.lists() });
     },
   });
@@ -136,6 +151,7 @@ export const useAddMember = (groupId: string) => {
     mutationFn: (input) => addMemberApi(groupId, input),
     onSuccess: (data) => {
       queryClient.setQueryData(groupKeys.detail(groupId), data);
+      queryClient.invalidateQueries({ queryKey: groupKeys.detailConsolidated(groupId) });
       queryClient.invalidateQueries({ queryKey: groupKeys.lists() });
     },
   });
@@ -150,6 +166,8 @@ export const useRemoveMember = (groupId: string) => {
     mutationFn: (memberId) => removeMemberApi(groupId, memberId),
     onSuccess: (data) => {
       queryClient.setQueryData(groupKeys.detail(groupId), data);
+      queryClient.invalidateQueries({ queryKey: groupKeys.detailConsolidated(groupId) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.lists() });
     },
   });
 };
@@ -163,6 +181,7 @@ export const useSettleUp = (groupId: string) => {
     mutationFn: (input) => settleUpApi(groupId, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: groupKeys.detail(groupId) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.detailConsolidated(groupId) });
       queryClient.invalidateQueries({ queryKey: groupKeys.lists() });
       queryClient.invalidateQueries({ queryKey: groupKeys.settlements(groupId) });
     },

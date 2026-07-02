@@ -58,9 +58,11 @@ export type {
   AddMemberInput,
   SettleUpInput,
   Settlement,
+  GroupType,
+  GroupDetailConsolidated,
 } from './groups/group.types';
 
-export { MAX_GROUP_MEMBERS, MIN_GROUP_MEMBERS } from './groups/group.types';
+export { MAX_GROUP_MEMBERS, MIN_GROUP_MEMBERS, GROUP_TYPES } from './groups/group.types';
 
 export {
   createGroupApi,
@@ -73,6 +75,7 @@ export {
   searchUsersApi,
   settleUpApi,
   leaveGroupApi,
+  getGroupDetailApi,
 } from './groups/group.api';
 
 export {
@@ -88,6 +91,7 @@ export {
   useSettleUp,
   useLeaveGroup,
   useGroupSettlements,
+  useGroupDetail,
 } from './groups/group.hooks';
 
 export {
@@ -165,6 +169,29 @@ export {
   clientChangePasswordSchema,
   authUserSchema,
   authSessionSchema,
-  authResponseSchema,
   messageResponseSchema,
 } from './auth/auth.validation';
+
+// ── Wallet module ─────────────────────────────────────
+export type {
+  Wallet,
+  WalletTransaction,
+  WalletContribution,
+  SetupWalletInput,
+  UpdateManagerInput,
+  UpdateTargetInput,
+  ContributeInput,
+} from './wallet/wallet.types';
+
+export {
+  useWallet,
+  useSetupWallet,
+  useUpdateWalletManager,
+  useUpdateWalletTarget,
+  useContribute,
+} from './wallet/wallet.hooks';
+
+// ── Dashboard module ──────────────────────────────────
+export type { DashboardData } from './dashboard/dashboard.types';
+export { getDashboardApi } from './dashboard/dashboard.api';
+export { useDashboard, dashboardKeys } from './dashboard/dashboard.hooks';

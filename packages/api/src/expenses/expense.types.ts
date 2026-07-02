@@ -51,6 +51,14 @@ export const expenseSchema = z.object({
   splitMode: z.enum(SPLIT_MODES).nullable().optional(),
   myShare: z.number().nullable().optional(),
   youOwe: z.number().nullable().optional(), // positive = you owe, negative = owed to you
+  isWalletPayment: z.boolean().optional(),
+  group: z
+    .object({
+      name: z.string(),
+      emoji: z.string(),
+    })
+    .nullable()
+    .optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -100,6 +108,8 @@ export interface CreateExpenseInput {
   date: string;
   notes?: string;
   groupId?: string;
+  useWallet?: boolean;
+  splitMemberIds?: string[];
   splitMode?: SplitMode | null;
   splits?: { userId: string; amount: number }[];
 }
@@ -119,6 +129,7 @@ export interface GetExpensesFilter {
   startDate?: string;
   endDate?: string;
   paidByMe?: boolean;
+  useWallet?: boolean;
   page?: number;
   limit?: number;
 }

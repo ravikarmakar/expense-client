@@ -1,7 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useRootNavigationState } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { createApiClient, createQueryClient, useMe, onAuthError } from '@workspace/api';
@@ -23,6 +23,7 @@ const queryClient = createQueryClient();
 function RootLayoutNav() {
   const { data: user, isLoading, isError } = useMe();
   const router = useRouter();
+  const rootNavigationState = useRootNavigationState();
   const queryClient = useQueryClient();
 
   console.warn('[RootLayoutNav] state:', { user, isLoading, isError });
@@ -36,7 +37,7 @@ function RootLayoutNav() {
   }, [queryClient]);
 
   React.useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !rootNavigationState?.key) return;
 
     if (user) {
       if (user.emailVerified === false) {
@@ -47,7 +48,7 @@ function RootLayoutNav() {
     } else {
       router.replace('/(auth)/login');
     }
-  }, [user, isLoading, isError]);
+  }, [user, isLoading, isError, rootNavigationState?.key]);
 
   // Show a loading indicator while we check/fetch session
   if (isLoading) {

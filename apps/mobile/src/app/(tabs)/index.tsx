@@ -10,34 +10,36 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS, PREDEFINED_AVATARS } from '../../constants/theme';
+import { COLORS, CURRENCY_SYMBOL, PREDEFINED_AVATARS } from '../../constants/theme';
 import { globalStyles } from '../../styles/globalStyles';
 import { TopAppBar } from '../../components/TopAppBar';
 import { GroupCard } from '../../components/GroupCard';
-import { HighlightItem } from '../../components/HighlightItem';
+import { ExpenseItem } from '../../components/ExpenseItem';
 import { AddExpenseModal } from '../../components/AddExpenseModal';
-import { useMe, useExpenses, useGroups, useExpensesSummary } from '@workspace/api';
+import { CreateGroupModal } from '../../components/CreateGroupModal';
+import { useDashboard } from '@workspace/api';
 
 export default function HomeTabScreen() {
   const [addExpenseVisible, setAddExpenseVisible] = useState(false);
-  const { data: user } = useMe();
+  const [createGroupVisible, setCreateGroupVisible] = useState(false);
   const {
-    data: expensesData,
+    data: dashboardData,
     isLoading: expensesLoading,
-    refetch: refetchExpenses,
-  } = useExpenses({ limit: 3 });
-  const { data: groups, refetch: refetchGroups } = useGroups();
-  const { data: summary, refetch: refetchSummary } = useExpensesSummary();
+    refetch: refetchDashboard,
+  } = useDashboard();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await Promise.all([refetchExpenses(), refetchGroups(), refetchSummary()]);
+    await refetchDashboard();
     setIsRefreshing(false);
   };
 
-  const expenses = expensesData?.expenses ?? [];
-  const recentGroups = (groups ?? []).slice(0, 2);
+  const user = dashboardData?.user;
+  const expenses = dashboardData?.recentExpenses ?? [];
+  const groups = dashboardData?.groups ?? [];
+  const summary = dashboardData?.stats;
+  const recentGroups = groups.slice(0, 2);
 
   // Compute net balance from groups
   const rawOwed = (groups ?? [])
@@ -184,7 +186,7 @@ export default function HomeTabScreen() {
             <TouchableOpacity
               style={styles.quickActionItem}
               activeOpacity={0.8}
-              onPress={() => router.push('/(tabs)/groups')}
+              onPress={() => setCreateGroupVisible(true)}
             >
               <View style={styles.quickActionIconContainer}>
                 <Ionicons name="people-outline" size={24} color={COLORS.primary} />
@@ -270,24 +272,9 @@ export default function HomeTabScreen() {
               </TouchableOpacity>
             </View>
             <View style={styles.highlightsContainer}>
-              {expenses.map((expense) => {
-                const isMine = expense.paidBy.userId === user?.id;
-                const iconCfg = CATEGORY_ICONS[expense.category] || CATEGORY_ICONS.Other;
-                return (
-                  <HighlightItem
-                    key={expense.id}
-                    title={`${expense.title}`}
-                    subtitle={`${expense.category} · ${new Date(expense.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`}
-                    amount={`${CURRENCY_SYMBOL}${expense.amount.toFixed(2)}`}
-                    secondaryText={isMine ? 'You paid' : `${expense.paidBy.name} paid`}
-                    secondaryTextColor={isMine ? 'green' : 'gray'}
-                    iconName={iconCfg.icon}
-                    iconLib={iconCfg.lib}
-                    iconBgColor={iconCfg.bg}
-                    iconColor={iconCfg.color}
-                  />
-                );
-              })}
+              {expenses.map((expense) => (
+                <ExpenseItem key={expense.id} expense={expense} currentUserId={user?.id} />
+              ))}
             </View>
           </View>
         )}
@@ -323,7 +310,16 @@ export default function HomeTabScreen() {
       <AddExpenseModal
         visible={addExpenseVisible}
         onClose={() => setAddExpenseVisible(false)}
-        onSuccess={refetchExpenses}
+        onSuccess={refetchDashboard}
+      />
+
+      <CreateGroupModal
+        visible={createGroupVisible}
+        onClose={() => setCreateGroupVisible(false)}
+        onSuccess={() => {
+          setCreateGroupVisible(false);
+          refetchDashboard();
+        }}
       />
     </View>
   );
