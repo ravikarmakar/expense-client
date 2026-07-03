@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import {
-  StyleSheet,
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  ActivityIndicator,
-} from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,6 +7,9 @@ import { COLORS, CURRENCY_SYMBOL } from '../../constants/theme';
 import { globalStyles } from '../../styles/globalStyles';
 import { GroupCard } from '../../components/GroupCard';
 import { CreateGroupModal } from '../../components/CreateGroupModal';
+import { LoadingView } from '../../components/LoadingView';
+import { ErrorView } from '../../components/ErrorView';
+import { EmptyState } from '../../components/EmptyState';
 import { useGroups } from '@workspace/api';
 
 export default function GroupsTabScreen() {
@@ -77,36 +72,21 @@ export default function GroupsTabScreen() {
         </View>
 
         {/* Loading state */}
-        {isLoading && (
-          <View style={styles.centered}>
-            <ActivityIndicator size="large" color={COLORS.secondary} />
-          </View>
-        )}
+        {isLoading && <LoadingView />}
 
         {/* Error state */}
-        {isError && (
-          <View style={styles.centered}>
-            <Ionicons name="alert-circle-outline" size={40} color={COLORS.error} />
-            <Text style={styles.errorText}>Failed to load groups</Text>
-            <TouchableOpacity onPress={() => refetch()} style={styles.retryBtn}>
-              <Text style={styles.retryBtnText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        {isError && <ErrorView message="Failed to load groups" onRetry={refetch} />}
 
         {/* Empty state */}
         {!isLoading && !isError && groupList.length === 0 && (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>👥</Text>
-            <Text style={styles.emptyTitle}>No groups yet</Text>
-            <Text style={styles.emptySubtitle}>
-              Create a group to start splitting expenses with friends, roommates, or colleagues.
-            </Text>
-            <TouchableOpacity style={styles.emptyCta} onPress={() => setCreateGroupVisible(true)}>
-              <Ionicons name="add-circle" size={18} color="#fff" />
-              <Text style={styles.emptyCtaText}>Create First Group</Text>
-            </TouchableOpacity>
-          </View>
+          <EmptyState
+            emoji="👥"
+            title="No groups yet"
+            description="Create a group to start splitting expenses with friends, roommates, or colleagues."
+            ctaText="Create First Group"
+            onCtaPress={() => setCreateGroupVisible(true)}
+            ctaIcon="add-circle"
+          />
         )}
 
         {/* Group list */}
@@ -216,50 +196,4 @@ const styles = StyleSheet.create({
   groupsList: {
     gap: 12,
   },
-  centered: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    gap: 12,
-  },
-  errorText: {
-    fontSize: 14,
-    color: COLORS.error,
-    fontWeight: '600',
-  },
-  retryBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-  },
-  retryBtnText: { color: '#fff', fontWeight: '700' },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    gap: 10,
-  },
-  emptyEmoji: { fontSize: 48 },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.onSurface,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    color: COLORS.outline,
-    textAlign: 'center',
-    lineHeight: 20,
-    paddingHorizontal: 16,
-  },
-  emptyCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.secondary,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 20,
-    marginTop: 8,
-  },
-  emptyCtaText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 });

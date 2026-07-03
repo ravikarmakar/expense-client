@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Image,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,6 +7,8 @@ import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../../constants/theme';
 import { globalStyles } from '../../styles/globalStyles';
 import { useExpense } from '@workspace/api/src/expenses/expense.hooks';
 import { TopAppBar } from '../../components/TopAppBar';
+import { LoadingView } from '../../components/LoadingView';
+import { ErrorView } from '../../components/ErrorView';
 
 export default function ExpenseDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -22,23 +16,11 @@ export default function ExpenseDetailScreen() {
   const insets = useSafeAreaInsets();
 
   if (isLoading) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={COLORS.secondary} />
-      </View>
-    );
+    return <LoadingView />;
   }
 
   if (isError || !expense) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <Ionicons name="alert-circle-outline" size={48} color={COLORS.error} />
-        <Text style={styles.errorText}>Failed to load expense details</Text>
-        <TouchableOpacity onPress={() => refetch()} style={styles.retryBtn}>
-          <Text style={styles.retryBtnText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    );
+    return <ErrorView message="Failed to load expense details" onRetry={refetch} />;
   }
 
   const cfg = CATEGORY_ICONS[expense.category] ?? CATEGORY_ICONS.Other;
@@ -198,27 +180,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  centered: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-  },
-  errorText: {
-    fontSize: 16,
-    color: COLORS.error,
-    fontWeight: '600',
-  },
-  retryBtn: {
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    marginTop: 8,
-  },
-  retryBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-  },
+
   heroCard: {
     backgroundColor: COLORS.surface,
     padding: 24,

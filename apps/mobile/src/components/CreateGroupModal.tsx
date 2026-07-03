@@ -2,15 +2,13 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  Modal,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
   FlatList,
+  TextInput,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
@@ -24,6 +22,9 @@ import {
   type UserSearchResult,
   type GroupType,
 } from '@workspace/api';
+import { BottomSheetModal } from './BottomSheetModal';
+import { FormInput } from './FormInput';
+import { DropdownSelector } from './DropdownSelector';
 
 export const TYPE_EMOJIS: Record<GroupType, string> = {
   Roommates: '🏠',
@@ -74,76 +75,47 @@ const StepInfo = React.memo(function StepInfo({
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={styles.stepContent}
     >
-      <Text style={styles.inputLabel}>Group Name *</Text>
-      <View style={styles.inputRow}>
-        <Ionicons name="people-outline" size={18} color={COLORS.outline} style={styles.inputIcon} />
-        <TextInput
-          style={styles.textInput}
-          value={name}
-          onChangeText={onChangeName}
-          placeholder="e.g. Europe Trip 2024"
-          placeholderTextColor={COLORS.outlineVariant}
-          autoFocus
-          maxLength={50}
-        />
-        <Text style={styles.charCount}>{name.length}/50</Text>
-      </View>
+      <FormInput
+        label="Group Name *"
+        value={name}
+        onChangeText={onChangeName}
+        placeholder="e.g. Europe Trip 2024"
+        icon="people-outline"
+        maxLength={50}
+        showCharCount
+        autoFocus
+      />
 
-      <Text style={styles.inputLabel}>Description (optional)</Text>
-      <View style={[styles.inputRow, styles.inputRowMultiline]}>
-        <TextInput
-          style={[styles.textInput, styles.textInputMultiline]}
-          value={description}
-          onChangeText={onChangeDescription}
-          placeholder="What is this group for?"
-          placeholderTextColor={COLORS.outlineVariant}
-          multiline
-          numberOfLines={3}
-          maxLength={200}
-        />
-      </View>
+      <FormInput
+        label="Description (optional)"
+        value={description}
+        onChangeText={onChangeDescription}
+        placeholder="What is this group for?"
+        multiline
+        numberOfLines={3}
+        maxLength={200}
+      />
 
-      {/* Group Type dropdown */}
-      <Text style={styles.inputLabel}>Group Type</Text>
-      <View style={styles.dropdownWrapper}>
-        <TouchableOpacity
-          style={styles.dropdownHeader}
-          onPress={onToggleTypeDropdown}
-          activeOpacity={0.8}
-        >
+      <DropdownSelector
+        label="Group Type"
+        isOpen={isTypeDropdownOpen}
+        onToggle={onToggleTypeDropdown}
+        selectedItem={type}
+        placeholder="Select Type"
+        options={GROUP_TYPES as any}
+        getOptionKey={(item) => item}
+        onSelect={onChangeType}
+        renderHeaderContent={(item) => (
           <Text style={styles.dropdownHeaderText}>
-            {TYPE_EMOJIS[type]} {type}
+            {TYPE_EMOJIS[item]} {item}
           </Text>
-          <Ionicons
-            name={isTypeDropdownOpen ? 'chevron-up' : 'chevron-down'}
-            size={18}
-            color={COLORS.outline}
-          />
-        </TouchableOpacity>
-
-        {isTypeDropdownOpen && (
-          <View style={styles.dropdownList}>
-            {GROUP_TYPES.map((t) => {
-              const isSelected = type === t;
-              return (
-                <TouchableOpacity
-                  key={t}
-                  style={[styles.dropdownItem, isSelected && styles.dropdownItemActive]}
-                  onPress={() => onChangeType(t)}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={[styles.dropdownItemLabel, isSelected && styles.dropdownItemLabelActive]}
-                  >
-                    {TYPE_EMOJIS[t]} {t}
-                  </Text>
-                  {isSelected && <Ionicons name="checkmark" size={16} color={COLORS.primary} />}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
         )}
-      </View>
+        renderOptionContent={(item) => (
+          <Text style={styles.dropdownItemLabel}>
+            {TYPE_EMOJIS[item]} {item}
+          </Text>
+        )}
+      />
 
       <TouchableOpacity
         style={[styles.primaryBtn, name.trim().length < 3 && styles.primaryBtnDisabled]}
@@ -477,88 +449,65 @@ export function CreateGroupModal({ visible, onClose, onSuccess }: CreateGroupMod
   const progress = step === 'INFO' ? 1 : step === 'MEMBERS' ? 2 : 3;
 
   return (
-    <Modal animationType="slide" transparent visible={visible} onRequestClose={handleClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.overlay}
-      >
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleClose} />
+    <BottomSheetModal visible={visible} onClose={handleClose} title="Create Group">
+      {/* Progress */}
+      <View style={styles.progressRow}>
+        {[1, 2, 3].map((n) => (
+          <View key={n} style={[styles.progressDot, n <= progress && styles.progressDotActive]} />
+        ))}
+      </View>
 
-        <View style={styles.sheet}>
-          {/* Handle */}
-          <View style={styles.handle} />
-
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.sheetTitle}>Create Group</Text>
-            <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-              <Ionicons name="close" size={22} color={COLORS.onSurface} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Progress */}
-          <View style={styles.progressRow}>
-            {[1, 2, 3].map((n) => (
-              <View
-                key={n}
-                style={[styles.progressDot, n <= progress && styles.progressDotActive]}
-              />
-            ))}
-          </View>
-
-          {/* Error banner */}
-          {errorMessage ? (
-            <View style={styles.errorBanner}>
-              <Ionicons name="alert-circle" size={16} color={COLORS.error} />
-              <Text style={styles.errorText}>{errorMessage}</Text>
-            </View>
-          ) : null}
-
-          {/* ── Step 1: Group Info ── */}
-          {step === 'INFO' && (
-            <StepInfo
-              name={name}
-              onChangeName={handleChangeName}
-              description={description}
-              onChangeDescription={handleChangeDescription}
-              type={type}
-              onChangeType={handleChangeType}
-              isTypeDropdownOpen={isTypeDropdownOpen}
-              onToggleTypeDropdown={handleToggleTypeDropdown}
-              onNext={handleInfoNext}
-            />
-          )}
-
-          {/* ── Step 2: Add Members ── */}
-          {step === 'MEMBERS' && (
-            <StepMembers
-              searchResults={searchResults ?? []}
-              isSearching={isSearching}
-              searchQuery={searchQuery}
-              onChangeSearchQuery={handleChangeSearchQuery}
-              selectedMembers={selectedMembers}
-              onToggleMember={toggleMember}
-              onNext={handleGoToReview}
-              onBack={handleGoToInfo}
-            />
-          )}
-
-          {/* ── Step 3: Review ── */}
-          {step === 'REVIEW' && (
-            <StepReview
-              name={name}
-              description={description}
-              type={type}
-              selectedMembers={selectedMembers}
-              onToggleMember={toggleMember}
-              onSubmit={handleSubmit}
-              onBack={handleGoToMembers}
-              isPending={createGroup.isPending}
-            />
-          )}
+      {/* Error banner */}
+      {errorMessage ? (
+        <View style={styles.errorBanner}>
+          <Ionicons name="alert-circle" size={16} color={COLORS.error} />
+          <Text style={styles.errorText}>{errorMessage}</Text>
         </View>
-      </KeyboardAvoidingView>
-    </Modal>
+      ) : null}
+
+      {/* ── Step 1: Group Info ── */}
+      {step === 'INFO' && (
+        <StepInfo
+          name={name}
+          onChangeName={handleChangeName}
+          description={description}
+          onChangeDescription={handleChangeDescription}
+          type={type}
+          onChangeType={handleChangeType}
+          isTypeDropdownOpen={isTypeDropdownOpen}
+          onToggleTypeDropdown={handleToggleTypeDropdown}
+          onNext={handleInfoNext}
+        />
+      )}
+
+      {/* ── Step 2: Add Members ── */}
+      {step === 'MEMBERS' && (
+        <StepMembers
+          searchResults={searchResults ?? []}
+          isSearching={isSearching}
+          searchQuery={searchQuery}
+          onChangeSearchQuery={handleChangeSearchQuery}
+          selectedMembers={selectedMembers}
+          onToggleMember={toggleMember}
+          onNext={handleGoToReview}
+          onBack={handleGoToInfo}
+        />
+      )}
+
+      {/* ── Step 3: Review ── */}
+      {step === 'REVIEW' && (
+        <StepReview
+          name={name}
+          description={description}
+          type={type}
+          selectedMembers={selectedMembers}
+          onToggleMember={toggleMember}
+          onSubmit={handleSubmit}
+          onBack={handleGoToMembers}
+          isPending={createGroup.isPending}
+        />
+      )}
+    </BottomSheetModal>
   );
 }
 

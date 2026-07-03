@@ -7,7 +7,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  ActivityIndicator,
   Alert,
   Modal,
   Pressable,
@@ -21,6 +20,9 @@ import { SplitSummaryCard } from '../../components/SplitSummaryCard';
 import { ExpenseItem } from '../../components/ExpenseItem';
 import { AddExpenseModal } from '../../components/AddExpenseModal';
 import { EditGroupModal } from '../../components/EditGroupModal';
+import { LoadingView } from '../../components/LoadingView';
+import { ErrorView } from '../../components/ErrorView';
+import { EmptyState } from '../../components/EmptyState';
 
 import {
   useGroupDetail,
@@ -108,23 +110,11 @@ export default function GroupDetailScreen() {
   };
 
   if (isLoading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={COLORS.secondary} />
-      </View>
-    );
+    return <LoadingView />;
   }
 
   if (isError || !detailData?.group) {
-    return (
-      <View style={styles.centered}>
-        <Ionicons name="alert-circle-outline" size={48} color={COLORS.error} />
-        <Text style={styles.errorText}>Failed to load group</Text>
-        <TouchableOpacity onPress={() => refetch()} style={styles.retryBtn}>
-          <Text style={styles.retryBtnText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    );
+    return <ErrorView message="Failed to load group" onRetry={refetch} />;
   }
 
   const group = detailData.group;
@@ -248,13 +238,11 @@ export default function GroupDetailScreen() {
 
           {activeTab === 'expenses' ? (
             expenses.length === 0 ? (
-              <View style={styles.emptyExpenses}>
-                <Ionicons name="receipt-outline" size={40} color={COLORS.outlineVariant} />
-                <Text style={styles.emptyExpensesText}>No expenses yet</Text>
-                <Text style={styles.emptyExpensesSubText}>
-                  Add the first expense to start splitting!
-                </Text>
-              </View>
+              <EmptyState
+                icon="receipt-outline"
+                title="No expenses yet"
+                description="Add the first expense to start splitting!"
+              />
             ) : (
               <View style={styles.expensesList}>
                 {expenses.map((expense) => (
@@ -263,13 +251,11 @@ export default function GroupDetailScreen() {
               </View>
             )
           ) : settlements.length === 0 ? (
-            <View style={styles.emptyExpenses}>
-              <Ionicons name="checkmark-circle-outline" size={40} color={COLORS.outlineVariant} />
-              <Text style={styles.emptyExpensesText}>No settlements yet</Text>
-              <Text style={styles.emptyExpensesSubText}>
-                Payments between members will show up here.
-              </Text>
-            </View>
+            <EmptyState
+              icon="checkmark-circle-outline"
+              title="No settlements yet"
+              description="Payments between members will show up here."
+            />
           ) : (
             <View style={styles.settlementsList}>
               {settlements.map((s) => {
@@ -392,28 +378,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    backgroundColor: COLORS.background,
-  },
-  errorText: {
-    fontSize: 15,
-    color: COLORS.error,
-    fontWeight: '600',
-  },
-  retryBtn: {
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-  },
-  retryBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-  },
+
   // Header
   header: {
     flexDirection: 'row',
@@ -585,22 +550,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: COLORS.primary,
-  },
-  emptyExpenses: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    gap: 8,
-  },
-  emptyExpensesText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.onSurfaceVariant,
-  },
-  emptyExpensesSubText: {
-    fontSize: 13,
-    color: COLORS.outline,
-    textAlign: 'center',
-    fontWeight: '500',
   },
   expensesList: {
     gap: 10,

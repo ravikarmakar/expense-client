@@ -17,6 +17,9 @@ import { GroupCard } from '../../components/GroupCard';
 import { ExpenseItem } from '../../components/ExpenseItem';
 import { AddExpenseModal } from '../../components/AddExpenseModal';
 import { CreateGroupModal } from '../../components/CreateGroupModal';
+import { LoadingView } from '../../components/LoadingView';
+import { ErrorView } from '../../components/ErrorView';
+import { EmptyState } from '../../components/EmptyState';
 import { useDashboard } from '@workspace/api';
 
 export default function HomeTabScreen() {
@@ -25,9 +28,18 @@ export default function HomeTabScreen() {
   const {
     data: dashboardData,
     isLoading: expensesLoading,
+    isError,
     refetch: refetchDashboard,
   } = useDashboard();
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  if (expensesLoading && !dashboardData) {
+    return <LoadingView />;
+  }
+
+  if (isError && !dashboardData) {
+    return <ErrorView message="Failed to load dashboard data" onRetry={refetchDashboard} />;
+  }
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -281,20 +293,14 @@ export default function HomeTabScreen() {
 
         {/* Empty state */}
         {expenses.length === 0 && !expensesLoading && recentGroups.length === 0 && (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateEmoji}>💰</Text>
-            <Text style={styles.emptyStateTitle}>Start tracking expenses!</Text>
-            <Text style={styles.emptyStateSubtitle}>
-              Add your first expense or create a group to start splitting costs with friends.
-            </Text>
-            <TouchableOpacity
-              style={styles.emptyStateCta}
-              onPress={() => setAddExpenseVisible(true)}
-            >
-              <Ionicons name="add-circle" size={18} color="#fff" />
-              <Text style={styles.emptyStateCtaText}>Add First Expense</Text>
-            </TouchableOpacity>
-          </View>
+          <EmptyState
+            emoji="💰"
+            title="Start tracking expenses!"
+            description="Add your first expense or create a group to start splitting costs with friends."
+            ctaText="Add First Expense"
+            onCtaPress={() => setAddExpenseVisible(true)}
+            ctaIcon="add-circle"
+          />
         )}
       </ScrollView>
 
@@ -488,39 +494,7 @@ const styles = StyleSheet.create({
   },
   pbHighlight: { paddingBottom: 24 },
   highlightsContainer: { gap: 12 },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    paddingHorizontal: 24,
-    gap: 10,
-  },
-  emptyStateEmoji: { fontSize: 48 },
-  emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.onSurface,
-  },
-  emptyStateSubtitle: {
-    fontSize: 13,
-    color: COLORS.outline,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  emptyStateCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.secondary,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 20,
-    marginTop: 8,
-  },
-  emptyStateCtaText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
-  },
+
   fab: {
     position: 'absolute',
     right: 20,

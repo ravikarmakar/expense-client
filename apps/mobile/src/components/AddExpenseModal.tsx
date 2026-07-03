@@ -2,16 +2,14 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  Modal,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
   Alert,
   Image,
+  TextInput,
+  Platform,
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { COLORS, CURRENCY_SYMBOL, PREDEFINED_AVATARS } from '../constants/theme';
@@ -26,6 +24,8 @@ import {
   useMe,
   useWallet,
 } from '@workspace/api';
+import { BottomSheetModal } from './BottomSheetModal';
+import { FormInput } from './FormInput';
 
 // ─────────────────────────────────────────────────────
 // Category config: icon + colour per category
@@ -470,231 +470,187 @@ export function AddExpenseModal({
   };
 
   return (
-    <Modal animationType="slide" transparent visible={visible} onRequestClose={handleClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.overlay}
-      >
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleClose} />
+    <BottomSheetModal
+      visible={visible}
+      onClose={handleClose}
+      title={!expenseType ? 'Select Expense Type' : 'Add Expense'}
+    >
+      {expenseType === 'GROUP' && (groupId || selectedGroupId) && (
+        <Text style={[styles.groupTag, { paddingHorizontal: 24, marginBottom: 8 }]}>
+          📌 {groupData?.name || groupName || 'Group Expense'}
+        </Text>
+      )}
 
-        <View style={styles.sheet}>
-          {/* Drag handle */}
-          <View style={styles.handle} />
+      {/* Error banner */}
+      {errorMessage ? (
+        <View style={styles.errorBanner}>
+          <Ionicons name="alert-circle" size={16} color={COLORS.error} />
+          <Text style={styles.errorText}>{errorMessage}</Text>
+        </View>
+      ) : null}
 
-          {/* Header */}
-          <View style={styles.header}>
-            <View>
-              {expenseType === 'GROUP' && (groupId || selectedGroupId) && (
-                <Text style={styles.groupTag}>
-                  📌 {groupData?.name || groupName || 'Group Expense'}
-                </Text>
-              )}
-              <Text style={styles.sheetTitle}>
-                {!expenseType ? 'Select Expense Type' : 'Add Expense'}
-              </Text>
+      {/* Content */}
+      {!expenseType ? (
+        <View style={styles.typeSelectionContainer}>
+          <TouchableOpacity
+            style={styles.typeBtn}
+            onPress={() => setExpenseType('PERSONAL')}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.typeIconBg, { backgroundColor: COLORS.primaryFixed }]}>
+              <Ionicons name="person" size={28} color={COLORS.primary} />
             </View>
-            <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-              <Ionicons name="close" size={22} color={COLORS.onSurface} />
+            <View style={styles.typeBtnTextWrapper}>
+              <Text style={styles.typeBtnTitle}>Personal Expense</Text>
+              <Text style={styles.typeBtnSub}>Just for you, not shared.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color={COLORS.outline} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.typeBtn}
+            onPress={() => setExpenseType('GROUP')}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.typeIconBg, { backgroundColor: COLORS.secondaryFixed }]}>
+              <Ionicons name="people" size={28} color={COLORS.secondary} />
+            </View>
+            <View style={styles.typeBtnTextWrapper}>
+              <Text style={styles.typeBtnTitle}>Group Expense</Text>
+              <Text style={styles.typeBtnSub}>Split with friends or family.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color={COLORS.outline} />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <View style={styles.formContainer}>
+            {/* Amount Input */}
+            <View style={styles.amountContainer}>
+              <Text style={styles.currencySymbol}>{CURRENCY_SYMBOL}</Text>
+              <TextInput
+                style={styles.amountInput}
+                value={amount}
+                onChangeText={(t) => {
+                  setErrorMessage('');
+                  // Allow only numbers and one decimal point
+                  if (/^\d*\.?\d{0,2}$/.test(t)) setAmount(t);
+                }}
+                placeholder="0.00"
+                placeholderTextColor={COLORS.outlineVariant}
+                keyboardType="decimal-pad"
+                autoFocus
+              />
+            </View>
+
+            {/* Group Dropdown (only if not passed via props) */}
+            {expenseType === 'GROUP' && !groupId && (
+              <GroupDropdown
+                isOpen={isGroupDropdownOpen}
+                onToggle={handleToggleGroupDropdown}
+                selectedGroupId={selectedGroupId}
+                userGroups={userGroups}
+                onSelect={handleSelectGroup}
+              />
+            )}
+
+            {/* Group Wallet Toggle */}
+            {expenseType === 'GROUP' && walletData && walletData.balance > 0 && (
+              <TouchableOpacity
+                style={styles.walletToggleCard}
+                activeOpacity={0.8}
+                onPress={() => setUseWalletBalance(!useWalletBalance)}
+              >
+                <View style={styles.walletToggleIcon}>
+                  <Ionicons name="wallet" size={24} color={COLORS.primary} />
+                </View>
+                <View style={styles.walletToggleInfo}>
+                  <Text style={styles.walletToggleTitle}>Pay from Group Wallet</Text>
+                  <Text style={styles.walletToggleBalance}>
+                    Balance: {CURRENCY_SYMBOL}
+                    {walletData.balance.toFixed(2)}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.walletToggleCheckbox,
+                    useWalletBalance && styles.walletToggleCheckboxActive,
+                  ]}
+                >
+                  {useWalletBalance && <Ionicons name="checkmark" size={16} color="#fff" />}
+                </View>
+              </TouchableOpacity>
+            )}
+
+            {/* Member Selector for Group Expense */}
+            {expenseType === 'GROUP' && groupMembers.length > 0 && (
+              <MembersSelector
+                groupMembers={groupMembers as SelectorGroupMember[]}
+                sortedGroupMembers={sortedGroupMembers as SelectorGroupMember[]}
+                splitMemberIds={splitMemberIds}
+                currentUser={currentUser as { id: string } | null}
+                onToggleMember={toggleMember}
+              />
+            )}
+
+            {/* Category Dropdown */}
+            <CategoryDropdown
+              isOpen={isCategoryDropdownOpen}
+              onToggle={handleToggleCategoryDropdown}
+              category={category}
+              onSelect={handleSelectCategory}
+            />
+
+            <FormInput
+              label="Title *"
+              value={title}
+              onChangeText={setTitle}
+              placeholder="e.g. Dinner at Taj"
+              icon="pencil-outline"
+            />
+
+            <FormInput
+              label="Date"
+              value={date}
+              onChangeText={setDate}
+              placeholder="YYYY-MM-DD"
+              icon="calendar-outline"
+              keyboardType="numbers-and-punctuation"
+            />
+
+            <FormInput
+              label="Notes (optional)"
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="Add any notes…"
+              multiline
+              numberOfLines={3}
+            />
+
+            <TouchableOpacity
+              style={[
+                styles.primaryBtn,
+                styles.submitBtn,
+                (!title.trim() || !category || !amount || createExpense.isPending) &&
+                  styles.primaryBtnDisabled,
+              ]}
+              onPress={handleSubmit}
+              disabled={!title.trim() || !category || !amount || createExpense.isPending}
+              activeOpacity={0.85}
+            >
+              {createExpense.isPending ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                  <Text style={[styles.primaryBtnText, { marginLeft: 8 }]}>Add Expense</Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
-
-          {/* Error banner */}
-          {errorMessage ? (
-            <View style={styles.errorBanner}>
-              <Ionicons name="alert-circle" size={16} color={COLORS.error} />
-              <Text style={styles.errorText}>{errorMessage}</Text>
-            </View>
-          ) : null}
-
-          {/* Content */}
-          {!expenseType ? (
-            <View style={styles.typeSelectionContainer}>
-              <TouchableOpacity
-                style={styles.typeBtn}
-                onPress={() => setExpenseType('PERSONAL')}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.typeIconBg, { backgroundColor: COLORS.primaryFixed }]}>
-                  <Ionicons name="person" size={28} color={COLORS.primary} />
-                </View>
-                <View style={styles.typeBtnTextWrapper}>
-                  <Text style={styles.typeBtnTitle}>Personal Expense</Text>
-                  <Text style={styles.typeBtnSub}>Just for you, not shared.</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={24} color={COLORS.outline} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.typeBtn}
-                onPress={() => setExpenseType('GROUP')}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.typeIconBg, { backgroundColor: COLORS.secondaryFixed }]}>
-                  <Ionicons name="people" size={28} color={COLORS.secondary} />
-                </View>
-                <View style={styles.typeBtnTextWrapper}>
-                  <Text style={styles.typeBtnTitle}>Group Expense</Text>
-                  <Text style={styles.typeBtnSub}>Split with friends or family.</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={24} color={COLORS.outline} />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <View style={styles.formContainer}>
-                {/* Amount Input */}
-                <View style={styles.amountContainer}>
-                  <Text style={styles.currencySymbol}>{CURRENCY_SYMBOL}</Text>
-                  <TextInput
-                    style={styles.amountInput}
-                    value={amount}
-                    onChangeText={(t) => {
-                      setErrorMessage('');
-                      // Allow only numbers and one decimal point
-                      if (/^\d*\.?\d{0,2}$/.test(t)) setAmount(t);
-                    }}
-                    placeholder="0.00"
-                    placeholderTextColor={COLORS.outlineVariant}
-                    keyboardType="decimal-pad"
-                    autoFocus
-                  />
-                </View>
-
-                {/* Group Dropdown (only if not passed via props) */}
-                {expenseType === 'GROUP' && !groupId && (
-                  <GroupDropdown
-                    isOpen={isGroupDropdownOpen}
-                    onToggle={handleToggleGroupDropdown}
-                    selectedGroupId={selectedGroupId}
-                    userGroups={userGroups}
-                    onSelect={handleSelectGroup}
-                  />
-                )}
-
-                {/* Group Wallet Toggle */}
-                {expenseType === 'GROUP' && walletData && walletData.balance > 0 && (
-                  <TouchableOpacity
-                    style={styles.walletToggleCard}
-                    activeOpacity={0.8}
-                    onPress={() => setUseWalletBalance(!useWalletBalance)}
-                  >
-                    <View style={styles.walletToggleIcon}>
-                      <Ionicons name="wallet" size={24} color={COLORS.primary} />
-                    </View>
-                    <View style={styles.walletToggleInfo}>
-                      <Text style={styles.walletToggleTitle}>Pay from Group Wallet</Text>
-                      <Text style={styles.walletToggleBalance}>
-                        Balance: {CURRENCY_SYMBOL}
-                        {walletData.balance.toFixed(2)}
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.walletToggleCheckbox,
-                        useWalletBalance && styles.walletToggleCheckboxActive,
-                      ]}
-                    >
-                      {useWalletBalance && <Ionicons name="checkmark" size={16} color="#fff" />}
-                    </View>
-                  </TouchableOpacity>
-                )}
-
-                {/* Member Selector for Group Expense */}
-                {expenseType === 'GROUP' && groupMembers.length > 0 && (
-                  <MembersSelector
-                    groupMembers={groupMembers as SelectorGroupMember[]}
-                    sortedGroupMembers={sortedGroupMembers as SelectorGroupMember[]}
-                    splitMemberIds={splitMemberIds}
-                    currentUser={currentUser as { id: string } | null}
-                    onToggleMember={toggleMember}
-                  />
-                )}
-
-                {/* Category Dropdown */}
-                <CategoryDropdown
-                  isOpen={isCategoryDropdownOpen}
-                  onToggle={handleToggleCategoryDropdown}
-                  category={category}
-                  onSelect={handleSelectCategory}
-                />
-
-                {/* Title */}
-                <Text style={styles.inputLabel}>Title *</Text>
-                <View style={styles.inputRow}>
-                  <Ionicons
-                    name="pencil-outline"
-                    size={18}
-                    color={COLORS.outline}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={styles.textInput}
-                    value={title}
-                    onChangeText={setTitle}
-                    placeholder="e.g. Dinner at Taj"
-                    placeholderTextColor={COLORS.outlineVariant}
-                  />
-                </View>
-
-                {/* Date */}
-                <Text style={styles.inputLabel}>Date</Text>
-                <View style={styles.inputRow}>
-                  <Ionicons
-                    name="calendar-outline"
-                    size={18}
-                    color={COLORS.outline}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={styles.textInput}
-                    value={date}
-                    onChangeText={setDate}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor={COLORS.outlineVariant}
-                    keyboardType="numbers-and-punctuation"
-                  />
-                </View>
-
-                {/* Notes */}
-                <Text style={styles.inputLabel}>Notes (optional)</Text>
-                <View style={[styles.inputRow, styles.inputRowMultiline]}>
-                  <TextInput
-                    style={[styles.textInput, styles.textInputMultiline]}
-                    value={notes}
-                    onChangeText={setNotes}
-                    placeholder="Add any notes…"
-                    placeholderTextColor={COLORS.outlineVariant}
-                    multiline
-                    numberOfLines={3}
-                  />
-                </View>
-
-                <TouchableOpacity
-                  style={[
-                    styles.primaryBtn,
-                    styles.submitBtn,
-                    (!title.trim() || !category || !amount || createExpense.isPending) &&
-                      styles.primaryBtnDisabled,
-                  ]}
-                  onPress={handleSubmit}
-                  disabled={!title.trim() || !category || !amount || createExpense.isPending}
-                  activeOpacity={0.85}
-                >
-                  {createExpense.isPending ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <>
-                      <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                      <Text style={[styles.primaryBtnText, { marginLeft: 8 }]}>Add Expense</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          )}
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+        </ScrollView>
+      )}
+    </BottomSheetModal>
   );
 }
 

@@ -2,15 +2,12 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  Modal,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
@@ -22,6 +19,9 @@ import {
   type Group,
   type GroupType,
 } from '@workspace/api';
+import { BottomSheetModal } from './BottomSheetModal';
+import { FormInput } from './FormInput';
+import { DropdownSelector } from './DropdownSelector';
 
 export const TYPE_EMOJIS: Record<GroupType, string> = {
   Roommates: '🏠',
@@ -107,146 +107,87 @@ export function EditGroupModal({ visible, onClose, group, onSuccess }: EditGroup
   };
 
   return (
-    <Modal animationType="slide" transparent visible={visible} onRequestClose={handleClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.overlay}
-      >
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleClose} />
-
-        <View style={styles.sheet}>
-          {/* Handle */}
-          <View style={styles.handle} />
-
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.sheetTitle}>Edit Group</Text>
-            <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-              <Ionicons name="close" size={22} color={COLORS.onSurface} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Error banner */}
-          {errorMessage ? (
-            <View style={styles.errorBanner}>
-              <Ionicons name="alert-circle" size={16} color={COLORS.error} />
-              <Text style={styles.errorText}>{errorMessage}</Text>
-            </View>
-          ) : null}
-
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={styles.stepContent}
-          >
-            <Text style={styles.inputLabel}>Group Name *</Text>
-            <View style={styles.inputRow}>
-              <Ionicons
-                name="people-outline"
-                size={18}
-                color={COLORS.outline}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.textInput}
-                value={name}
-                onChangeText={(t) => {
-                  setName(t);
-                  if (errorMessage) setErrorMessage('');
-                }}
-                placeholder="e.g. Europe Trip 2024"
-                placeholderTextColor={COLORS.outlineVariant}
-                maxLength={50}
-              />
-              <Text style={styles.charCount}>{name.length}/50</Text>
-            </View>
-
-            <Text style={styles.inputLabel}>Description (optional)</Text>
-            <View style={[styles.inputRow, styles.inputRowMultiline]}>
-              <TextInput
-                style={[styles.textInput, styles.textInputMultiline]}
-                value={description}
-                onChangeText={setDescription}
-                placeholder="What is this group for?"
-                placeholderTextColor={COLORS.outlineVariant}
-                multiline
-                numberOfLines={3}
-                maxLength={200}
-              />
-            </View>
-
-            {/* Group Type dropdown */}
-            <Text style={styles.inputLabel}>Group Type</Text>
-            <View style={styles.dropdownWrapper}>
-              <TouchableOpacity
-                style={styles.dropdownHeader}
-                onPress={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.dropdownHeaderText}>
-                  {TYPE_EMOJIS[type]} {type}
-                </Text>
-                <Ionicons
-                  name={isTypeDropdownOpen ? 'chevron-up' : 'chevron-down'}
-                  size={18}
-                  color={COLORS.outline}
-                />
-              </TouchableOpacity>
-
-              {isTypeDropdownOpen && (
-                <View style={styles.dropdownList}>
-                  {GROUP_TYPES.map((t) => {
-                    const isSelected = type === t;
-                    return (
-                      <TouchableOpacity
-                        key={t}
-                        style={[styles.dropdownItem, isSelected && styles.dropdownItemActive]}
-                        onPress={() => {
-                          setType(t);
-                          setIsTypeDropdownOpen(false);
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <Text
-                          style={[
-                            styles.dropdownItemLabel,
-                            isSelected && styles.dropdownItemLabelActive,
-                          ]}
-                        >
-                          {TYPE_EMOJIS[t]} {t}
-                        </Text>
-                        {isSelected && (
-                          <Ionicons name="checkmark" size={16} color={COLORS.primary} />
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              )}
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.primaryBtn,
-                (name.trim().length < 3 || updateGroup.isPending) && styles.primaryBtnDisabled,
-              ]}
-              onPress={handleSubmit}
-              disabled={name.trim().length < 3 || updateGroup.isPending}
-              activeOpacity={0.85}
-            >
-              {updateGroup.isPending ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                  <Text style={[styles.primaryBtnText, { marginLeft: 8 }]}>Save Changes</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </ScrollView>
+    <BottomSheetModal visible={visible} onClose={handleClose} title="Edit Group">
+      {/* Error banner */}
+      {errorMessage ? (
+        <View style={styles.errorBanner}>
+          <Ionicons name="alert-circle" size={16} color={COLORS.error} />
+          <Text style={styles.errorText}>{errorMessage}</Text>
         </View>
-      </KeyboardAvoidingView>
-    </Modal>
+      ) : null}
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.stepContent}
+      >
+        <FormInput
+          label="Group Name *"
+          value={name}
+          onChangeText={(t) => {
+            setName(t);
+            if (errorMessage) setErrorMessage('');
+          }}
+          placeholder="e.g. Europe Trip 2024"
+          icon="people-outline"
+          maxLength={50}
+          showCharCount
+        />
+
+        <FormInput
+          label="Description (optional)"
+          value={description}
+          onChangeText={setDescription}
+          placeholder="What is this group for?"
+          multiline
+          numberOfLines={3}
+          maxLength={200}
+        />
+
+        <DropdownSelector
+          label="Group Type"
+          isOpen={isTypeDropdownOpen}
+          onToggle={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
+          selectedItem={type}
+          placeholder="Select Type"
+          options={GROUP_TYPES as any}
+          getOptionKey={(item) => item}
+          onSelect={(item) => {
+            setType(item);
+            setIsTypeDropdownOpen(false);
+          }}
+          renderHeaderContent={(item) => (
+            <Text style={styles.dropdownHeaderText}>
+              {TYPE_EMOJIS[item]} {item}
+            </Text>
+          )}
+          renderOptionContent={(item) => (
+            <Text style={styles.dropdownItemLabel}>
+              {TYPE_EMOJIS[item]} {item}
+            </Text>
+          )}
+        />
+
+        <TouchableOpacity
+          style={[
+            styles.primaryBtn,
+            (name.trim().length < 3 || updateGroup.isPending) && styles.primaryBtnDisabled,
+          ]}
+          onPress={handleSubmit}
+          disabled={name.trim().length < 3 || updateGroup.isPending}
+          activeOpacity={0.85}
+        >
+          {updateGroup.isPending ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <Ionicons name="checkmark-circle" size={20} color="#fff" />
+              <Text style={[styles.primaryBtnText, { marginLeft: 8 }]}>Save Changes</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
+    </BottomSheetModal>
   );
 }
 

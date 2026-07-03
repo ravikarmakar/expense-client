@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  ActivityIndicator,
   Modal,
   Platform,
 } from 'react-native';
@@ -16,6 +15,9 @@ import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../../constants/theme';
 import { globalStyles } from '../../styles/globalStyles';
 import { ExpenseItem } from '../../components/ExpenseItem';
 import { AddExpenseModal } from '../../components/AddExpenseModal';
+import { LoadingView } from '../../components/LoadingView';
+import { ErrorView } from '../../components/ErrorView';
+import { EmptyState } from '../../components/EmptyState';
 import { useExpenses, useMe, type ExpenseCategory } from '@workspace/api';
 
 const FILTER_TABS: Array<{ label: string; value: ExpenseCategory | 'All' }> = [
@@ -217,40 +219,26 @@ export default function ActivityTabScreen() {
         )}
 
         {/* Loading */}
-        {isLoading && (
-          <View style={styles.centered}>
-            <ActivityIndicator size="large" color={COLORS.secondary} />
-          </View>
-        )}
+        {isLoading && <LoadingView />}
 
         {/* Error */}
-        {isError && (
-          <View style={styles.centered}>
-            <Ionicons name="alert-circle-outline" size={40} color={COLORS.error} />
-            <Text style={styles.errorText}>Failed to load expenses</Text>
-            <TouchableOpacity onPress={() => refetch()} style={styles.retryBtn}>
-              <Text style={styles.retryBtnText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        {isError && <ErrorView message="Failed to load expenses" onRetry={refetch} />}
 
         {/* Empty */}
         {!isLoading && !isError && sortedExpenses.length === 0 && (
-          <View style={styles.emptyState}>
-            <MaterialIcons name="receipt-long" size={48} color={COLORS.outlineVariant} />
-            <Text style={styles.emptyTitle}>No expenses yet</Text>
-            <Text style={styles.emptySubtitle}>
-              {activeFilter !== 'All'
+          <EmptyState
+            icon="receipt-long"
+            iconLib="MaterialIcons"
+            title="No expenses yet"
+            description={
+              activeFilter !== 'All'
                 ? `No ${activeFilter} expenses found.`
-                : 'Add your first expense to start tracking!'}
-            </Text>
-            {activeFilter === 'All' && (
-              <TouchableOpacity style={styles.emptyCta} onPress={() => setAddExpenseVisible(true)}>
-                <Ionicons name="add-circle" size={18} color="#fff" />
-                <Text style={styles.emptyCtaText}>Add Expense</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+                : 'Add your first expense to start tracking!'
+            }
+            ctaText={activeFilter === 'All' ? 'Add Expense' : undefined}
+            onCtaPress={activeFilter === 'All' ? () => setAddExpenseVisible(true) : undefined}
+            ctaIcon="add-circle"
+          />
         )}
 
         {/* Expense list */}
@@ -920,44 +908,4 @@ const styles = StyleSheet.create({
     color: COLORS.onSurface,
   },
   activityFeed: { gap: 10 },
-  centered: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    gap: 12,
-  },
-  errorText: { fontSize: 14, color: COLORS.error, fontWeight: '600' },
-  retryBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-  },
-  retryBtnText: { color: '#fff', fontWeight: '700' },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    gap: 10,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.onSurfaceVariant,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    color: COLORS.outline,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  emptyCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.secondary,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 20,
-    marginTop: 4,
-  },
-  emptyCtaText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 });

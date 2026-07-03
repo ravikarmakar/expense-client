@@ -27,6 +27,9 @@ import {
   type WalletContribution,
   type WalletTransaction,
 } from '@workspace/api';
+import { LoadingView } from '../../../components/LoadingView';
+import { ErrorView } from '../../../components/ErrorView';
+import { EmptyState } from '../../../components/EmptyState';
 
 export default function WalletScreen() {
   const insets = useSafeAreaInsets();
@@ -111,15 +114,15 @@ export default function WalletScreen() {
 
   // ── Loading ──
   if (isLoading) {
-    return (
-      <View style={styles.fullCentered}>
-        <ActivityIndicator size="large" color={COLORS.secondary} />
-      </View>
-    );
+    return <LoadingView />;
   }
 
   // ── Error ──
   if (isError) {
+    const errorMsg =
+      (error as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+      (error as Error)?.message ||
+      'Failed to load wallet';
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={[styles.header, { paddingTop: insets.top, height: 56 + insets.top }]}>
@@ -128,17 +131,7 @@ export default function WalletScreen() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Group Wallet</Text>
         </View>
-        <View style={styles.centeredContent}>
-          <Ionicons name="alert-circle-outline" size={40} color={COLORS.error} />
-          <Text style={styles.errorText}>
-            {(error as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-              (error as Error)?.message ||
-              'Failed to load wallet'}
-          </Text>
-          <TouchableOpacity onPress={() => refetch()} style={styles.retryBtn}>
-            <Text style={styles.retryBtnText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
+        <ErrorView message={errorMsg} onRetry={refetch} />
       </View>
     );
   }
@@ -153,49 +146,36 @@ export default function WalletScreen() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Group Wallet</Text>
         </View>
-        <View style={styles.centeredContent}>
-          <View style={styles.setupIconBg}>
-            <Ionicons name="wallet-outline" size={48} color={COLORS.outlineVariant} />
-          </View>
-          <Text style={styles.setupTitle}>No Group Wallet</Text>
-          <Text style={styles.setupSub}>
-            Set up a shared fund to collect contributions and pay group expenses directly.
-          </Text>
-          {isOwner && (
-            <TouchableOpacity
-              style={[styles.setupBtn, setupWallet.isPending && styles.btnDisabled]}
-              disabled={setupWallet.isPending}
-              onPress={() => {
-                setupWallet.mutate(
-                  {
-                    walletManagerId: user!.id,
-                    targetContribution: 500,
-                  },
-                  {
-                    onSuccess: () => refetch(),
-                    onError: (err: unknown) => {
-                      const apiErr = err as { response?: { data?: { error?: string } } };
-                      const errorMsg =
-                        apiErr.response?.data?.error ||
-                        (err as Error).message ||
-                        'Failed to setup wallet';
-                      Alert.alert('Error', errorMsg);
+        <EmptyState
+          icon="wallet-outline"
+          title="No Group Wallet"
+          description="Set up a shared fund to collect contributions and pay group expenses directly."
+          ctaText={isOwner ? 'Set Up Wallet' : undefined}
+          ctaIcon="add-circle-outline"
+          onCtaPress={
+            isOwner
+              ? () => {
+                  setupWallet.mutate(
+                    {
+                      walletManagerId: user!.id,
+                      targetContribution: 500,
                     },
-                  }
-                );
-              }}
-            >
-              {setupWallet.isPending ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <>
-                  <Ionicons name="add-circle-outline" size={20} color="#fff" />
-                  <Text style={styles.setupBtnText}>Set Up Wallet</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
-        </View>
+                    {
+                      onSuccess: () => refetch(),
+                      onError: (err: unknown) => {
+                        const apiErr = err as { response?: { data?: { error?: string } } };
+                        const errorMsg =
+                          apiErr.response?.data?.error ||
+                          (err as Error).message ||
+                          'Failed to setup wallet';
+                        Alert.alert('Error', errorMsg);
+                      },
+                    }
+                  );
+                }
+              : undefined
+          }
+        />
       </View>
     );
   }
@@ -370,10 +350,11 @@ export default function WalletScreen() {
         <Text style={[styles.sectionTitle, { marginTop: 28 }]}>Transaction History</Text>
         <View style={styles.historyList}>
           {wallet.transactions.length === 0 ? (
-            <View style={styles.emptyHistory}>
-              <Ionicons name="receipt-outline" size={32} color={COLORS.outlineVariant} />
-              <Text style={styles.emptyHistoryText}>No transactions yet.</Text>
-            </View>
+            <EmptyState
+              icon="receipt-outline"
+              title="No transactions yet"
+              description="Contributions and payments will show up here."
+            />
           ) : (
             wallet.transactions.map((tx: WalletTransaction) => (
               <View key={tx.id} style={styles.txItem}>
@@ -517,19 +498,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  fullCentered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.background,
-  },
-  centeredContent: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 40,
-    gap: 12,
-  },
+
   // Header
   header: {
     flexDirection: 'row',
@@ -557,62 +526,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   // Error
-  errorText: {
-    fontSize: 14,
-    color: COLORS.error,
-    textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 16,
-  },
-  retryBtn: {
-    backgroundColor: COLORS.secondaryFixed,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  retryBtnText: {
-    color: COLORS.secondary,
-    fontWeight: '700',
-  },
-  // Setup
-  setupIconBg: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.surfaceContainer,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  setupTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.onSurface,
-  },
-  setupSub: {
-    fontSize: 14,
-    color: COLORS.outline,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  setupBtn: {
-    marginTop: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.secondary,
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  setupBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 15,
-  },
-  btnDisabled: {
-    opacity: 0.6,
-  },
+
   // Balance Card
   balanceCard: {
     backgroundColor: COLORS.primary,
@@ -822,16 +736,6 @@ const styles = StyleSheet.create({
   historyList: {
     gap: 10,
     paddingBottom: 20,
-  },
-  emptyHistory: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    gap: 8,
-  },
-  emptyHistoryText: {
-    color: COLORS.outline,
-    fontStyle: 'italic',
-    fontSize: 14,
   },
   txItem: {
     flexDirection: 'row',
