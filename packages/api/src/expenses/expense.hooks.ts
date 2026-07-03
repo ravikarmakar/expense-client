@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import {
   createExpenseApi,
   getExpensesApi,
@@ -38,9 +38,12 @@ export const expenseKeys = {
  * Fetch paginated list of expenses with optional filters.
  */
 export const useExpenses = (filter?: GetExpensesFilter) =>
-  useQuery({
+  useInfiniteQuery({
     queryKey: expenseKeys.list(filter),
-    queryFn: () => getExpensesApi(filter),
+    queryFn: ({ pageParam }) =>
+      getExpensesApi({ ...filter, cursor: pageParam as string | undefined }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -91,6 +94,7 @@ export const useCreateExpense = () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: ['groups'] });
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 };
@@ -106,6 +110,7 @@ export const useCreateGroupExpense = (groupId: string) => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: ['groups'] });
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 };
@@ -122,6 +127,7 @@ export const useUpdateExpense = () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: ['groups'] });
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 };
@@ -138,6 +144,7 @@ export const useDeleteExpense = () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: ['groups'] });
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 };

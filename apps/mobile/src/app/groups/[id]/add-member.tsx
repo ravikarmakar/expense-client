@@ -10,13 +10,16 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../../constants/theme';
 import { useGroup, useAddMember, useSearchUsers, getErrorMessage } from '@workspace/api';
 
 export default function AddMemberScreen() {
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: group } = useGroup(id);
   const [searchQuery, setSearchQuery] = useState('');
@@ -72,7 +75,7 @@ export default function AddMemberScreen() {
       style={styles.container}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top, height: 56 + insets.top }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={COLORS.onSurface} />
         </TouchableOpacity>
@@ -164,25 +167,52 @@ export default function AddMemberScreen() {
               </View>
             ) : null
           }
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.memberItem}
-              onPress={() => handleAddMember(item.email)}
-              activeOpacity={0.7}
-              disabled={isSubmitting}
-            >
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
-              </View>
-              <View style={styles.info}>
-                <Text style={styles.name}>{item.name}</Text>
-                <Text style={styles.email}>{item.email}</Text>
-              </View>
-              <View style={styles.addIconBtn}>
-                <Ionicons name="person-add" size={18} color={COLORS.secondary} />
-              </View>
-            </TouchableOpacity>
-          )}
+          renderItem={({ item }) => {
+            const isAlreadyMember = group?.members.some(
+              (m) => m.email.toLowerCase() === item.email.toLowerCase()
+            );
+            const isAlreadyInvited = group?.invitedEmails?.some(
+              (email) => email.toLowerCase() === item.email.toLowerCase()
+            );
+            const isDisabled = isSubmitting || isAlreadyMember || isAlreadyInvited;
+
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.memberItem,
+                  (isAlreadyMember || isAlreadyInvited) && { opacity: 0.6 },
+                ]}
+                onPress={() => handleAddMember(item.email)}
+                activeOpacity={0.7}
+                disabled={isDisabled}
+              >
+                <View style={styles.avatar}>
+                  {item.image ? (
+                    <Image source={{ uri: item.image }} style={styles.avatarImage} />
+                  ) : (
+                    <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
+                  )}
+                </View>
+                <View style={styles.info}>
+                  <Text style={styles.name}>{item.name}</Text>
+                  <Text style={styles.email}>{item.email}</Text>
+                </View>
+                {isAlreadyMember ? (
+                  <View style={[styles.statusBadge, { backgroundColor: '#e6f4ea' }]}>
+                    <Text style={[styles.statusText, { color: '#137333' }]}>Member</Text>
+                  </View>
+                ) : isAlreadyInvited ? (
+                  <View style={[styles.statusBadge, { backgroundColor: '#feefe3' }]}>
+                    <Text style={[styles.statusText, { color: '#b06000' }]}>Invited</Text>
+                  </View>
+                ) : (
+                  <View style={styles.addIconBtn}>
+                    <Ionicons name="person-add" size={18} color={COLORS.secondary} />
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          }}
         />
       </View>
     </KeyboardAvoidingView>
@@ -197,12 +227,10 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 56,
-    paddingBottom: 16,
+    paddingHorizontal: 20,
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.surfaceContainer,
+    borderBottomColor: '#f1f1f1',
   },
   backBtn: {
     padding: 4,
@@ -225,14 +253,19 @@ const styles = StyleSheet.create({
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surfaceContainerLow,
+    backgroundColor: COLORS.surface,
     borderRadius: 14,
     paddingHorizontal: 14,
-    height: 52,
+    height: 54,
     borderWidth: 1,
     borderColor: COLORS.surfaceContainer,
     marginHorizontal: 16,
     marginBottom: 16,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
   },
   searchIcon: {
     marginRight: 10,
@@ -249,19 +282,32 @@ const styles = StyleSheet.create({
   memberItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.surfaceContainerLow,
+    backgroundColor: COLORS.surface,
+    padding: 14,
+    marginHorizontal: 16,
+    marginVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainerLow,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 46,
+    borderRadius: 14,
     backgroundColor: COLORS.primaryFixed,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+  },
+  avatarImage: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
   },
   avatarText: {
     fontSize: 18,
@@ -329,5 +375,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '700',
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

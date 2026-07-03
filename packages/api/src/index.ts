@@ -73,6 +73,7 @@ export {
   addMemberApi,
   removeMemberApi,
   searchUsersApi,
+  searchUsersPaginatedApi,
   settleUpApi,
   leaveGroupApi,
   getGroupDetailApi,
@@ -83,6 +84,7 @@ export {
   useGroups,
   useGroup,
   useSearchUsers,
+  useSearchUsersPaginated,
   useCreateGroup,
   useUpdateGroup,
   useDeleteGroup,
@@ -195,3 +197,26 @@ export {
 export type { DashboardData } from './dashboard/dashboard.types';
 export { getDashboardApi } from './dashboard/dashboard.api';
 export { useDashboard, dashboardKeys } from './dashboard/dashboard.hooks';
+
+// ── Notification module ───────────────────────────────
+export type { NotificationItem } from './notifications/notification.types';
+export { getNotificationsApi, readNotificationsApi } from './notifications/notification.api';
+export {
+  notificationKeys,
+  useNotifications,
+  useReadNotifications,
+} from './notifications/notification.hooks';
+
+// ── Invitation module ─────────────────────────────────
+export type { Invitation } from './invitations/invitation.types';
+export {
+  getInvitationsApi,
+  acceptInvitationApi,
+  declineInvitationApi,
+} from './invitations/invitation.api';
+export {
+  invitationKeys,
+  useInvitations,
+  useAcceptInvitation,
+  useDeclineInvitation,
+} from './invitations/invitation.hooks';

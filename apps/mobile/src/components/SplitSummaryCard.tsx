@@ -21,6 +21,14 @@ export function SplitSummaryCard({
   const otherMembers = members.filter((m) => m.userId !== currentUserId);
   const displayMembers = currentUser ? [currentUser, ...otherMembers] : otherMembers;
 
+  const [isCollapsed, setIsCollapsed] = React.useState(true);
+  const COLLAPSE_THRESHOLD = 3;
+  const shouldShowCollapseToggle = displayMembers.length > COLLAPSE_THRESHOLD;
+  const renderedMembers =
+    shouldShowCollapseToggle && isCollapsed
+      ? displayMembers.slice(0, COLLAPSE_THRESHOLD)
+      : displayMembers;
+
   if (displayMembers.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -32,7 +40,7 @@ export function SplitSummaryCard({
 
   return (
     <View style={styles.container}>
-      {displayMembers.map((member, index) => {
+      {renderedMembers.map((member, index) => {
         const isMe = member.userId === currentUserId;
         const isPositive = member.balance >= 0; // they owe you / you are owed
         const isSettled = Math.abs(member.balance) < 0.01;
@@ -57,11 +65,14 @@ export function SplitSummaryCard({
                   style={[
                     styles.avatar,
                     {
-                      backgroundColor: isSettled
-                        ? COLORS.surfaceContainer
-                        : isPositive
-                          ? COLORS.primaryFixed
-                          : COLORS.errorContainer,
+                      backgroundColor:
+                        member.role === 'invited'
+                          ? '#feefe3'
+                          : isSettled
+                            ? COLORS.surfaceContainer
+                            : isPositive
+                              ? COLORS.primaryFixed
+                              : COLORS.errorContainer,
                     },
                   ]}
                 >
@@ -69,11 +80,14 @@ export function SplitSummaryCard({
                     style={[
                       styles.avatarText,
                       {
-                        color: isSettled
-                          ? COLORS.outline
-                          : isPositive
-                            ? COLORS.primary
-                            : COLORS.error,
+                        color:
+                          member.role === 'invited'
+                            ? '#b06000'
+                            : isSettled
+                              ? COLORS.outline
+                              : isPositive
+                                ? COLORS.primary
+                                : COLORS.error,
                       },
                     ]}
                   >
@@ -86,7 +100,12 @@ export function SplitSummaryCard({
             {/* Name + status */}
             <View style={styles.memberInfo}>
               <Text style={styles.memberName}>{isMe ? `${member.name} (You)` : member.name}</Text>
-              {!isMe &&
+              {member.role === 'invited' ? (
+                <Text style={[styles.settledLabel, { color: '#b06000' }]}>
+                  Invitation pending ⏳
+                </Text>
+              ) : (
+                !isMe &&
                 (isSettled ? (
                   <Text style={styles.settledLabel}>All settled ✓</Text>
                 ) : isPositive ? (
@@ -99,11 +118,12 @@ export function SplitSummaryCard({
                     you owe {CURRENCY_SYMBOL}
                     {balanceAbs.toFixed(2)}
                   </Text>
-                ))}
+                ))
+              )}
             </View>
 
             {/* Settle button */}
-            {!isSettled && !isMe && onSettleUp && (
+            {!isSettled && !isMe && member.role !== 'invited' && onSettleUp && (
               <TouchableOpacity
                 style={[
                   styles.settleBtn,
@@ -122,7 +142,7 @@ export function SplitSummaryCard({
             )}
 
             {/* Settled badge */}
-            {isSettled && !isMe && (
+            {isSettled && !isMe && member.role !== 'invited' && (
               <View style={styles.settledBadge}>
                 <Ionicons name="checkmark" size={14} color={COLORS.primary} />
               </View>
@@ -130,6 +150,23 @@ export function SplitSummaryCard({
           </View>
         );
       })}
+
+      {shouldShowCollapseToggle && (
+        <TouchableOpacity
+          style={styles.collapseToggleBtn}
+          onPress={() => setIsCollapsed(!isCollapsed)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.collapseToggleText}>
+            {isCollapsed ? `Show all ${displayMembers.length} members` : 'Show less'}
+          </Text>
+          <Ionicons
+            name={isCollapsed ? 'chevron-down' : 'chevron-up'}
+            size={14}
+            color={COLORS.primary}
+          />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -230,5 +267,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.outline,
     fontWeight: '500',
+  },
+  collapseToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    gap: 6,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.surfaceContainerLow,
+  },
+  collapseToggleText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
 });

@@ -39,7 +39,13 @@ export const expenseSchema = z.object({
   groupId: z.string().nullable().optional(),
   title: z.string(),
   amount: z.number(),
-  category: z.enum(EXPENSE_CATEGORIES),
+  category: z.preprocess((val) => {
+    if (typeof val === 'string') {
+      const match = EXPENSE_CATEGORIES.find((c) => c.toLowerCase() === val.toLowerCase());
+      return match || 'Other';
+    }
+    return 'Other';
+  }, z.enum(EXPENSE_CATEGORIES)),
   date: z.string(), // ISO date string
   notes: z.string().nullable().optional(),
   paidBy: z.object({
@@ -48,7 +54,13 @@ export const expenseSchema = z.object({
     image: z.string().nullable().optional(),
   }),
   splits: z.array(expenseSplitSchema).optional().default([]),
-  splitMode: z.enum(SPLIT_MODES).nullable().optional(),
+  splitMode: z.preprocess((val) => {
+    if (typeof val === 'string') {
+      const lower = val.toLowerCase();
+      if ((SPLIT_MODES as readonly string[]).includes(lower)) return lower;
+    }
+    return val;
+  }, z.enum(SPLIT_MODES).nullable().optional()),
   myShare: z.number().nullable().optional(),
   youOwe: z.number().nullable().optional(), // positive = you owe, negative = owed to you
   isWalletPayment: z.boolean().optional(),
@@ -69,6 +81,7 @@ export const expenseListSchema = z.object({
     expenses: z.array(expenseSchema),
     total: z.number().optional(),
     page: z.number().optional(),
+    nextCursor: z.string().nullable().optional(),
   }),
 });
 
@@ -132,4 +145,7 @@ export interface GetExpensesFilter {
   useWallet?: boolean;
   page?: number;
   limit?: number;
+  cursor?: string;
+  personal?: boolean;
+  search?: string;
 }

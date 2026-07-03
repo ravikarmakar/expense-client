@@ -12,6 +12,7 @@ interface EmptyStateProps {
   ctaText?: string;
   onCtaPress?: () => void;
   ctaIcon?: React.ComponentProps<typeof Ionicons>['name'];
+  ctaColor?: string;
 }
 
 export const EmptyState = React.memo(function EmptyState({
@@ -23,6 +24,7 @@ export const EmptyState = React.memo(function EmptyState({
   ctaText,
   onCtaPress,
   ctaIcon,
+  ctaColor,
 }: EmptyStateProps) {
   return (
     <View style={styles.emptyState}>
@@ -48,7 +50,14 @@ export const EmptyState = React.memo(function EmptyState({
       <Text style={styles.emptyTitle}>{title}</Text>
       <Text style={styles.emptySubtitle}>{description}</Text>
       {ctaText && onCtaPress && (
-        <TouchableOpacity style={styles.emptyCta} onPress={onCtaPress} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={[
+            styles.emptyCta,
+            ctaColor ? { backgroundColor: ctaColor, shadowColor: ctaColor } : null,
+          ]}
+          onPress={onCtaPress}
+          activeOpacity={0.8}
+        >
           {ctaIcon && <Ionicons name={ctaIcon} size={18} color="#fff" style={{ marginRight: 6 }} />}
           <Text style={styles.emptyCtaText}>{ctaText}</Text>
         </TouchableOpacity>

@@ -8,7 +8,7 @@ import {
   RefreshControl,
   Image,
 } from 'react-native';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { COLORS, CURRENCY_SYMBOL, PREDEFINED_AVATARS } from '../../constants/theme';
 import { globalStyles } from '../../styles/globalStyles';
@@ -20,7 +20,7 @@ import { CreateGroupModal } from '../../components/CreateGroupModal';
 import { LoadingView } from '../../components/LoadingView';
 import { ErrorView } from '../../components/ErrorView';
 import { EmptyState } from '../../components/EmptyState';
-import { useDashboard } from '@workspace/api';
+import { useDashboard, useNotifications } from '@workspace/api';
 
 export default function HomeTabScreen() {
   const [addExpenseVisible, setAddExpenseVisible] = useState(false);
@@ -31,7 +31,10 @@ export default function HomeTabScreen() {
     isError,
     refetch: refetchDashboard,
   } = useDashboard();
+  const { data: notifications = [], refetch: refetchNotifications } = useNotifications();
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   if (expensesLoading && !dashboardData) {
     return <LoadingView />;
@@ -43,7 +46,7 @@ export default function HomeTabScreen() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await refetchDashboard();
+    await Promise.all([refetchDashboard(), refetchNotifications()]);
     setIsRefreshing(false);
   };
 
@@ -76,7 +79,11 @@ export default function HomeTabScreen() {
 
   return (
     <View style={styles.container}>
-      <TopAppBar onNotificationPress={() => router.push('/(tabs)/activity')} />
+      <TopAppBar
+        onNotificationPress={() => router.push('/notifications')}
+        onAddFriendPress={() => router.push('/add-friend')}
+        unreadCount={unreadCount}
+      />
 
       <ScrollView
         contentContainerStyle={globalStyles.scrollContent}
@@ -87,7 +94,7 @@ export default function HomeTabScreen() {
         <View style={styles.greetingHeader}>
           <View>
             <Text style={styles.greetingSub}>{greeting},</Text>
-            <Text style={styles.greetingName}>{user?.name?.split(' ')[0] ?? 'Welcome'}</Text>
+            <Text style={styles.greetingName}>{user?.name ?? 'Welcome'}</Text>
           </View>
           <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/(tabs)/settings')}>
             <Image
@@ -184,13 +191,25 @@ export default function HomeTabScreen() {
               activeOpacity={0.8}
               onPress={() => setAddExpenseVisible(true)}
             >
-              <View
-                style={[styles.quickActionIconContainer, styles.quickActionIconContainerActive]}
-              >
-                <Ionicons name="add" size={28} color="#ffffff" />
+              <View style={[styles.quickActionIconContainer, { backgroundColor: '#e6f4ea' }]}>
+                <Ionicons name="add" size={30} color={COLORS.primary} />
               </View>
               <Text style={styles.quickActionLabel} numberOfLines={2}>
                 Add Expense
+              </Text>
+            </TouchableOpacity>
+
+            {/* My Wallet */}
+            <TouchableOpacity
+              style={styles.quickActionItem}
+              activeOpacity={0.8}
+              onPress={() => router.push('/(tabs)/personal')}
+            >
+              <View style={[styles.quickActionIconContainer, { backgroundColor: '#e8f0fe' }]}>
+                <Ionicons name="wallet" size={28} color="#1a73e8" />
+              </View>
+              <Text style={styles.quickActionLabel} numberOfLines={2}>
+                My Wallet
               </Text>
             </TouchableOpacity>
 
@@ -200,8 +219,8 @@ export default function HomeTabScreen() {
               activeOpacity={0.8}
               onPress={() => setCreateGroupVisible(true)}
             >
-              <View style={styles.quickActionIconContainer}>
-                <Ionicons name="people-outline" size={24} color={COLORS.primary} />
+              <View style={[styles.quickActionIconContainer, { backgroundColor: '#f3e5f5' }]}>
+                <Ionicons name="people" size={28} color="#7b1fa2" />
               </View>
               <Text style={styles.quickActionLabel} numberOfLines={2}>
                 New Group
@@ -214,25 +233,25 @@ export default function HomeTabScreen() {
               activeOpacity={0.8}
               onPress={() => router.push('/(tabs)/groups')}
             >
-              <View style={styles.quickActionIconContainer}>
-                <MaterialIcons name="payments" size={26} color={COLORS.secondary} />
+              <View style={[styles.quickActionIconContainer, { backgroundColor: '#fce8e6' }]}>
+                <Ionicons name="checkmark-circle" size={28} color="#c5221f" />
               </View>
               <Text style={styles.quickActionLabel} numberOfLines={2}>
                 Settle Up
               </Text>
             </TouchableOpacity>
 
-            {/* Activity */}
+            {/* Ledger */}
             <TouchableOpacity
               style={styles.quickActionItem}
               activeOpacity={0.8}
               onPress={() => router.push('/(tabs)/activity')}
             >
-              <View style={styles.quickActionIconContainer}>
-                <MaterialIcons name="bar-chart" size={26} color={COLORS.tertiary} />
+              <View style={[styles.quickActionIconContainer, { backgroundColor: '#fef7e0' }]}>
+                <Ionicons name="receipt" size={28} color="#b06000" />
               </View>
               <Text style={styles.quickActionLabel} numberOfLines={2}>
-                Activity
+                Ledger
               </Text>
             </TouchableOpacity>
           </ScrollView>
@@ -250,7 +269,8 @@ export default function HomeTabScreen() {
             {recentGroups.map((group) => (
               <GroupCard
                 key={group.id}
-                name={`${group.emoji ?? '👥'} ${group.name}`}
+                name={group.name}
+                emoji={group.emoji ?? '👥'}
                 activity={`${group.memberCount} members`}
                 memberAvatars={group.members.slice(0, 2).map((m) => m.image ?? '')}
                 totalMembersCount={group.memberCount}
@@ -466,28 +486,24 @@ const styles = StyleSheet.create({
   quickActionItem: {
     alignItems: 'center',
     marginRight: 16,
-    width: 64,
+    width: 72, // Expanded item width
   },
   quickActionIconContainer: {
     width: 64,
     height: 64,
-    borderRadius: 20,
-    backgroundColor: COLORS.surface,
+    borderRadius: 22, // Styled rounder corner structure
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.06,
     shadowRadius: 4,
   },
-  quickActionIconContainerActive: {
-    backgroundColor: COLORS.secondary,
-  },
   quickActionLabel: {
-    fontSize: 11,
-    fontWeight: '500',
+    fontSize: 11.5,
+    fontWeight: '700', // Bold labels
     color: COLORS.onSurface,
     textAlign: 'center',
     lineHeight: 14,

@@ -5,7 +5,7 @@ import { expenseSchema } from '../expenses/expense.types';
 // Group member roles
 // ─────────────────────────────────────────────────────
 
-export const GROUP_MEMBER_ROLES = ['admin', 'member'] as const;
+export const GROUP_MEMBER_ROLES = ['admin', 'member', 'invited'] as const;
 export type GroupMemberRole = (typeof GROUP_MEMBER_ROLES)[number];
 
 export const GROUP_TYPES = [
@@ -23,16 +23,20 @@ export const GROUP_TYPES = [
 ] as const;
 export type GroupType = (typeof GROUP_TYPES)[number];
 
-// ─────────────────────────────────────────────────────
-// Zod schemas
-// ─────────────────────────────────────────────────────
-
 export const groupMemberSchema = z.object({
   userId: z.string(),
   name: z.string(),
   email: z.string().email(),
   image: z.string().nullable().optional(),
-  role: z.enum(GROUP_MEMBER_ROLES).default('member'),
+  role: z
+    .preprocess((val) => {
+      if (typeof val === 'string') {
+        const lower = val.toLowerCase();
+        if ((GROUP_MEMBER_ROLES as readonly string[]).includes(lower)) return lower;
+      }
+      return 'member';
+    }, z.enum(GROUP_MEMBER_ROLES))
+    .default('member'),
   joinedAt: z.string().optional(),
   balance: z.number().default(0), // positive = owed to this member, negative = owes
 });
@@ -43,8 +47,17 @@ export const groupSchema = z.object({
   description: z.string().nullable().optional(),
   image: z.string().nullable().optional(),
   emoji: z.string().optional().default('👥'),
-  type: z.enum(GROUP_TYPES).default('Other'),
+  type: z
+    .preprocess((val) => {
+      if (typeof val === 'string') {
+        const match = GROUP_TYPES.find((t) => t.toLowerCase() === val.toLowerCase());
+        return match || 'Other';
+      }
+      return 'Other';
+    }, z.enum(GROUP_TYPES))
+    .default('Other'),
   members: z.array(groupMemberSchema),
+  invitedEmails: z.array(z.string()).optional(),
   totalExpenses: z.number().default(0),
   myBalance: z.number().default(0), // net balance for the logged-in user in this group
   memberCount: z.number(),
@@ -57,6 +70,7 @@ export const groupListSchema = z.object({
   success: z.boolean(),
   data: z.object({
     groups: z.array(groupSchema),
+    nextCursor: z.string().nullable().optional(),
   }),
 });
 
@@ -78,6 +92,7 @@ export const userSearchListSchema = z.object({
   success: z.boolean(),
   data: z.object({
     users: z.array(userSearchResultSchema),
+    nextCursor: z.string().nullable().optional(),
   }),
 });
 

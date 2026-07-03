@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import {
   createGroupApi,
   getGroupsApi,
@@ -8,6 +8,7 @@ import {
   addMemberApi,
   removeMemberApi,
   searchUsersApi,
+  searchUsersPaginatedApi,
   settleUpApi,
   leaveGroupApi,
   getGroupSettlementsApi,
@@ -44,9 +45,11 @@ export const groupKeys = {
  * Fetch all groups the user belongs to.
  */
 export const useGroups = () =>
-  useQuery({
+  useInfiniteQuery({
     queryKey: groupKeys.list(),
-    queryFn: getGroupsApi,
+    queryFn: ({ pageParam }) => getGroupsApi(pageParam as string | undefined),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -85,6 +88,19 @@ export const useSearchUsers = (query: string) =>
   });
 
 /**
+ * Paginated search for users to add as friends or group members.
+ */
+export const useSearchUsersPaginated = (query: string) =>
+  useInfiniteQuery({
+    queryKey: ['users', 'search', 'paginated', query],
+    queryFn: ({ pageParam }) => searchUsersPaginatedApi(query, pageParam as string | undefined),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    enabled: query.trim().length >= 2,
+    staleTime: 10 * 1000,
+  });
+
+/**
  * Fetch settlements for a specific group.
  */
 export const useGroupSettlements = (groupId: string) =>
@@ -108,6 +124,7 @@ export const useCreateGroup = () => {
     mutationFn: createGroupApi,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: groupKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 };
@@ -138,6 +155,7 @@ export const useDeleteGroup = () => {
       queryClient.removeQueries({ queryKey: groupKeys.detail(id) });
       queryClient.removeQueries({ queryKey: groupKeys.detailConsolidated(id) });
       queryClient.invalidateQueries({ queryKey: groupKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 };
@@ -184,6 +202,9 @@ export const useSettleUp = (groupId: string) => {
       queryClient.invalidateQueries({ queryKey: groupKeys.detailConsolidated(groupId) });
       queryClient.invalidateQueries({ queryKey: groupKeys.lists() });
       queryClient.invalidateQueries({ queryKey: groupKeys.settlements(groupId) });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['wallet'] });
     },
   });
 };
@@ -198,6 +219,7 @@ export const useLeaveGroup = () => {
     onSuccess: (_, groupId) => {
       queryClient.removeQueries({ queryKey: groupKeys.detail(groupId) });
       queryClient.invalidateQueries({ queryKey: groupKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 };

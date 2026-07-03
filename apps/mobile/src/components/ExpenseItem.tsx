@@ -31,23 +31,23 @@ export const ExpenseItem = React.memo(function ExpenseItem({
 
   if (isMyExpense && expense.splits && expense.splits.length > 1) {
     const othersOwe = expense.splits
-      .filter((s) => s.userId !== currentUserId)
+      .filter((s) => s.userId !== currentUserId && !s.paid)
       .reduce((sum, s) => sum + s.amount, 0);
     if (othersOwe > 0) {
-      balanceLabel = `Owed ${CURRENCY_SYMBOL}${othersOwe.toFixed(0)}`;
+      balanceLabel = `Owed ${CURRENCY_SYMBOL}${othersOwe.toFixed(2)}`;
       balanceColor = '#1b5e20'; // Darker green for text
       balanceBg = '#e8f5e9'; // Soft green pill background
     }
   } else if (youOwe > 0) {
-    balanceLabel = `Owe ${CURRENCY_SYMBOL}${youOwe.toFixed(0)}`;
+    balanceLabel = `Owe ${CURRENCY_SYMBOL}${youOwe.toFixed(2)}`;
     balanceColor = '#c62828'; // Darker red for text
     balanceBg = '#ffebee'; // Soft red pill background
   } else if (youOwe < 0) {
-    balanceLabel = `Owed ${CURRENCY_SYMBOL}${Math.abs(youOwe).toFixed(0)}`;
+    balanceLabel = `Owed ${CURRENCY_SYMBOL}${Math.abs(youOwe).toFixed(2)}`;
     balanceColor = '#1b5e20';
     balanceBg = '#e8f5e9';
   } else if (myShare !== undefined && myShare !== null) {
-    balanceLabel = `${CURRENCY_SYMBOL}${myShare.toFixed(0)}`;
+    balanceLabel = `${CURRENCY_SYMBOL}${myShare.toFixed(2)}`;
     balanceColor = COLORS.onSurfaceVariant;
     balanceBg = COLORS.surfaceContainerHigh;
   }
@@ -66,14 +66,19 @@ export const ExpenseItem = React.memo(function ExpenseItem({
       {/* Category icon with modern rounded corners */}
       <View style={[styles.iconBg, { backgroundColor: cfg.bg }]}>
         {cfg.lib === 'Ionicons' ? (
-          <Ionicons name={cfg.icon as never} size={20} color={cfg.color} />
+          <Ionicons name={cfg.icon as never} size={22} color={cfg.color} />
         ) : (
-          <MaterialIcons name={cfg.icon as never} size={20} color={cfg.color} />
+          <MaterialIcons name={cfg.icon as never} size={22} color={cfg.color} />
         )}
       </View>
 
       {/* Main content */}
       <View style={styles.info}>
+        {expense.group && (
+          <Text style={styles.groupHeader} numberOfLines={1}>
+            {expense.group.emoji} {expense.group.name}
+          </Text>
+        )}
         <View style={styles.titleRow}>
           <Text style={styles.title} numberOfLines={1}>
             {expense.title}
@@ -92,22 +97,6 @@ export const ExpenseItem = React.memo(function ExpenseItem({
           </Text>
           <View style={styles.dot} />
           <Text style={styles.date}>{dateStr}</Text>
-
-          {expense.group ? (
-            <>
-              <View style={styles.dot} />
-              <View style={styles.groupBadge}>
-                <Text style={styles.groupBadgeText} numberOfLines={1}>
-                  {expense.group.emoji} {expense.group.name}
-                </Text>
-              </View>
-            </>
-          ) : expense.groupId ? (
-            <>
-              <View style={styles.dot} />
-              <Ionicons name="people" size={11} color={COLORS.outline} />
-            </>
-          ) : null}
         </View>
       </View>
 
@@ -115,7 +104,7 @@ export const ExpenseItem = React.memo(function ExpenseItem({
       <View style={styles.right}>
         <Text style={styles.totalAmount}>
           {CURRENCY_SYMBOL}
-          {expense.amount.toFixed(0)}
+          {expense.amount.toFixed(2)}
         </Text>
         {balanceLabel ? (
           <View style={[styles.statusPill, { backgroundColor: balanceBg }]}>
@@ -132,21 +121,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 12,
-    gap: 12,
+    borderRadius: 20, // More rounded modern container
+    padding: 16, // Spacious padding
+    gap: 14,
     borderWidth: 1,
     borderColor: COLORS.surfaceContainer,
-    elevation: 2,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
     shadowRadius: 6,
   },
   iconBg: {
-    width: 44,
-    height: 44,
-    borderRadius: 12, // Modern rounded rectangle
+    width: 48, // Larger icon container
+    height: 48,
+    borderRadius: 14, // Modern rounded rectangle
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -154,93 +143,90 @@ const styles = StyleSheet.create({
   info: {
     flex: 1,
     justifyContent: 'center',
-    gap: 3,
+    gap: 4,
   },
   title: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16, // Larger title text
+    fontWeight: '700',
     color: COLORS.onSurface,
     flexShrink: 1,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   walletBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.primaryFixed,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 4,
-    gap: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    gap: 3,
   },
   walletBadgeText: {
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '800',
     color: COLORS.onPrimaryFixedVariant,
-    lineHeight: 12, // Explicit line height for perfect vertical alignment
+    lineHeight: 12,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    flexShrink: 1, // Allow row to shrink
   },
   paidBy: {
-    fontSize: 11,
+    fontSize: 12, // Increased from 11
+    color: COLORS.outline,
+    fontWeight: '500',
+    flexShrink: 1, // Shrink text if needed
+  },
+  dot: {
+    width: 4, // Slightly larger separator dot
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.outlineVariant,
+    marginHorizontal: 3,
+  },
+  date: {
+    fontSize: 12, // Increased from 11
     color: COLORS.outline,
     fontWeight: '500',
   },
-  dot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: COLORS.outlineVariant,
-    marginHorizontal: 2, // Space out separator dots
-  },
-  date: {
-    fontSize: 11,
-    color: COLORS.outline,
-  },
-  groupBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surfaceContainerLow,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 4,
-    maxWidth: 90,
-  },
-  groupBadgeText: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: COLORS.onSurfaceVariant,
-    lineHeight: 12, // Centered badge text
+  groupHeader: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.secondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
   },
   right: {
     alignItems: 'flex-end',
     justifyContent: 'center',
     gap: 4,
     flexShrink: 0,
+    minWidth: 80,
   },
   totalAmount: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 16, // Increased from 14
+    fontWeight: '700', // Bold amount display
     color: COLORS.onSurface,
   },
   statusPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   statusPillText: {
-    fontSize: 10,
+    fontSize: 10.5, // Legible status text
     fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.3,
-    lineHeight: 13, // Centered pill text
+    letterSpacing: 0.4,
+    lineHeight: 14,
   },
 });

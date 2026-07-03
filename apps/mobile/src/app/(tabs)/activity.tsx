@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,6 +8,9 @@ import {
   RefreshControl,
   Modal,
   Platform,
+  ActivityIndicator,
+  NativeScrollEvent,
+  TextInput,
 } from 'react-native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -61,8 +64,19 @@ export default function ActivityTabScreen() {
   const [sortBy, setSortBy] = useState<SortValue>('date-desc');
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const [useWalletOnly, setUseWalletOnly] = useState(false);
-  const { data: user } = useMe();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { data: user } = useMe();
+
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   const dateFilter = React.useMemo(() => {
     if (dateRange === 'all-time') return {};
@@ -92,10 +106,14 @@ export default function ActivityTabScreen() {
     isLoading,
     isError,
     refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
   } = useExpenses({
     ...(activeFilter !== 'All' && { category: activeFilter }),
     ...(paidByMe && { paidByMe: true }),
     ...(useWalletOnly && { useWallet: true }),
+    ...(debouncedSearchQuery.trim() !== '' && { search: debouncedSearchQuery.trim() }),
     ...dateFilter,
   });
 
@@ -105,7 +123,9 @@ export default function ActivityTabScreen() {
     setIsRefreshing(false);
   };
 
-  const expenses = expensesData?.expenses ?? [];
+  const expenses = React.useMemo(() => {
+    return expensesData?.pages.flatMap((page) => page.expenses) ?? [];
+  }, [expensesData]);
 
   const sortedExpenses = React.useMemo(() => {
     return [...expenses].sort((a, b) => {
@@ -125,18 +145,98 @@ export default function ActivityTabScreen() {
     });
   }, [expenses, sortBy]);
 
+  const isCloseToBottom = ({
+    layoutMeasurement,
+    contentOffset,
+    contentSize,
+  }: NativeScrollEvent) => {
+    const paddingToBottom = 50;
+    return layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
+  };
+
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScrollView
-        contentContainerStyle={globalStyles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
-      >
+    <View style={styles.container}>
+      {/* Header Container with Bottom Divider line */}
+      <View style={[styles.headerContainer, { paddingTop: insets.top + 16 }]}>
+        {/* Header row */}
         <View style={styles.tabHeaderRow}>
-          <View style={styles.tabTitleRow}>
-            <Text style={styles.tabTitle}>Activity</Text>
+          {searchVisible ? (
+            <View style={styles.searchInputContainer}>
+              <Ionicons
+                name="search"
+                size={20}
+                color={COLORS.primary}
+                style={styles.searchIconInline}
+              />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search expenses by title..."
+                placeholderTextColor={COLORS.outline}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoFocus
+              />
+              <TouchableOpacity
+                onPress={() => {
+                  setSearchQuery('');
+                  setSearchVisible(false);
+                }}
+                style={styles.clearSearchBtn}
+              >
+                <Ionicons name="close-circle" size={22} color={COLORS.outline} />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              <View>
+                <Text style={styles.tabTitle}>Activity</Text>
+                <Text style={styles.tabSubtitle}>Shared Ledger</Text>
+              </View>
+
+              <View style={styles.headerRightActions}>
+                <TouchableOpacity
+                  style={styles.searchIconBtn}
+                  activeOpacity={0.8}
+                  onPress={() => setSearchVisible(true)}
+                >
+                  <Ionicons name="search" size={22} color={COLORS.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterBtn,
+                    (activeFilter !== 'All' ||
+                      sortBy !== 'date-desc' ||
+                      paidByMe ||
+                      useWalletOnly) &&
+                      styles.filterBtnActive,
+                  ]}
+                  onPress={() => setFilterModalVisible(true)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons
+                    name="funnel"
+                    size={20}
+                    color={
+                      activeFilter !== 'All' || sortBy !== 'date-desc' || paidByMe || useWalletOnly
+                        ? '#ffffff'
+                        : COLORS.primary
+                    }
+                  />
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+        </View>
+
+        {/* Active Filters Row */}
+        {(activeFilter !== 'All' || useWalletOnly || sortBy !== 'date-desc') && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.activeFiltersRow}
+          >
             {activeFilter !== 'All' && (
               <View style={styles.activeFilterBadge}>
                 <Text style={styles.activeFilterBadgeText}>{activeFilter}</Text>
@@ -167,53 +267,44 @@ export default function ActivityTabScreen() {
                 </TouchableOpacity>
               </View>
             )}
-          </View>
-          <View style={styles.headerRightActions}>
-            <TouchableOpacity style={styles.searchBtn} activeOpacity={0.8}>
-              <Ionicons name="search-outline" size={20} color={COLORS.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.filterBtn,
-                (activeFilter !== 'All' || sortBy !== 'date-desc' || paidByMe || useWalletOnly) &&
-                  styles.filterBtnActive,
-              ]}
-              onPress={() => setFilterModalVisible(true)}
-              activeOpacity={0.8}
-            >
-              <Ionicons
-                name={
-                  activeFilter !== 'All' || sortBy !== 'date-desc' || paidByMe || useWalletOnly
-                    ? 'funnel'
-                    : 'funnel-outline'
-                }
-                size={20}
-                color={
-                  activeFilter !== 'All' || sortBy !== 'date-desc' || paidByMe || useWalletOnly
-                    ? '#ffffff'
-                    : COLORS.primary
-                }
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
+          </ScrollView>
+        )}
+      </View>
 
-        {/* Summary strip */}
+      <ScrollView
+        contentContainerStyle={globalStyles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+        onScroll={({ nativeEvent }) => {
+          if (isCloseToBottom(nativeEvent) && hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
+          }
+        }}
+        scrollEventThrottle={400}
+      >
+        {/* Premium Total Spent Banner */}
         {sortedExpenses.length > 0 && (
-          <View style={styles.summaryStrip}>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Total spent</Text>
-              <Text style={styles.summaryValue}>
-                {CURRENCY_SYMBOL}
-                {sortedExpenses.reduce((s, e) => s + e.amount, 0).toFixed(2)}
-              </Text>
-            </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Expenses</Text>
-              <Text style={styles.summaryValue}>
-                {expensesData?.total ?? sortedExpenses.length}
-              </Text>
+          <View style={styles.premiumCard}>
+            <View style={styles.cardCircle1} />
+            <View style={styles.cardCircle2} />
+            <View style={styles.premiumCardContent}>
+              <View style={styles.premiumCardLeft}>
+                <Text style={styles.premiumCardLabel}>Total Shared Spend</Text>
+                <Text style={styles.premiumCardValue}>
+                  {CURRENCY_SYMBOL}
+                  {sortedExpenses
+                    .reduce((s, e) => s + e.amount, 0)
+                    .toLocaleString('en-IN', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                </Text>
+              </View>
+              <View style={styles.premiumCardDivider} />
+              <View style={styles.premiumCardRight}>
+                <Text style={styles.premiumCardRightLabel}>Transactions</Text>
+                <Text style={styles.premiumCardRightValue}>{sortedExpenses.length}</Text>
+              </View>
             </View>
           </View>
         )}
@@ -247,6 +338,13 @@ export default function ActivityTabScreen() {
             {sortedExpenses.map((expense) => (
               <ExpenseItem key={expense.id} expense={expense} currentUserId={user?.id} />
             ))}
+          </View>
+        )}
+
+        {isFetchingNextPage && (
+          <View style={styles.loadingMore}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={styles.loadingMoreText}>Loading more...</Text>
           </View>
         )}
       </ScrollView>
@@ -609,48 +707,96 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  headerContainer: {
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f1f1',
+  },
   tabHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
-  },
-  tabTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
   tabTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 26,
+    fontWeight: '800',
     color: COLORS.onSurface,
+    letterSpacing: -0.5,
+  },
+  tabSubtitle: {
+    fontSize: 12,
+    color: COLORS.outline,
+    fontWeight: '600',
+    marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  activeFiltersRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+    paddingHorizontal: 4,
+    paddingBottom: 4,
   },
   activeFilterBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: COLORS.surfaceContainer,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    gap: 6,
+    backgroundColor: '#e2dfff', // Light lavender
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#c5c1ff',
   },
   activeFilterBadgeText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: COLORS.secondary,
   },
   headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  searchBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 48,
+    borderWidth: 2, // Bold outline border
+    borderColor: COLORS.primary, // Highlighted outline
+    elevation: 3,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+  },
+  searchIconInline: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: COLORS.onSurface,
+    fontWeight: '700', // Bold search query text input
+    paddingVertical: 6,
+  },
+  clearSearchBtn: {
+    padding: 4,
+  },
+  searchIconBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceContainer,
+    borderWidth: 1.5, // Bolder outline for buttons
+    borderColor: COLORS.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 2,
@@ -660,12 +806,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   filterBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceContainer,
+    borderWidth: 1.5, // Bolder outline for buttons
+    borderColor: COLORS.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 2,
@@ -880,32 +1026,96 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#ffffff',
   },
-  summaryStrip: {
+  premiumCard: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 20,
+    overflow: 'hidden',
+    position: 'relative',
+    elevation: 8,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+  },
+  cardCircle1: {
+    position: 'absolute',
+    borderRadius: 999,
+    width: 140,
+    height: 140,
+    top: -40,
+    right: -40,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  cardCircle2: {
+    position: 'absolute',
+    borderRadius: 999,
+    width: 80,
+    height: 80,
+    bottom: -30,
+    left: -10,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  premiumCardContent: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceContainer,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 2,
   },
-  summaryItem: { flex: 1, alignItems: 'center' },
-  summaryDivider: {
-    width: 1,
-    backgroundColor: COLORS.surfaceContainer,
+  premiumCardLeft: {
+    flex: 2,
   },
-  summaryLabel: {
+  premiumCardLabel: {
     fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.outline,
+    fontWeight: '700',
+    color: COLORS.primaryFixed,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     marginBottom: 4,
+    opacity: 0.9,
   },
-  summaryValue: {
-    fontSize: 18,
+  premiumCardValue: {
+    fontSize: 24,
     fontWeight: '800',
-    color: COLORS.onSurface,
+    color: '#ffffff',
+    letterSpacing: -0.5,
+  },
+  premiumCardDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    marginHorizontal: 16,
+  },
+  premiumCardRight: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  premiumCardRightLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.primaryFixed,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 4,
+    opacity: 0.9,
+  },
+  premiumCardRightValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#ffffff',
   },
   activityFeed: { gap: 10 },
+  loadingMore: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 8,
+  },
+  loadingMoreText: {
+    fontSize: 13,
+    color: COLORS.outline,
+    fontWeight: '500',
+  },
 });

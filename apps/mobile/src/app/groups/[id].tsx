@@ -137,10 +137,10 @@ export default function GroupDetailScreen() {
           onPress={() => router.push(`/groups/${id}/wallet`)}
           style={styles.walletBtn}
         >
-          <Ionicons name="wallet-outline" size={22} color={COLORS.onSurface} />
+          <Ionicons name="wallet" size={28} color={COLORS.primary} />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setMenuVisible(true)} style={styles.moreBtn}>
-          <Ionicons name="ellipsis-vertical" size={24} color={COLORS.onSurface} />
+          <Ionicons name="ellipsis-vertical" size={25} color={COLORS.onSurface} />
         </TouchableOpacity>
       </View>
 
@@ -153,29 +153,54 @@ export default function GroupDetailScreen() {
         <View
           style={[
             styles.balanceCard,
-            myBalance >= -0.01 ? styles.balanceCardPositive : styles.balanceCardNegative,
+            {
+              backgroundColor: COLORS.primary,
+            },
           ]}
         >
-          <View style={styles.balanceCardCircle} />
-          <Text style={styles.balanceCardLabel}>
-            {Math.abs(myBalance) < 0.01
-              ? "You're all settled up!"
-              : myBalance > 0
-                ? 'You are owed'
-                : 'You owe'}
+          <View style={[styles.abstractCircle, styles.circleTopRight]} />
+          <View style={[styles.abstractCircle, styles.circleBottomLeft]} />
+
+          <View style={styles.balanceHeader}>
+            <Text style={[styles.balanceCardLabel, { color: 'rgba(255,255,255,0.8)' }]}>
+              {Math.abs(myBalance) < 0.01
+                ? "You're all settled up!"
+                : myBalance > 0
+                  ? 'You are owed'
+                  : 'You owe'}
+            </Text>
+            <View
+              style={[
+                styles.statusDot,
+                {
+                  backgroundColor: '#ffffff',
+                },
+              ]}
+            />
+          </View>
+
+          <Text style={[styles.balanceCardAmount, { color: '#ffffff' }]}>
+            {Math.abs(myBalance) >= 0.01
+              ? `${myBalance < 0 ? '-' : ''}${CURRENCY_SYMBOL}${Math.abs(myBalance).toFixed(2)}`
+              : `${CURRENCY_SYMBOL}0.00`}
           </Text>
-          {Math.abs(myBalance) >= 0.01 && (
-            <Text style={styles.balanceCardAmount}>
-              {CURRENCY_SYMBOL}
-              {Math.abs(myBalance).toFixed(2)}
-            </Text>
-          )}
-          <View style={styles.balanceCardRow}>
-            <Ionicons name="people" size={14} color="rgba(255,255,255,0.8)" />
-            <Text style={styles.balanceCardMeta}>
-              {group.memberCount} members · {CURRENCY_SYMBOL}
-              {group.totalExpenses.toFixed(2)} total
-            </Text>
+
+          <View style={styles.balanceCardDivider} />
+
+          <View style={styles.balanceCardFooter}>
+            <View style={styles.metaItem}>
+              <Ionicons name="people" size={16} color="rgba(255,255,255,0.8)" />
+              <Text style={[styles.balanceCardMeta, { color: 'rgba(255,255,255,0.9)' }]}>
+                {group.memberCount} members
+              </Text>
+            </View>
+            <View style={styles.metaItem}>
+              <Ionicons name="receipt" size={16} color="rgba(255,255,255,0.8)" />
+              <Text style={[styles.balanceCardMeta, { color: 'rgba(255,255,255,0.9)' }]}>
+                {CURRENCY_SYMBOL}
+                {group.totalExpenses.toFixed(2)} spent
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -383,10 +408,10 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.surfaceContainer,
+    borderBottomColor: '#f1f1f1',
   },
   backBtn: {
     padding: 4,
@@ -411,66 +436,90 @@ const styles = StyleSheet.create({
   },
   // Balance card
   balanceCard: {
+    backgroundColor: '#1E1E24', // Premium sleek dark card background
     borderRadius: 24,
     padding: 24,
     marginBottom: 24,
     overflow: 'hidden',
     position: 'relative',
-    elevation: 6,
+    elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
-    shadowRadius: 10,
+    shadowRadius: 12,
   },
-  balanceCardPositive: {
-    backgroundColor: COLORS.primary,
-  },
-  balanceCardNegative: {
-    backgroundColor: COLORS.error,
-  },
-  balanceCardCircle: {
+  abstractCircle: {
     position: 'absolute',
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    top: -60,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)', // Subtle translucent white highlight
+  },
+  circleTopRight: {
+    width: 140,
+    height: 140,
+    top: -50,
     right: -40,
+  },
+  circleBottomLeft: {
+    width: 100,
+    height: 100,
+    bottom: -35,
+    left: -30,
+  },
+  balanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
   },
   balanceCardLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.6)',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 4,
+    letterSpacing: 1.2,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   balanceCardAmount: {
     fontSize: 36,
     fontWeight: '800',
-    color: '#fff',
-    marginBottom: 8,
-    letterSpacing: -1,
+    letterSpacing: -0.5,
+    marginBottom: 16,
   },
-  balanceCardRow: {
+  balanceCardDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    marginBottom: 16,
+  },
+  balanceCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 20,
+  },
+  metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
   balanceCardMeta: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
-    fontWeight: '500',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '600',
   },
   // Add member button
   addMemberBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
     backgroundColor: COLORS.secondaryFixed,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#c7c3ff',
   },
   addMemberBtnText: {
     fontSize: 12,
@@ -484,23 +533,23 @@ const styles = StyleSheet.create({
   tabsContainer: {
     flexDirection: 'row',
     backgroundColor: COLORS.surfaceContainer,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 4,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   tabButton: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: 12,
   },
   tabActiveButton: {
-    backgroundColor: COLORS.surface,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    backgroundColor: COLORS.primaryFixed,
+    elevation: 1,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
   },
   tabButtonText: {
     fontSize: 14,
@@ -508,7 +557,8 @@ const styles = StyleSheet.create({
     color: COLORS.outline,
   },
   tabActiveButtonText: {
-    color: COLORS.onSurface,
+    color: COLORS.primary,
+    fontWeight: '700',
   },
   settlementsList: {
     gap: 10,

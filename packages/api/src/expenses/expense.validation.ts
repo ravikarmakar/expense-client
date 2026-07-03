@@ -19,7 +19,10 @@ export const clientCreateExpenseSchema = z.object({
   notes: z.string().max(500, 'Notes must be at most 500 characters').optional(),
   groupId: z.string().optional(),
   useWallet: z.boolean().optional(),
-  splitMemberIds: z.array(z.string()).optional(),
+  splitMemberIds: z
+    .array(z.string())
+    .min(1, 'Please select at least one member to split with')
+    .optional(),
   splitMode: z.enum(SPLIT_MODES).nullable().optional(),
   splits: z
     .array(

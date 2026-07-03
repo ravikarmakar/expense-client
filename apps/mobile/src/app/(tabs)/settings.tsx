@@ -134,33 +134,73 @@ export default function SettingsTabScreen() {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
+      {/* Fixed Header with Bottom Divider Line */}
+      <View style={[styles.headerContainer, { paddingTop: insets.top + 16 }]}>
+        <View style={styles.tabHeaderRow}>
+          <View>
+            <Text style={styles.tabTitle}>Settings</Text>
+            <Text style={styles.tabSubtitle}>Preferences & Profile</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.settingsWalletBtn}
+            activeOpacity={0.7}
+            onPress={() => router.push('/personal-wallet')}
+          >
+            <Ionicons name="wallet-sharp" size={30} color={COLORS.secondary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <ScrollView
         contentContainerStyle={globalStyles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Profile Section */}
+        {/* Premium Profile Section */}
         <View style={styles.profileSection}>
-          <Image
-            source={{ uri: user?.image || PREDEFINED_AVATARS[0] }}
-            style={styles.profileAvatar}
-          />
-          <Text style={styles.profileName}>{user?.name || 'Alexander Wright'}</Text>
-          <Text style={styles.profileEmail}>
-            {user?.email || 'alexander.wright@splitshare.com'}
-          </Text>
-          <TouchableOpacity
-            style={styles.editProfileButton}
-            activeOpacity={0.7}
-            onPress={() => {
-              setEditName(user?.name ?? '');
-              setSelectedAvatar(user?.image ?? PREDEFINED_AVATARS[0]);
-              setProfileErrorMessage('');
-              setProfileModalVisible(true);
-            }}
-          >
-            <Text style={styles.editProfileButtonText}>Edit Profile</Text>
-          </TouchableOpacity>
+          <View style={styles.avatarOutlineContainer}>
+            <Image
+              source={{ uri: user?.image || PREDEFINED_AVATARS[0] }}
+              style={styles.profileAvatar}
+            />
+            <TouchableOpacity
+              style={styles.avatarEditOverlay}
+              activeOpacity={0.85}
+              onPress={() => {
+                setEditName(user?.name ?? '');
+                setSelectedAvatar(user?.image ?? PREDEFINED_AVATARS[0]);
+                setProfileErrorMessage('');
+                setProfileModalVisible(true);
+              }}
+            >
+              <Ionicons name="camera" size={14} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.profileInfoColumn}>
+            <Text style={styles.profileName}>{user?.name || 'Alexander Wright'}</Text>
+            <Text style={styles.profileEmail}>
+              {user?.email || 'alexander.wright@splitshare.com'}
+            </Text>
+            <TouchableOpacity
+              style={styles.editProfileButton}
+              activeOpacity={0.7}
+              onPress={() => {
+                setEditName(user?.name ?? '');
+                setSelectedAvatar(user?.image ?? PREDEFINED_AVATARS[0]);
+                setProfileErrorMessage('');
+                setProfileModalVisible(true);
+              }}
+            >
+              <Ionicons
+                name="pencil"
+                size={11}
+                color={COLORS.onSurfaceVariant}
+                style={{ marginRight: 4 }}
+              />
+              <Text style={styles.editProfileButtonText}>Edit Profile</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Settings Options */}
@@ -178,7 +218,9 @@ export default function SettingsTabScreen() {
             }}
           >
             <View style={styles.settingsItemLeft}>
-              <Ionicons name="person-outline" size={22} color={COLORS.outline} />
+              <View style={[styles.iconBadge, { backgroundColor: '#e8f0fe' }]}>
+                <Ionicons name="person" size={18} color="#1a73e8" />
+              </View>
               <Text style={styles.settingsItemLabel}>Personal Info</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
@@ -186,7 +228,9 @@ export default function SettingsTabScreen() {
 
           <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7}>
             <View style={styles.settingsItemLeft}>
-              <Ionicons name="card-outline" size={22} color={COLORS.outline} />
+              <View style={[styles.iconBadge, { backgroundColor: '#e6f4ea' }]}>
+                <Ionicons name="card" size={18} color="#137333" />
+              </View>
               <Text style={styles.settingsItemLabel}>Payment Methods</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
@@ -194,7 +238,9 @@ export default function SettingsTabScreen() {
 
           <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7}>
             <View style={styles.settingsItemLeft}>
-              <Ionicons name="notifications-outline" size={22} color={COLORS.outline} />
+              <View style={[styles.iconBadge, { backgroundColor: '#fef7e0' }]}>
+                <Ionicons name="notifications" size={18} color="#b06000" />
+              </View>
               <Text style={styles.settingsItemLabel}>Notification Preferences</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
@@ -206,7 +252,9 @@ export default function SettingsTabScreen() {
 
           <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7}>
             <View style={styles.settingsItemLeft}>
-              <Ionicons name="shield-checkmark-outline" size={22} color={COLORS.outline} />
+              <View style={[styles.iconBadge, { backgroundColor: '#e6f4ea' }]}>
+                <Ionicons name="shield-checkmark" size={18} color="#137333" />
+              </View>
               <Text style={styles.settingsItemLabel}>Security & PIN</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
@@ -228,7 +276,9 @@ export default function SettingsTabScreen() {
             }}
           >
             <View style={styles.settingsItemLeft}>
-              <Ionicons name="key-outline" size={22} color={COLORS.outline} />
+              <View style={[styles.iconBadge, { backgroundColor: '#fce8e6' }]}>
+                <Ionicons name="key" size={18} color="#c5221f" />
+              </View>
               <Text style={styles.settingsItemLabel}>Change Password</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
@@ -236,35 +286,77 @@ export default function SettingsTabScreen() {
 
           <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7}>
             <View style={styles.settingsItemLeft}>
-              <Ionicons name="globe-outline" size={22} color={COLORS.outline} />
+              <View style={[styles.iconBadge, { backgroundColor: '#f3e5f5' }]}>
+                <Ionicons name="globe" size={18} color="#7b1fa2" />
+              </View>
               <Text style={styles.settingsItemLabel}>App Language</Text>
             </View>
             <Text style={styles.settingsItemSubValue}>English</Text>
           </TouchableOpacity>
         </View>
 
+        {/* About & Legal Section */}
         <View style={styles.settingsSection}>
-          <TouchableOpacity
-            style={[styles.logoutButton, logoutMutation.isPending && { opacity: 0.5 }]}
-            activeOpacity={0.7}
-            onPress={() =>
-              logoutMutation.mutate(undefined, {
-                onSettled: () => {
-                  router.replace('/(auth)/login');
-                },
-              })
-            }
-            disabled={logoutMutation.isPending}
-          >
-            {logoutMutation.isPending ? (
-              <ActivityIndicator size="small" color={COLORS.error} />
-            ) : (
-              <>
-                <Ionicons name="log-out-outline" size={22} color={COLORS.error} />
-                <Text style={styles.logoutButtonText}>Log Out</Text>
-              </>
-            )}
+          <Text style={styles.settingsGroupTitle}>About & Legal</Text>
+
+          <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7}>
+            <View style={styles.settingsItemLeft}>
+              <View style={[styles.iconBadge, { backgroundColor: '#e2f2ff' }]}>
+                <Ionicons name="document-text" size={18} color="#0066cc" />
+              </View>
+              <Text style={styles.settingsItemLabel}>Terms of Service</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
           </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7}>
+            <View style={styles.settingsItemLeft}>
+              <View style={[styles.iconBadge, { backgroundColor: '#e2f2ff' }]}>
+                <Ionicons name="lock-closed" size={18} color="#0066cc" />
+              </View>
+              <Text style={styles.settingsItemLabel}>Privacy Policy</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7}>
+            <View style={styles.settingsItemLeft}>
+              <View style={[styles.iconBadge, { backgroundColor: '#e2f2ff' }]}>
+                <Ionicons name="information-circle" size={18} color="#0066cc" />
+              </View>
+              <Text style={styles.settingsItemLabel}>Open Source Licenses</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.logoutButton, logoutMutation.isPending && { opacity: 0.5 }]}
+          activeOpacity={0.85}
+          onPress={() =>
+            logoutMutation.mutate(undefined, {
+              onSettled: () => {
+                router.replace('/(auth)/login');
+              },
+            })
+          }
+          disabled={logoutMutation.isPending}
+        >
+          {logoutMutation.isPending ? (
+            <ActivityIndicator size="small" color={COLORS.error} />
+          ) : (
+            <>
+              <Ionicons name="log-out" size={20} color={COLORS.error} style={{ marginRight: 2 }} />
+              <Text style={styles.logoutButtonText}>Log Out of Account</Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        {/* Application Version Footer */}
+        <View style={styles.footerContainer}>
+          <Text style={styles.footerBrand}>SplitShare</Text>
+          <Text style={styles.footerVersion}>v1.0.0 (Build 42)</Text>
+          <Text style={styles.footerCopyright}>© 2026 SplitShare Inc. All rights reserved.</Text>
         </View>
       </ScrollView>
 
@@ -534,28 +626,34 @@ export default function SettingsTabScreen() {
                   />
                 </View>
 
-                {/* Avatar Grid Selection */}
+                {/* Avatar Grid Selection inside a Scrollable Box */}
                 <Text style={styles.inputLabel}>Choose Avatar</Text>
-                <View style={styles.avatarGrid}>
-                  {PREDEFINED_AVATARS.map((avatarUrl, idx) => {
-                    const isSelected = selectedAvatar === avatarUrl;
-                    return (
-                      <TouchableOpacity
-                        key={idx}
-                        style={[styles.avatarGridItem, isSelected && styles.avatarGridItemActive]}
-                        onPress={() => setSelectedAvatar(avatarUrl)}
-                        activeOpacity={0.7}
-                        disabled={updateProfileMutation.isPending}
-                      >
-                        <Image source={{ uri: avatarUrl }} style={styles.gridAvatarImage} />
-                        {isSelected && (
-                          <View style={styles.checkBadge}>
-                            <Ionicons name="checkmark" size={10} color="#fff" />
-                          </View>
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })}
+                <View style={styles.avatarScrollContainer}>
+                  <ScrollView
+                    nestedScrollEnabled={true}
+                    showsVerticalScrollIndicator={true}
+                    contentContainerStyle={styles.avatarGrid}
+                  >
+                    {PREDEFINED_AVATARS.map((avatarUrl, idx) => {
+                      const isSelected = selectedAvatar === avatarUrl;
+                      return (
+                        <TouchableOpacity
+                          key={idx}
+                          style={[styles.avatarGridItem, isSelected && styles.avatarGridItemActive]}
+                          onPress={() => setSelectedAvatar(avatarUrl)}
+                          activeOpacity={0.7}
+                          disabled={updateProfileMutation.isPending}
+                        >
+                          <Image source={{ uri: avatarUrl }} style={styles.gridAvatarImage} />
+                          {isSelected && (
+                            <View style={styles.checkBadge}>
+                              <Ionicons name="checkmark" size={10} color="#fff" />
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
                 </View>
 
                 <TouchableOpacity
@@ -587,42 +685,104 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  headerContainer: {
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f1f1',
+  },
+  tabHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  settingsWalletBtn: {
+    paddingVertical: 4,
+  },
+  tabTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: COLORS.onSurface,
+    letterSpacing: -0.5,
+  },
+  tabSubtitle: {
+    fontSize: 12,
+    color: COLORS.outline,
+    fontWeight: '600',
+    marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   profileSection: {
+    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
-    padding: 24,
+    padding: 20,
     borderRadius: 24,
     borderWidth: 1,
     borderColor: COLORS.surfaceContainer,
     marginBottom: 24,
+    gap: 20,
+  },
+  avatarOutlineContainer: {
+    position: 'relative',
   },
   profileAvatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    marginBottom: 12,
+    borderWidth: 3,
+    borderColor: '#e8eaf6',
+  },
+  avatarEditOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  profileInfoColumn: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
   },
   profileName: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '800',
     color: COLORS.onSurface,
     marginBottom: 4,
+    letterSpacing: -0.5,
   },
   profileEmail: {
     fontSize: 13,
     color: COLORS.outline,
-    marginBottom: 16,
+    fontWeight: '500',
+    marginBottom: 12,
   },
   editProfileButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1.5,
     borderColor: COLORS.outlineVariant,
   },
   editProfileButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     color: COLORS.onSurfaceVariant,
   },
   settingsSection: {
@@ -635,7 +795,7 @@ const styles = StyleSheet.create({
   },
   settingsGroupTitle: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.outline,
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -646,35 +806,73 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.surfaceContainerLow,
   },
   settingsItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 16,
+  },
+  iconBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   settingsItemLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
     color: COLORS.onSurface,
   },
   settingsItemSubValue: {
     fontSize: 13,
+    fontWeight: '600',
     color: COLORS.outline,
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
+    gap: 10,
+    backgroundColor: '#fdf2f2',
+    borderColor: '#fde2e2',
+    borderWidth: 1.5,
+    borderRadius: 20,
+    paddingVertical: 14,
+    marginTop: 8,
+    marginBottom: 32,
   },
   logoutButtonText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.error,
+  },
+  footerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    marginBottom: 40,
+    gap: 4,
+  },
+  footerBrand: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: COLORS.outline,
+    letterSpacing: 0.5,
+  },
+  footerVersion: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.outlineVariant,
+  },
+  footerCopyright: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: COLORS.outlineVariant,
+    marginTop: 4,
   },
   modalOverlay: {
     flex: 1,
@@ -799,13 +997,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.outline,
   },
+  avatarScrollContainer: {
+    height: 180,
+    borderWidth: 1.5,
+    borderColor: COLORS.surfaceContainer,
+    borderRadius: 16,
+    backgroundColor: COLORS.surfaceContainerLow,
+    padding: 10,
+    marginBottom: 24,
+  },
   avatarGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     gap: 12,
-    marginBottom: 24,
-    paddingHorizontal: 4,
+    paddingBottom: 10,
   },
   avatarGridItem: {
     width: 52,

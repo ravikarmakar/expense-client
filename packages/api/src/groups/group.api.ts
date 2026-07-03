@@ -41,10 +41,17 @@ export const createGroupApi = async (input: CreateGroupInput): Promise<Group> =>
 /**
  * Get all groups the current user belongs to.
  */
-export const getGroupsApi = async (): Promise<Group[]> => {
-  const { data } = await getApiClient().get<unknown>('/groups');
+export const getGroupsApi = async (
+  cursor?: string
+): Promise<{ groups: Group[]; nextCursor: string | null }> => {
+  const { data } = await getApiClient().get<unknown>('/groups', {
+    params: { cursor },
+  });
   const parsed = groupListSchema.parse(data);
-  return parsed.data.groups;
+  return {
+    groups: parsed.data.groups,
+    nextCursor: parsed.data.nextCursor ?? null,
+  };
 };
 
 /**
@@ -100,6 +107,28 @@ export const searchUsersApi = async (query: string): Promise<UserSearchResult[]>
   });
   const parsed = userSearchListSchema.parse(data);
   return parsed.data.users;
+};
+
+export interface PaginatedUsersResult {
+  users: UserSearchResult[];
+  nextCursor: string | null;
+}
+
+export const searchUsersPaginatedApi = async (
+  query: string,
+  cursor?: string
+): Promise<PaginatedUsersResult> => {
+  if (!query || query.trim().length < 2) {
+    return { users: [], nextCursor: null };
+  }
+  const { data } = await getApiClient().get<unknown>('/users/search', {
+    params: { q: query.trim(), cursor },
+  });
+  const parsed = userSearchListSchema.parse(data);
+  return {
+    users: parsed.data.users,
+    nextCursor: parsed.data.nextCursor ?? null,
+  };
 };
 
 /**

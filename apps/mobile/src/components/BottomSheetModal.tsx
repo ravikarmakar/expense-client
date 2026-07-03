@@ -28,7 +28,13 @@ export const BottomSheetModal = React.memo(function BottomSheetModal({
   behavior = Platform.OS === 'ios' ? 'padding' : undefined,
 }: BottomSheetModalProps) {
   return (
-    <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
+    <Modal
+      animationType="slide"
+      transparent
+      visible={visible}
+      onRequestClose={onClose}
+      statusBarTranslucent={true}
+    >
       <KeyboardAvoidingView behavior={behavior} style={styles.overlay}>
         {/* Backdrop click to dismiss */}
         <Pressable style={styles.backdrop} onPress={onClose} />

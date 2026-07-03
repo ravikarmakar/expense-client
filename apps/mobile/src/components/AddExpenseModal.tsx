@@ -46,6 +46,7 @@ interface AddExpenseModalProps {
   onClose: () => void;
   groupId?: string;
   groupName?: string;
+  initialExpenseType?: 'PERSONAL' | 'GROUP';
   onSuccess?: () => void;
 }
 
@@ -312,11 +313,12 @@ export function AddExpenseModal({
   onClose,
   groupId,
   groupName,
+  initialExpenseType,
   onSuccess,
 }: AddExpenseModalProps) {
   // Form state
   const [expenseType, setExpenseType] = useState<'PERSONAL' | 'GROUP' | null>(
-    groupId ? 'GROUP' : null
+    groupId ? 'GROUP' : (initialExpenseType ?? null)
   );
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(groupId ?? null);
   const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState(false);
@@ -335,11 +337,24 @@ export function AddExpenseModal({
   const createExpense = useCreateExpense();
 
   const { data: groupsData } = useGroups();
-  const userGroups = groupsData ?? [];
+  const userGroups = React.useMemo(() => {
+    return groupsData?.pages.flatMap((page) => page.groups) ?? [];
+  }, [groupsData]);
+
+  const [hasManuallyToggled, setHasManuallyToggled] = useState(false);
 
   const activeGroupId = groupId || selectedGroupId || '';
-  const { data: groupData } = useGroup(activeGroupId);
-  const groupMembers = groupData?.members ?? [];
+  const { data: groupData, refetch: refetchGroup } = useGroup(activeGroupId);
+
+  useEffect(() => {
+    if (visible && activeGroupId) {
+      refetchGroup();
+    }
+  }, [visible, activeGroupId, refetchGroup]);
+
+  const groupMembers = React.useMemo(() => {
+    return (groupData?.members ?? []).filter((m) => m.role !== 'invited');
+  }, [groupData]);
 
   const { data: walletData } = useWallet(activeGroupId);
   const [useWalletBalance, setUseWalletBalance] = useState(false);
@@ -354,22 +369,27 @@ export function AddExpenseModal({
   const [splitMemberIds, setSplitMemberIds] = useState<string[]>([]);
 
   useEffect(() => {
-    if (
-      visible &&
-      (groupId || selectedGroupId) &&
-      groupMembers.length > 0 &&
-      splitMemberIds.length === 0
-    ) {
+    if (visible && (groupId || selectedGroupId) && groupMembers.length > 0 && !hasManuallyToggled) {
       setSplitMemberIds(groupMembers.map((m) => m.userId));
     }
-  }, [visible, groupId, selectedGroupId, groupMembers]);
+  }, [visible, groupId, selectedGroupId, groupMembers, hasManuallyToggled]);
 
   const toggleMember = React.useCallback(
     (id: string) => {
       if (currentUser && id === currentUser.id) return; // Cannot toggle self
-      setSplitMemberIds((prev) =>
-        prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
-      );
+      setHasManuallyToggled(true);
+      setSplitMemberIds((prev) => {
+        const isDeselecting = prev.includes(id);
+        if (isDeselecting) {
+          const otherSelected = prev.filter((m) => m !== currentUser?.id && m !== id);
+          if (otherSelected.length === 0) {
+            return prev; // Prevent de-selection of the last remaining other member
+          }
+          return prev.filter((m) => m !== id);
+        } else {
+          return [...prev, id];
+        }
+      });
     },
     [currentUser]
   );
@@ -382,6 +402,7 @@ export function AddExpenseModal({
     setSelectedGroupId(id);
     setIsGroupDropdownOpen(false);
     setSplitMemberIds([]);
+    setHasManuallyToggled(false);
   }, []);
 
   const handleToggleCategoryDropdown = React.useCallback(() => {
@@ -398,7 +419,7 @@ export function AddExpenseModal({
   );
 
   const resetForm = () => {
-    setExpenseType(groupId ? 'GROUP' : null);
+    setExpenseType(groupId ? 'GROUP' : (initialExpenseType ?? null));
     setSelectedGroupId(groupId ?? null);
     setIsGroupDropdownOpen(false);
     setCategory(null);
@@ -410,6 +431,7 @@ export function AddExpenseModal({
     setSplitMemberIds([]);
     setErrorMessage('');
     setUseWalletBalance(false);
+    setHasManuallyToggled(false);
   };
 
   const handleClose = () => {
@@ -436,9 +458,16 @@ export function AddExpenseModal({
       return;
     }
 
-    if (expenseType === 'GROUP' && splitMemberIds.length === 0) {
-      setErrorMessage('Please select at least one member to split with');
-      return;
+    if (expenseType === 'GROUP') {
+      if (splitMemberIds.length === 0) {
+        setErrorMessage('Please select at least one member to split with');
+        return;
+      }
+      const otherMembers = splitMemberIds.filter((id) => id !== currentUser?.id);
+      if (otherMembers.length === 0) {
+        setErrorMessage('A group expense must be split with at least one other member');
+        return;
+      }
     }
 
     const validation = clientCreateExpenseSchema.safeParse({

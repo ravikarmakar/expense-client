@@ -124,7 +124,7 @@ export default function WalletScreen() {
       (error as Error)?.message ||
       'Failed to load wallet';
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.container}>
         <View style={[styles.header, { paddingTop: insets.top, height: 56 + insets.top }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={24} color={COLORS.onSurface} />
@@ -139,7 +139,7 @@ export default function WalletScreen() {
   // ── No Wallet — Setup ──
   if (!wallet) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.container}>
         <View style={[styles.header, { paddingTop: insets.top, height: 56 + insets.top }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={24} color={COLORS.onSurface} />
@@ -152,6 +152,7 @@ export default function WalletScreen() {
           description="Set up a shared fund to collect contributions and pay group expenses directly."
           ctaText={isOwner ? 'Set Up Wallet' : undefined}
           ctaIcon="add-circle-outline"
+          ctaColor={COLORS.secondary}
           onCtaPress={
             isOwner
               ? () => {
@@ -181,7 +182,7 @@ export default function WalletScreen() {
   }
 
   // ── Wallet exists — full view ──
-  const groupMembers = group?.members ?? [];
+  const groupMembers = (group?.members ?? []).filter((m) => m.role !== 'invited');
   const myContribution = wallet.contributions.find(
     (c: WalletContribution) => c.userId === user?.id
   );
@@ -218,7 +219,8 @@ export default function WalletScreen() {
       >
         {/* ── Balance Card ── */}
         <View style={styles.balanceCard}>
-          <View style={styles.balanceCardCircle} />
+          <View style={[styles.abstractCircle, styles.circleTopRight]} />
+          <View style={[styles.abstractCircle, styles.circleBottomLeft]} />
           <Text style={styles.balanceLabel}>WALLET BALANCE</Text>
           <Text style={styles.balanceAmount}>
             {CURRENCY_SYMBOL}
@@ -294,7 +296,7 @@ export default function WalletScreen() {
             )
           ) : (
             <View style={styles.fullyPaidBadge}>
-              <Ionicons name="checkmark-circle" size={18} color={COLORS.primary} />
+              <Ionicons name="checkmark-circle" size={18} color={COLORS.secondary} />
               <Text style={styles.fullyPaidText}>Paid</Text>
             </View>
           )}
@@ -364,10 +366,10 @@ export default function WalletScreen() {
                     {
                       backgroundColor:
                         tx.type === 'DEPOSIT'
-                          ? COLORS.primaryFixed
+                          ? COLORS.secondaryFixed
                           : tx.type === 'EXPENSE'
                             ? COLORS.errorContainer
-                            : COLORS.secondaryFixed,
+                            : COLORS.surfaceContainer,
                     },
                   ]}
                 >
@@ -382,10 +384,10 @@ export default function WalletScreen() {
                     size={16}
                     color={
                       tx.type === 'DEPOSIT'
-                        ? COLORS.primary
+                        ? COLORS.secondary
                         : tx.type === 'EXPENSE'
                           ? COLORS.error
-                          : COLORS.secondary
+                          : COLORS.outline
                     }
                   />
                 </View>
@@ -503,10 +505,10 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.surfaceContainer,
+    borderBottomColor: '#f1f1f1',
   },
   backBtn: {
     padding: 4,
@@ -529,26 +531,34 @@ const styles = StyleSheet.create({
 
   // Balance Card
   balanceCard: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.secondary,
     borderRadius: 24,
     padding: 28,
     marginBottom: 20,
     overflow: 'hidden',
     position: 'relative',
-    elevation: 6,
+    elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
-    shadowRadius: 10,
+    shadowRadius: 12,
   },
-  balanceCardCircle: {
+  abstractCircle: {
     position: 'absolute',
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    top: -60,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  circleTopRight: {
+    width: 140,
+    height: 140,
+    top: -50,
     right: -40,
+  },
+  circleBottomLeft: {
+    width: 100,
+    height: 100,
+    bottom: -35,
+    left: -30,
   },
   balanceLabel: {
     fontSize: 11,
@@ -621,7 +631,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.secondary,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 10,
@@ -649,7 +659,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   contributeConfirmBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.secondary,
     padding: 8,
     borderRadius: 8,
   },
@@ -660,7 +670,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: COLORS.primaryFixed,
+    backgroundColor: COLORS.secondaryFixed,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
@@ -668,7 +678,7 @@ const styles = StyleSheet.create({
   fullyPaidText: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: COLORS.secondary,
   },
   // Section
   sectionTitle: {
@@ -723,7 +733,7 @@ const styles = StyleSheet.create({
   },
   paidText: {
     fontSize: 13,
-    color: COLORS.primary,
+    color: COLORS.secondary,
     fontWeight: '600',
     marginTop: 3,
   },

@@ -28,14 +28,20 @@ export const createExpenseApi = async (input: CreateExpenseInput): Promise<Expen
  */
 export const getExpensesApi = async (
   filter?: GetExpensesFilter
-): Promise<{ expenses: Expense[]; total: number }> => {
+): Promise<{ expenses: Expense[]; nextCursor: string | null }> => {
+  const params = filter
+    ? {
+        ...filter,
+        personal: filter.personal !== undefined ? String(filter.personal) : undefined,
+      }
+    : undefined;
   const { data } = await getApiClient().get<unknown>('/expenses', {
-    params: filter,
+    params,
   });
   const parsed = expenseListSchema.parse(data);
   return {
     expenses: parsed.data.expenses,
-    total: parsed.data.total ?? parsed.data.expenses.length,
+    nextCursor: parsed.data.nextCursor ?? null,
   };
 };
 

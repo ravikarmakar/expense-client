@@ -4,6 +4,7 @@ import { COLORS } from '../constants/theme';
 
 interface GroupCardProps {
   name: string;
+  emoji?: string;
   activity: string;
   memberAvatars: string[];
   totalMembersCount?: number;
@@ -14,6 +15,7 @@ interface GroupCardProps {
 
 export const GroupCard = React.memo(function GroupCard({
   name,
+  emoji,
   activity,
   memberAvatars,
   totalMembersCount = memberAvatars.length,
@@ -37,10 +39,23 @@ export const GroupCard = React.memo(function GroupCard({
   };
 
   return (
-    <TouchableOpacity style={styles.groupCard} activeOpacity={0.9} onPress={onPress}>
-      <View style={styles.groupCardHeader}>
+    <TouchableOpacity style={styles.groupCard} activeOpacity={0.85} onPress={onPress}>
+      {/* Left circular emblem container */}
+      <View style={styles.emblemContainer}>
+        <Text style={styles.emblemEmoji}>{emoji ?? '👥'}</Text>
+      </View>
+
+      {/* Center content container */}
+      <View style={styles.centerContainer}>
+        <Text style={styles.groupName} numberOfLines={1}>
+          {name}
+        </Text>
+        <Text style={styles.groupActivity} numberOfLines={1}>
+          {activity}
+        </Text>
+        {/* Avatars overlap row */}
         <View style={styles.avatarOverlapContainer}>
-          {memberAvatars.slice(0, 2).map((uri, idx) => (
+          {memberAvatars.slice(0, 3).map((uri, idx) => (
             <Image
               key={idx}
               source={{
@@ -52,19 +67,19 @@ export const GroupCard = React.memo(function GroupCard({
               style={[styles.overlapAvatar, idx > 0 && styles.overlapAvatar2]}
             />
           ))}
-          {totalMembersCount > 2 && (
+          {totalMembersCount > 3 && (
             <View style={[styles.overlapAvatar, styles.overlapAvatarCount]}>
-              <Text style={styles.overlapAvatarCountText}>+{totalMembersCount - 2}</Text>
+              <Text style={styles.overlapAvatarCountText}>+{totalMembersCount - 3}</Text>
             </View>
           )}
         </View>
+      </View>
+
+      {/* Right status badge container */}
+      <View style={styles.rightContainer}>
         <View style={getBadgeStyle()}>
           <Text style={getBadgeTextStyle()}>{balanceText}</Text>
         </View>
-      </View>
-      <View style={styles.groupCardFooter}>
-        <Text style={styles.groupName}>{name}</Text>
-        <Text style={styles.groupActivity}>{activity}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -74,92 +89,117 @@ const styles = StyleSheet.create({
   groupCard: {
     backgroundColor: COLORS.surface,
     borderRadius: 24,
-    padding: 20,
+    padding: 16,
     borderWidth: 1,
     borderColor: COLORS.surfaceContainer,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    marginBottom: 12,
-  },
-  groupCardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    gap: 12,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    marginBottom: 8,
+  },
+  emblemContainer: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: COLORS.surfaceContainerLow,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  emblemEmoji: {
+    fontSize: 26,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: 2,
+  },
+  groupName: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: COLORS.onSurface,
+    letterSpacing: -0.2,
+  },
+  groupActivity: {
+    fontSize: 12,
+    color: COLORS.outline,
+    fontWeight: '600',
   },
   avatarOverlapContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 6,
   },
   overlapAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1.5,
     borderColor: '#ffffff',
     backgroundColor: COLORS.surfaceContainer,
   },
   overlapAvatar2: {
-    marginLeft: -12,
+    marginLeft: -8,
   },
   overlapAvatarCount: {
-    marginLeft: -12,
+    marginLeft: -8,
     backgroundColor: COLORS.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
   },
   overlapAvatarCountText: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 9,
+    fontWeight: '800',
     color: COLORS.outline,
+  },
+  rightContainer: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    minWidth: 90,
   },
   groupOweBadge: {
     backgroundColor: COLORS.primaryFixed,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 12,
   },
   groupOweBadgeText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
     color: COLORS.onPrimaryFixedVariant,
+    textAlign: 'center',
   },
   groupOweBadgeError: {
     backgroundColor: COLORS.errorContainer,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 12,
   },
   groupOweBadgeTextError: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
     color: COLORS.onErrorContainer,
+    textAlign: 'center',
   },
   groupNeutralBadge: {
     backgroundColor: COLORS.surfaceContainerHigh,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 12,
   },
   groupNeutralBadgeText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
     color: COLORS.onSurfaceVariant,
-  },
-  groupCardFooter: {
-    marginTop: 4,
-  },
-  groupName: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: COLORS.onSurface,
-  },
-  groupActivity: {
-    fontSize: 14,
-    color: COLORS.outline,
-    marginTop: 4,
+    textAlign: 'center',
   },
 });

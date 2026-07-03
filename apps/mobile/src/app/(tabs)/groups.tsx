@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  RefreshControl,
+  ActivityIndicator,
+  NativeScrollEvent,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,7 +23,15 @@ import { useGroups } from '@workspace/api';
 
 export default function GroupsTabScreen() {
   const [createGroupVisible, setCreateGroupVisible] = useState(false);
-  const { data: groups, isLoading, isError, refetch } = useGroups();
+  const {
+    data: groupsData,
+    isLoading,
+    isError,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useGroups();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
 
@@ -24,7 +41,9 @@ export default function GroupsTabScreen() {
     setIsRefreshing(false);
   };
 
-  const groupList = groups ?? [];
+  const groupList = React.useMemo(() => {
+    return groupsData?.pages.flatMap((page) => page.groups) ?? [];
+  }, [groupsData]);
 
   const totalOwedToMe = groupList
     .filter((g) => g.myBalance > 0)
@@ -33,37 +52,66 @@ export default function GroupsTabScreen() {
     .filter((g) => g.myBalance < 0)
     .reduce((sum, g) => sum + Math.abs(g.myBalance), 0);
 
+  const isCloseToBottom = ({
+    layoutMeasurement,
+    contentOffset,
+    contentSize,
+  }: NativeScrollEvent) => {
+    const paddingToBottom = 50;
+    return layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
+  };
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
+      {/* Header Container with Bottom Divider line */}
+      <View style={[styles.headerContainer, { paddingTop: insets.top + 16 }]}>
+        <View style={styles.tabHeaderRow}>
+          <View>
+            <Text style={styles.tabTitle}>My Groups</Text>
+            <Text style={styles.tabSubtitle}>Shared Budgets & Splits</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.createGroupButton}
+            activeOpacity={0.7}
+            onPress={() => setCreateGroupVisible(true)}
+          >
+            <Ionicons name="add" size={24} color="#ffffff" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <ScrollView
         contentContainerStyle={globalStyles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+        onScroll={({ nativeEvent }) => {
+          if (isCloseToBottom(nativeEvent) && hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
+          }
+        }}
+        scrollEventThrottle={400}
       >
-        {/* Header row */}
-        <View style={styles.tabHeaderRow}>
-          <Text style={styles.tabTitle}>My Groups</Text>
-          <TouchableOpacity
-            style={styles.createGroupButton}
-            activeOpacity={0.8}
-            onPress={() => setCreateGroupVisible(true)}
-          >
-            <Ionicons name="add" size={18} color="#ffffff" />
-            <Text style={styles.createGroupButtonText}>New Group</Text>
-          </TouchableOpacity>
-        </View>
-
         {/* Balance summary */}
         <View style={styles.groupsSummaryRow}>
-          <View style={styles.groupsSummaryCard}>
-            <Text style={styles.groupsSummaryLabel}>Owed to you</Text>
+          <View style={[styles.groupsSummaryCard, styles.summaryCardGreen]}>
+            <View style={styles.summaryCardHeader}>
+              <Text style={styles.groupsSummaryLabel}>Owed to you</Text>
+              <View style={[styles.summaryIconBg, styles.summaryIconBgGreen]}>
+                <Ionicons name="arrow-down" size={12} color={COLORS.primary} />
+              </View>
+            </View>
             <Text style={styles.groupsSummaryValueGreen}>
               {CURRENCY_SYMBOL}
               {totalOwedToMe.toFixed(2)}
             </Text>
           </View>
-          <View style={styles.groupsSummaryCard}>
-            <Text style={styles.groupsSummaryLabel}>You owe</Text>
+          <View style={[styles.groupsSummaryCard, styles.summaryCardRed]}>
+            <View style={styles.summaryCardHeader}>
+              <Text style={styles.groupsSummaryLabel}>You owe</Text>
+              <View style={[styles.summaryIconBg, styles.summaryIconBgRed]}>
+                <Ionicons name="arrow-up" size={12} color={COLORS.error} />
+              </View>
+            </View>
             <Text style={styles.groupsSummaryValueRed}>
               {CURRENCY_SYMBOL}
               {totalIOwe.toFixed(2)}
@@ -95,7 +143,8 @@ export default function GroupsTabScreen() {
             {groupList.map((group) => (
               <GroupCard
                 key={group.id}
-                name={`${group.emoji ?? '👥'} ${group.name}`}
+                name={group.name}
+                emoji={group.emoji ?? '👥'}
                 activity={`${group.type ?? 'Other'} · ${group.memberCount} members`}
                 memberAvatars={group.members.slice(0, 3).map((m) => m.image ?? '')}
                 totalMembersCount={group.memberCount}
@@ -118,6 +167,13 @@ export default function GroupsTabScreen() {
             ))}
           </View>
         )}
+
+        {isFetchingNextPage && (
+          <View style={styles.loadingMore}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={styles.loadingMoreText}>Loading more...</Text>
+          </View>
+        )}
       </ScrollView>
 
       <CreateGroupModal
@@ -137,63 +193,119 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  headerContainer: {
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f1f1',
+  },
   tabHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
   },
   tabTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 26,
+    fontWeight: '800',
     color: COLORS.onSurface,
+    letterSpacing: -0.5,
+  },
+  tabSubtitle: {
+    fontSize: 12,
+    color: COLORS.outline,
+    fontWeight: '600',
+    marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   createGroupButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: COLORS.secondary,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    gap: 4,
-  },
-  createGroupButtonText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3,
+    shadowColor: COLORS.secondary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
   groupsSummaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 12,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   groupsSummaryCard: {
     flex: 1,
-    backgroundColor: COLORS.surface,
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.surfaceContainer,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+  },
+  summaryCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  summaryCardGreen: {
+    backgroundColor: '#e6f4ea',
+    borderColor: '#c2e7cd',
+  },
+  summaryCardRed: {
+    backgroundColor: '#fce8e6',
+    borderColor: '#f9c2bd',
+  },
+  summaryIconBg: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  summaryIconBgGreen: {
+    backgroundColor: 'rgba(0, 105, 72, 0.1)',
+  },
+  summaryIconBgRed: {
+    backgroundColor: 'rgba(186, 26, 26, 0.1)',
   },
   groupsSummaryLabel: {
     fontSize: 11,
     color: COLORS.outline,
-    fontWeight: '600',
+    fontWeight: '700',
     textTransform: 'uppercase',
-    marginBottom: 4,
+    letterSpacing: 0.5,
   },
   groupsSummaryValueGreen: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
     color: COLORS.primary,
   },
   groupsSummaryValueRed: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
     color: COLORS.error,
   },
   groupsList: {
     gap: 12,
+  },
+  loadingMore: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 8,
+  },
+  loadingMoreText: {
+    fontSize: 13,
+    color: COLORS.outline,
+    fontWeight: '500',
   },
 });
