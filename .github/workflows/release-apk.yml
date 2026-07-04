@@ -47,7 +47,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       - name: Install Monorepo Dependencies
@@ -223,25 +223,25 @@ jobs:
       - name: Verify R2 Release Artifacts
         run: |
           echo "Verifying published release assets inside Cloudflare R2..."
-          
+
           # Check version.json
           if ! aws s3 ls s3://${{ secrets.R2_BUCKET_NAME }}/expense-release-files/version.json --endpoint-url https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com; then
             echo "❌ Verification Failed: version.json was not found in R2!"
             exit 1
           fi
-          
+
           # Check releases-history.json
           if ! aws s3 ls s3://${{ secrets.R2_BUCKET_NAME }}/expense-release-files/releases-history.json --endpoint-url https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com; then
             echo "❌ Verification Failed: releases-history.json was not found in R2!"
             exit 1
           fi
-          
+
           # Check the uploaded APK file
           if ! aws s3 ls s3://${{ secrets.R2_BUCKET_NAME }}/expense-release-files/releases/app-v${{ env.APP_VERSION }}.apk --endpoint-url https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com; then
             echo "❌ Verification Failed: releases/app-v${{ env.APP_VERSION }}.apk was not found in R2!"
             exit 1
           fi
-          
+
           echo "✅ Verification successful! All assets are fully published in Cloudflare R2."
 
       - name: Generate GitHub Release
@@ -251,10 +251,10 @@ jobs:
           name: Release v${{ env.APP_VERSION }}
           body: |
             ## Release v${{ env.APP_VERSION }} (${{ env.EXPO_PUBLIC_BUILD_NUMBER }})
-            
+
             ### Release Notes:
             ${{ github.event.inputs.release_notes || 'New production release' }}
-            
+
             ### Artifact Metadata:
             * **File Name**: `app-v${{ env.APP_VERSION }}.apk`
             * **Size**: `${{ env.APK_SIZE }} bytes`
