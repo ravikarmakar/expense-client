@@ -73,10 +73,10 @@ export const updateGroupApi = async ({ id, ...rest }: UpdateGroupInput): Promise
 };
 
 /**
- * Delete a group (only admin can do this).
+ * Deactivate a group (only admin can do this).
  */
-export const deleteGroupApi = async (id: string): Promise<void> => {
-  await getApiClient().delete(`/groups/${id}`);
+export const deactivateGroupApi = async (id: string): Promise<void> => {
+  await getApiClient().patch(`/groups/${id}/deactivate`);
 };
 
 /**

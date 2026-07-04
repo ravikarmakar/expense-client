@@ -1,0 +1,264 @@
+name: Release APK
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 1.0.1) - Required if triggered manually'
+        required: true
+        type: string
+      release_notes:
+        description: 'Release notes describing the changes'
+        required: false
+        default: 'Bug fixes and performance improvements'
+        type: string
+      force_update:
+        description: 'Force users to update immediately'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APP_VERSION: ''
+      EXPO_PUBLIC_BUILD_NUMBER: ''
+      APK_SIZE: ''
+      SHA256: ''
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install Monorepo Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Resolve Application Version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            # Strip v prefix from tag (e.g. refs/tags/v1.0.2 -> 1.0.2)
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          fi
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Release version: $VERSION"
+
+      - name: Ensure AWS CLI is Installed
+        run: |
+          if ! command -v aws &> /dev/null; then
+            echo "AWS CLI not found. Installing..."
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip -q awscliv2.zip
+            sudo ./aws/install --update
+          else
+            echo "AWS CLI is already installed: $(aws --version)"
+          fi
+
+      - name: Fetch Release History from Cloudflare R2
+        run: |
+          aws s3 cp s3://${{ secrets.R2_BUCKET_NAME }}/expense-release-files/releases-history.json ./releases-history.json --endpoint-url https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com || echo "[]" > ./releases-history.json
+          cat ./releases-history.json
+
+      - name: Auto-Increment Build Number
+        run: |
+          node -e "
+            const fs = require('fs');
+            let history = [];
+            try {
+              history = JSON.parse(fs.readFileSync('./releases-history.json', 'utf8'));
+            } catch (err) {}
+            // Retrieve max buildNumber and increment
+            const lastBuild = history.reduce((max, r) => Math.max(max, r.buildNumber || 0), 0);
+            const nextBuild = lastBuild + 1;
+            console.log('Next Build Number (versionCode):', nextBuild);
+            fs.writeFileSync(process.env.GITHUB_ENV, 'EXPO_PUBLIC_BUILD_NUMBER=' + nextBuild + '\n', { flag: 'a' });
+          "
+
+      - name: Verify Version Uniqueness in R2
+        run: |
+          # Fails the build safely if this version has already been released to R2
+          if aws s3 ls s3://${{ secrets.R2_BUCKET_NAME }}/expense-release-files/releases/app-v${{ env.APP_VERSION }}.apk --endpoint-url https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com; then
+            echo "❌ Error: Version v${{ env.APP_VERSION }} already exists in R2 bucket releases. Overwrite prevented."
+            exit 1
+          else
+            echo "✅ Version v${{ env.APP_VERSION }} is unique. Proceeding with build."
+          fi
+
+      - name: Setup EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Build APK via Expo EAS Cloud
+        run: |
+          cd apps/mobile
+          # Inject App Version and Build Number variables so app.config.ts picks them up.
+          # Run build with --wait and --json flags to capture final artifact metadata.
+          EXPO_PUBLIC_APP_VERSION="${{ env.APP_VERSION }}" EXPO_PUBLIC_BUILD_NUMBER="${{ env.EXPO_PUBLIC_BUILD_NUMBER }}" eas build --platform android --profile production --non-interactive --wait --json > ../../build-result.json
+
+      - name: Download APK from Expo Cloud
+        run: |
+          node -e "
+            const fs = require('fs');
+            const https = require('https');
+            
+            const result = JSON.parse(fs.readFileSync('./build-result.json', 'utf8'));
+            const build = Array.isArray(result) ? result[0] : result;
+            const buildUrl = build.artifacts?.buildUrl || build.artifacts?.applicationUrl;
+            
+            if (!buildUrl) {
+              console.error('Error: Build URL not found in EAS build output JSON:', JSON.stringify(build, null, 2));
+              process.exit(1);
+            }
+            
+            console.log('Downloading APK from:', buildUrl);
+            
+            const file = fs.createWriteStream('./app-release.apk');
+            
+            function download(url) {
+              return new Promise((resolve, reject) => {
+                https.get(url, (response) => {
+                  if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+                    resolve(download(response.headers.location));
+                    return;
+                  }
+                  if (response.statusCode !== 200) {
+                    reject(new Error('Failed to download APK. Status code: ' + response.statusCode));
+                    return;
+                  }
+                  response.pipe(file);
+                  file.on('finish', () => {
+                    file.close(() => {
+                      console.log('APK downloaded successfully.');
+                      resolve();
+                    });
+                  });
+                }).on('error', (err) => {
+                  reject(err);
+                });
+              });
+            }
+            
+            download(buildUrl)
+              .then(() => process.exit(0))
+              .catch((err) => {
+                console.error('Download failed:', err);
+                process.exit(1);
+              });
+          "
+
+      - name: Compute APK Metadata
+        run: |
+          APK_SIZE=$(stat -c%s "./app-release.apk")
+          SHA256=$(sha256sum "./app-release.apk" | awk '{print $1}')
+          echo "APK_SIZE=$APK_SIZE" >> $GITHUB_ENV
+          echo "SHA256=$SHA256" >> $GITHUB_ENV
+          echo "File Size: $APK_SIZE bytes"
+          echo "SHA256: $SHA256"
+
+      - name: Upload APK to Cloudflare R2
+        run: |
+          aws s3 cp ./app-release.apk s3://${{ secrets.R2_BUCKET_NAME }}/expense-release-files/releases/app-v${{ env.APP_VERSION }}.apk --endpoint-url https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+
+      - name: Compile and Append Version Metadata
+        run: |
+          node -e "
+            const fs = require('fs');
+            const version = '${{ env.APP_VERSION }}';
+            const buildNumber = parseInt(process.env.EXPO_PUBLIC_BUILD_NUMBER, 10);
+            const forceUpdate = '${{ github.event.inputs.force_update || 'false' }}' === 'true';
+            
+            // Format notes input into string array
+            const notesInput = \`${{ github.event.inputs.release_notes || 'Production release update' }}\`;
+            const releaseNotes = notesInput.split('\n').map(n => n.trim()).filter(Boolean);
+            
+            const manifest = {
+              version,
+              buildNumber,
+              forceUpdate,
+              minVersion: '1.0.0', // Minimum supported version base threshold
+              apkUrl: '${{ secrets.R2_PUBLIC_URL }}/expense-release-files/releases/app-v' + version + '.apk',
+              apkSizeBytes: parseInt('${{ env.APK_SIZE }}', 10),
+              sha256: '${{ env.SHA256 }}',
+              releaseNotes,
+              releasedAt: new Date().toISOString()
+            };
+            
+            // Write current version manifest
+            fs.writeFileSync('./version.json', JSON.stringify(manifest, null, 2));
+            
+            // Append to releases history
+            let history = [];
+            try {
+              history = JSON.parse(fs.readFileSync('./releases-history.json', 'utf8'));
+            } catch (err) {}
+            history.unshift(manifest);
+            fs.writeFileSync('./releases-history.json', JSON.stringify(history, null, 2));
+          "
+
+      - name: Publish Version Manifests to Cloudflare R2
+        run: |
+          aws s3 cp ./version.json s3://${{ secrets.R2_BUCKET_NAME }}/expense-release-files/version.json --endpoint-url https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          aws s3 cp ./releases-history.json s3://${{ secrets.R2_BUCKET_NAME }}/expense-release-files/releases-history.json --endpoint-url https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+
+      - name: Verify R2 Release Artifacts
+        run: |
+          echo "Verifying published release assets inside Cloudflare R2..."
+          
+          # Check version.json
+          if ! aws s3 ls s3://${{ secrets.R2_BUCKET_NAME }}/expense-release-files/version.json --endpoint-url https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com; then
+            echo "❌ Verification Failed: version.json was not found in R2!"
+            exit 1
+          fi
+          
+          # Check releases-history.json
+          if ! aws s3 ls s3://${{ secrets.R2_BUCKET_NAME }}/expense-release-files/releases-history.json --endpoint-url https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com; then
+            echo "❌ Verification Failed: releases-history.json was not found in R2!"
+            exit 1
+          fi
+          
+          # Check the uploaded APK file
+          if ! aws s3 ls s3://${{ secrets.R2_BUCKET_NAME }}/expense-release-files/releases/app-v${{ env.APP_VERSION }}.apk --endpoint-url https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com; then
+            echo "❌ Verification Failed: releases/app-v${{ env.APP_VERSION }}.apk was not found in R2!"
+            exit 1
+          fi
+          
+          echo "✅ Verification successful! All assets are fully published in Cloudflare R2."
+
+      - name: Generate GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.APP_VERSION }}
+          name: Release v${{ env.APP_VERSION }}
+          body: |
+            ## Release v${{ env.APP_VERSION }} (${{ env.EXPO_PUBLIC_BUILD_NUMBER }})
+            
+            ### Release Notes:
+            ${{ github.event.inputs.release_notes || 'New production release' }}
+            
+            ### Artifact Metadata:
+            * **File Name**: `app-v${{ env.APP_VERSION }}.apk`
+            * **Size**: `${{ env.APK_SIZE }} bytes`
+            * **SHA256 Checksum**: `${{ env.SHA256 }}`
+          files: ./app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

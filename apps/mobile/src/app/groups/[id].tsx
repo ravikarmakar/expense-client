@@ -28,6 +28,7 @@ import {
   useGroupDetail,
   useSettleUp,
   useLeaveGroup,
+  useDeactivateGroup,
   useMe,
   getErrorMessage,
   type GroupMember,
@@ -41,6 +42,7 @@ export default function GroupDetailScreen() {
 
   const settleUp = useSettleUp(id);
   const leaveGroup = useLeaveGroup();
+  const deactivateGroup = useDeactivateGroup();
 
   const [activeTab, setActiveTab] = useState<'expenses' | 'settlements'>('expenses');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -109,6 +111,40 @@ export default function GroupDetailScreen() {
     );
   };
 
+  const handleDeactivateGroup = () => {
+    if (!isFullySettled) {
+      Alert.alert(
+        'Cannot Deactivate Group',
+        'All member balances must be fully settled (₹0.00) before deactivating the group.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    Alert.alert(
+      'Deactivate Group',
+      'Are you sure you want to deactivate this group? This will hide the group and prevent new expenses, but keep records intact.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Deactivate',
+          style: 'destructive',
+          onPress: () => {
+            deactivateGroup.mutate(id, {
+              onSuccess: () => {
+                Alert.alert('Success 🎉', 'Group deactivated successfully.');
+                router.replace('/(tabs)/groups');
+              },
+              onError: (err) => {
+                Alert.alert('Error', getErrorMessage(err, 'Failed to deactivate group.'));
+              },
+            });
+          },
+        },
+      ]
+    );
+  };
+
   if (isLoading) {
     return <LoadingView />;
   }
@@ -122,6 +158,7 @@ export default function GroupDetailScreen() {
   const settlements = detailData.settlements;
   const myBalance = group.myBalance ?? 0;
   const isAdmin = group.members.find((m) => m.userId === user?.id)?.role === 'admin';
+  const isFullySettled = group.members.every((m) => Math.abs(m.balance ?? 0) < 0.01);
 
   return (
     <View style={styles.container}>
@@ -370,16 +407,40 @@ export default function GroupDetailScreen() {
         <Pressable style={styles.menuOverlay} onPress={() => setMenuVisible(false)}>
           <View style={[styles.menuContainer, { top: insets.top + 50 }]}>
             {isAdmin && (
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => {
-                  setMenuVisible(false);
-                  setEditGroupVisible(true);
-                }}
-              >
-                <Ionicons name="pencil-outline" size={20} color={COLORS.onSurface} />
-                <Text style={styles.menuItemText}>Edit Group</Text>
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => {
+                    setMenuVisible(false);
+                    setEditGroupVisible(true);
+                  }}
+                >
+                  <Ionicons name="pencil-outline" size={20} color={COLORS.onSurface} />
+                  <Text style={styles.menuItemText}>Edit Group</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.menuItem, styles.menuItemBorder]}
+                  onPress={() => {
+                    setMenuVisible(false);
+                    handleDeactivateGroup();
+                  }}
+                >
+                  <Ionicons
+                    name="power-outline"
+                    size={20}
+                    color={isFullySettled ? COLORS.error : COLORS.outline}
+                  />
+                  <Text
+                    style={[
+                      styles.menuItemText,
+                      { color: isFullySettled ? COLORS.error : COLORS.outline },
+                    ]}
+                  >
+                    Deactivate Group
+                  </Text>
+                </TouchableOpacity>
+              </>
             )}
             <TouchableOpacity
               style={[styles.menuItem, isAdmin && styles.menuItemBorder]}

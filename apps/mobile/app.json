@@ -1,17 +1,8 @@
 {
-  "expo": {
-    "name": "mobile",
-    "slug": "mobile",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "userInterfaceStyle": "dark",
-    "scheme": "expensetransaction",
-    "ios": {
-      "supportsTablet": true
-    },
-    "web": {
-      "bundler": "metro"
-    },
-    "plugins": ["expo-router", "expo-secure-store"]
+  "extra": {
+    "router": {},
+    "eas": {
+      "projectId": "c3881a30-3038-45f5-a6fa-cc1b5f67b736"
+    }
   }
 }

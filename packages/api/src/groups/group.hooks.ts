@@ -4,7 +4,7 @@ import {
   getGroupsApi,
   getGroupApi,
   updateGroupApi,
-  deleteGroupApi,
+  deactivateGroupApi,
   addMemberApi,
   removeMemberApi,
   searchUsersApi,
@@ -145,12 +145,12 @@ export const useUpdateGroup = () => {
 };
 
 /**
- * Delete a group.
+ * Deactivate a group.
  */
-export const useDeleteGroup = () => {
+export const useDeactivateGroup = () => {
   const queryClient = useQueryClient();
   return useMutation<void, Error, string>({
-    mutationFn: deleteGroupApi,
+    mutationFn: deactivateGroupApi,
     onSuccess: (_, id) => {
       queryClient.removeQueries({ queryKey: groupKeys.detail(id) });
       queryClient.removeQueries({ queryKey: groupKeys.detailConsolidated(id) });

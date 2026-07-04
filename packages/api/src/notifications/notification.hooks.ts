@@ -9,8 +9,9 @@ export const useNotifications = () =>
   useQuery({
     queryKey: notificationKeys.all(),
     queryFn: getNotificationsApi,
-    staleTime: 10 * 1000, // 10 seconds
-    refetchInterval: 15 * 1000, // poll every 15 seconds
+    staleTime: 30 * 1000, // 30 seconds
+    refetchInterval: 60 * 1000, // poll every 60 seconds
+    refetchOnWindowFocus: true, // refetch on app focus
   });
 
 export const useReadNotifications = () => {

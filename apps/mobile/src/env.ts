@@ -9,6 +9,8 @@ export const env = {
   API_URL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000',
   NODE_ENV: process.env.NODE_ENV || 'development',
   EXPO_PROJECT_ID: Constants.expoConfig?.extra?.eas?.projectId || '',
+  APP_VERSION: Constants.expoConfig?.version || '1.0.0',
+  BUILD_NUMBER: Constants.expoConfig?.android?.versionCode || 1,
 } as const;
 
 if (__DEV__) {

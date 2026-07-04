@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,9 +7,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { TopAppBar } from '../components/TopAppBar';
 import { COLORS } from '../constants/theme';
 import {
@@ -22,17 +23,28 @@ import {
 export default function NotificationsScreen() {
   const router = useRouter();
 
-  const { data: notifications = [], isLoading } = useNotifications();
+  const { data: notifications = [], isLoading, refetch } = useNotifications();
   const acceptInvitation = useAcceptInvitation();
   const declineInvitation = useDeclineInvitation();
   const readNotifications = useReadNotifications();
 
-  useEffect(() => {
-    // Mark notifications as read on view mount
-    readNotifications.mutate(undefined, {
-      onError: (err) => console.warn('Failed to mark notifications as read:', err),
-    });
-  }, []);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Refetch and mark notifications as read whenever the screen is navigated to/focused
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+      readNotifications.mutate(undefined, {
+        onError: (err) => console.warn('Failed to mark notifications as read:', err),
+      });
+    }, [refetch])
+  );
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setIsRefreshing(false);
+  };
 
   const handleAccept = (invitationId: string) => {
     acceptInvitation.mutate(invitationId, {
@@ -66,7 +78,10 @@ export default function NotificationsScreen() {
           <Text style={styles.loadingText}>Loading notifications...</Text>
         </View>
       ) : notifications.length > 0 ? (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+        >
           {notifications.map((item) => {
             const isInvitation = item.type === 'GROUP_INVITATION';
 
@@ -144,7 +159,10 @@ export default function NotificationsScreen() {
           })}
         </ScrollView>
       ) : (
-        <View style={styles.emptyContainer}>
+        <ScrollView
+          contentContainerStyle={styles.emptyContainer}
+          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+        >
           <View style={styles.bellBadgeContainer}>
             <View style={styles.bellOuterCircle}>
               <View style={styles.bellInnerCircle}>
@@ -158,7 +176,7 @@ export default function NotificationsScreen() {
               "We'll notify you when you have new group splits, wallet transactions, or settle-up activity."
             }
           </Text>
-        </View>
+        </ScrollView>
       )}
     </View>
   );

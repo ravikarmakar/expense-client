@@ -69,7 +69,7 @@ export {
   getGroupsApi,
   getGroupApi,
   updateGroupApi,
-  deleteGroupApi,
+  deactivateGroupApi,
   addMemberApi,
   removeMemberApi,
   searchUsersApi,
@@ -87,7 +87,7 @@ export {
   useSearchUsersPaginated,
   useCreateGroup,
   useUpdateGroup,
-  useDeleteGroup,
+  useDeactivateGroup,
   useAddMember,
   useRemoveMember,
   useSettleUp,
@@ -220,3 +220,7 @@ export {
   useAcceptInvitation,
   useDeclineInvitation,
 } from './invitations/invitation.hooks';
+
+// ── Update module ─────────────────────────────────────
+export type { UpdateCheckResult, UpdateProvider } from './update/update.types';
+export { useUpdateCheck, updateProvider } from './update/update.hooks';

@@ -1,19 +1,55 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../../constants/theme';
 import { globalStyles } from '../../styles/globalStyles';
-import { useExpense } from '@workspace/api/src/expenses/expense.hooks';
+import { useExpense, useDeleteExpense, useMe } from '@workspace/api';
 import { TopAppBar } from '../../components/TopAppBar';
 import { LoadingView } from '../../components/LoadingView';
 import { ErrorView } from '../../components/ErrorView';
+import { EditExpenseModal } from '../../components/EditExpenseModal';
 
 export default function ExpenseDetailScreen() {
   const { id } = useLocalSearchParams();
   const { data: expense, isLoading, isError, refetch } = useExpense(id as string);
   const insets = useSafeAreaInsets();
+
+  const [editVisible, setEditVisible] = useState(false);
+  const { data: user } = useMe();
+  const deleteExpense = useDeleteExpense();
+
+  const isPersonal = expense?.groupId === null;
+  const isCreator = expense?.userId === user?.id;
+  const canModify = isPersonal && isCreator;
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete Expense',
+      'Are you sure you want to delete this expense? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            if (expense) {
+              deleteExpense.mutate(expense.id, {
+                onSuccess: () => {
+                  Alert.alert('Success', 'Expense deleted successfully');
+                  router.back();
+                },
+                onError: (err) => {
+                  Alert.alert('Error', err.message || 'Failed to delete expense');
+                },
+              });
+            }
+          },
+        },
+      ]
+    );
+  };
 
   if (isLoading) {
     return <LoadingView />;
@@ -98,6 +134,32 @@ export default function ExpenseDetailScreen() {
           </View>
         </View>
 
+        {/* Action Buttons (Only for Personal & Creator) */}
+        {canModify && (
+          <View style={styles.actionButtonsContainer}>
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.editBtn]}
+              onPress={() => setEditVisible(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="pencil" size={18} color={COLORS.primary} style={{ marginRight: 6 }} />
+              <Text style={styles.editBtnText}>Edit Details</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.deleteBtn]}
+              onPress={handleDelete}
+              disabled={deleteExpense.isPending}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="trash" size={18} color={COLORS.error} style={{ marginRight: 6 }} />
+              <Text style={styles.deleteBtnText}>
+                {deleteExpense.isPending ? 'Deleting...' : 'Delete Expense'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Paid By Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Paid By</Text>
@@ -171,6 +233,15 @@ export default function ExpenseDetailScreen() {
           </View>
         )}
       </ScrollView>
+
+      {expense && (
+        <EditExpenseModal
+          visible={editVisible}
+          onClose={() => setEditVisible(false)}
+          expense={expense}
+          onSuccess={() => refetch()}
+        />
+      )}
     </View>
   );
 }
@@ -367,5 +438,37 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: COLORS.surfaceContainer,
     marginLeft: 68,
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  actionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1.5,
+  },
+  editBtn: {
+    borderColor: COLORS.primaryFixed,
+    backgroundColor: 'transparent',
+  },
+  editBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  deleteBtn: {
+    borderColor: COLORS.errorContainer,
+    backgroundColor: 'transparent',
+  },
+  deleteBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.error,
   },
 });

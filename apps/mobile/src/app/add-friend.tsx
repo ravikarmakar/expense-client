@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -18,24 +18,15 @@ import { useSearchUsersPaginated } from '@workspace/api';
 export default function AddFriendScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 500);
-
-    return () => clearTimeout(handler);
-  }, [searchQuery]);
-
-  // React query search hook
+  // React query search hook - disabled for V1 by passing empty string
   const {
     data: paginatedData,
     isLoading: isSearching,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useSearchUsersPaginated(debouncedSearchQuery);
+  } = useSearchUsersPaginated('');
 
   const searchResults = paginatedData ? paginatedData.pages.flatMap((page) => page.users) : [];
 
@@ -85,10 +76,11 @@ export default function AddFriendScreen() {
           <TextInput
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Search by name or email…"
+            placeholder="Adding friends is disabled for V1"
             placeholderTextColor={COLORS.outlineVariant}
             style={styles.searchInput}
             maxLength={50}
+            editable={false}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearBtn}>

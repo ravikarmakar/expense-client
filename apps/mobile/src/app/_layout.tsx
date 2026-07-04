@@ -1,9 +1,9 @@
 import React from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, AppState } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { Stack, useRouter, useRootNavigationState } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { QueryClientProvider, useQueryClient } from '@tanstack/react-query';
+import { QueryClientProvider, useQueryClient, focusManager } from '@tanstack/react-query';
 import { createApiClient, createQueryClient, useMe, onAuthError } from '@workspace/api';
 import { COLORS } from '../constants/theme';
 import { env } from '../env';
@@ -15,6 +15,19 @@ createApiClient(env.API_URL, {
   setItem: (key, value) => SecureStore.setItemAsync(key, value),
   removeItem: (key) => SecureStore.deleteItemAsync(key),
 });
+
+// Configure TanStack Query focusManager for React Native AppState changes
+focusManager.setEventListener((onFocus) => {
+  const subscription = AppState.addEventListener('change', (status) => {
+    if (status === 'active') {
+      onFocus();
+    }
+  });
+
+  return () => subscription.remove();
+});
+
+import { UpdateDialog } from '../components/UpdateDialog';
 
 // Create QueryClient outside component to avoid re-creation on re-renders
 const queryClient = createQueryClient();
@@ -67,11 +80,14 @@ function RootLayoutNav() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="groups/[id]" options={{ headerShown: false }} />
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="groups/[id]" options={{ headerShown: false }} />
+      </Stack>
+      <UpdateDialog />
+    </>
   );
 }
 
