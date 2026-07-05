@@ -367,6 +367,8 @@ export function AddExpenseModal({
   }, [groupMembers, currentUser]);
 
   const [splitMemberIds, setSplitMemberIds] = useState<string[]>([]);
+  const [splitMode, setSplitMode] = useState<'equal' | 'exact'>('equal');
+  const [customSplits, setCustomSplits] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (visible && (groupId || selectedGroupId) && groupMembers.length > 0 && !hasManuallyToggled) {
@@ -385,6 +387,12 @@ export function AddExpenseModal({
           if (otherSelected.length === 0) {
             return prev; // Prevent de-selection of the last remaining other member
           }
+          // Clear custom split value when user is deselected
+          setCustomSplits((current) => {
+            const next = { ...current };
+            delete next[id];
+            return next;
+          });
           return prev.filter((m) => m !== id);
         } else {
           return [...prev, id];
@@ -402,6 +410,8 @@ export function AddExpenseModal({
     setSelectedGroupId(id);
     setIsGroupDropdownOpen(false);
     setSplitMemberIds([]);
+    setCustomSplits({});
+    setSplitMode('equal');
     setHasManuallyToggled(false);
   }, []);
 
@@ -429,6 +439,8 @@ export function AddExpenseModal({
     setNotes('');
     setDate(new Date().toISOString().split('T')[0]);
     setSplitMemberIds([]);
+    setCustomSplits({});
+    setSplitMode('equal');
     setErrorMessage('');
     setUseWalletBalance(false);
     setHasManuallyToggled(false);
@@ -470,6 +482,33 @@ export function AddExpenseModal({
       }
     }
 
+    let customSplitsPayload: { userId: string; amount: number }[] | undefined = undefined;
+
+    if (expenseType === 'GROUP' && splitMode === 'exact') {
+      const total = parsed;
+      const walletDeduction =
+        useWalletBalance && walletData ? Math.min(walletData.balance, total) : 0;
+      const netAmountToSplit = total - walletDeduction;
+
+      const activeMemberIds = splitMemberIds;
+      const splitsArray = activeMemberIds.map((uid) => {
+        const val = parseFloat(customSplits[uid]) || 0;
+        return { userId: uid, amount: val };
+      });
+
+      const sumOfSplits = splitsArray.reduce((sum, s) => sum + s.amount, 0);
+      const difference = Math.abs(netAmountToSplit - sumOfSplits);
+
+      if (difference > 0.005) {
+        setErrorMessage(
+          `Sum of splits (₹${sumOfSplits.toFixed(2)}) must equal net expense amount (₹${netAmountToSplit.toFixed(2)})`
+        );
+        return;
+      }
+
+      customSplitsPayload = splitsArray;
+    }
+
     const validation = clientCreateExpenseSchema.safeParse({
       title: title.trim(),
       amount: parsed,
@@ -479,6 +518,8 @@ export function AddExpenseModal({
       groupId: expenseType === 'GROUP' ? activeGroupId || undefined : undefined,
       splitMemberIds: expenseType === 'GROUP' ? splitMemberIds : undefined,
       useWallet: expenseType === 'GROUP' ? useWalletBalance : undefined,
+      splitMode: expenseType === 'GROUP' ? splitMode : undefined,
+      splits: expenseType === 'GROUP' && splitMode === 'exact' ? customSplitsPayload : undefined,
     });
 
     if (!validation.success) {
@@ -620,6 +661,156 @@ export function AddExpenseModal({
                 currentUser={currentUser as { id: string } | null}
                 onToggleMember={toggleMember}
               />
+            )}
+
+            {/* Split Mode Selector (only show if group expense and members are selected) */}
+            {expenseType === 'GROUP' && groupMembers.length > 0 && (
+              <View style={styles.splitModeContainer}>
+                <Text style={styles.inputLabel}>Split Option</Text>
+                <View style={styles.splitModeToggleRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.splitModeTab,
+                      splitMode === 'equal' && styles.splitModeTabActive,
+                    ]}
+                    onPress={() => setSplitMode('equal')}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name="git-compare-outline"
+                      size={16}
+                      color={splitMode === 'equal' ? '#fff' : COLORS.onSurfaceVariant}
+                    />
+                    <Text
+                      style={[
+                        styles.splitModeTabText,
+                        splitMode === 'equal' && styles.splitModeTabTextActive,
+                      ]}
+                    >
+                      Split Equally
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.splitModeTab,
+                      splitMode === 'exact' && styles.splitModeTabActive,
+                    ]}
+                    onPress={() => setSplitMode('exact')}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name="calculator-outline"
+                      size={16}
+                      color={splitMode === 'exact' ? '#fff' : COLORS.onSurfaceVariant}
+                    />
+                    <Text
+                      style={[
+                        styles.splitModeTabText,
+                        splitMode === 'exact' && styles.splitModeTabTextActive,
+                      ]}
+                    >
+                      Split Unequally
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* Exact Split Input List */}
+            {expenseType === 'GROUP' && splitMode === 'exact' && (
+              <View style={styles.exactSplitsList}>
+                <Text style={styles.inputLabel}>Custom Shares</Text>
+                {sortedGroupMembers
+                  .filter((member) => splitMemberIds.includes(member.userId))
+                  .map((member) => {
+                    const isCurrentUser = currentUser?.id === member.userId;
+                    const currentValue = customSplits[member.userId] ?? '';
+                    return (
+                      <View key={member.userId} style={styles.exactSplitRow}>
+                        <View style={styles.exactSplitMemberInfo}>
+                          <Image
+                            source={{ uri: member.image || PREDEFINED_AVATARS[0] }}
+                            style={styles.exactSplitAvatar}
+                          />
+                          <Text style={styles.exactSplitName} numberOfLines={1}>
+                            {isCurrentUser ? `${member.name} (You)` : member.name}
+                          </Text>
+                        </View>
+
+                        <View style={styles.exactSplitInputWrapper}>
+                          <Text style={styles.exactSplitCurrency}>{CURRENCY_SYMBOL}</Text>
+                          <TextInput
+                            style={styles.exactSplitInput}
+                            keyboardType="decimal-pad"
+                            placeholder="0.00"
+                            placeholderTextColor={COLORS.outlineVariant}
+                            value={currentValue}
+                            onChangeText={(val) => {
+                              // Allow only decimals
+                              if (/^\d*\.?\d{0,2}$/.test(val)) {
+                                setCustomSplits((prev) => ({
+                                  ...prev,
+                                  [member.userId]: val,
+                                }));
+                              }
+                            }}
+                          />
+                        </View>
+                      </View>
+                    );
+                  })}
+
+                {/* Allocated sum indicator */}
+                {(() => {
+                  const total = parseFloat(amount.replace(',', '.')) || 0;
+                  const walletDeduction =
+                    useWalletBalance && walletData ? Math.min(walletData.balance, total) : 0;
+                  const netAmountToSplit = total - walletDeduction;
+
+                  const allocated = sortedGroupMembers
+                    .filter((m) => splitMemberIds.includes(m.userId))
+                    .reduce((sum, m) => sum + (parseFloat(customSplits[m.userId]) || 0), 0);
+                  const difference = Math.abs(netAmountToSplit - allocated);
+                  const isMatch = difference < 0.005;
+
+                  if (netAmountToSplit <= 0 && useWalletBalance) {
+                    return (
+                      <View style={[styles.allocatedTally, styles.allocatedTallyMatch]}>
+                        <Ionicons name="checkmark-circle" size={16} color="#2e7d32" />
+                        <Text style={[styles.allocatedTallyText, { color: '#2e7d32' }]}>
+                          Entire amount covered by wallet. No splits needed!
+                        </Text>
+                      </View>
+                    );
+                  }
+
+                  return (
+                    <View
+                      style={[
+                        styles.allocatedTally,
+                        isMatch ? styles.allocatedTallyMatch : styles.allocatedTallyMismatch,
+                      ]}
+                    >
+                      <Ionicons
+                        name={isMatch ? 'checkmark-circle' : 'alert-circle'}
+                        size={16}
+                        color={isMatch ? '#2e7d32' : COLORS.error}
+                      />
+                      <Text
+                        style={[
+                          styles.allocatedTallyText,
+                          { color: isMatch ? '#2e7d32' : COLORS.error },
+                        ]}
+                      >
+                        {isMatch
+                          ? `Total matched: ${CURRENCY_SYMBOL}${allocated.toFixed(2)}`
+                          : `Allocated: ${CURRENCY_SYMBOL}${allocated.toFixed(2)} of ${CURRENCY_SYMBOL}${netAmountToSplit.toFixed(2)} (${netAmountToSplit > allocated ? '₹' + difference.toFixed(2) + ' left' : '₹' + difference.toFixed(2) + ' over'})`}
+                      </Text>
+                    </View>
+                  );
+                })()}
+              </View>
             )}
 
             {/* Category Dropdown */}
@@ -974,4 +1165,114 @@ const styles = StyleSheet.create({
   primaryBtnDisabled: { opacity: 0.5, elevation: 0 },
   primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   submitBtn: { marginTop: 8 },
+
+  // Split Mode Selector
+  splitModeContainer: {
+    marginBottom: 16,
+  },
+  splitModeToggleRow: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.surfaceContainerLow,
+    borderRadius: 12,
+    padding: 4,
+    gap: 4,
+  },
+  splitModeTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
+  },
+  splitModeTabActive: {
+    backgroundColor: COLORS.primary,
+  },
+  splitModeTabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.onSurfaceVariant,
+  },
+  splitModeTabTextActive: {
+    color: '#ffffff',
+    fontWeight: '700',
+  },
+
+  // Exact splits styling
+  exactSplitsList: {
+    marginBottom: 16,
+    gap: 10,
+  },
+  exactSplitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.surfaceContainerLow,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
+  },
+  exactSplitMemberInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  exactSplitAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  exactSplitName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.onSurface,
+    flex: 1,
+  },
+  exactSplitInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    backgroundColor: COLORS.surface,
+    width: 100,
+    height: 36,
+  },
+  exactSplitCurrency: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.outline,
+    marginRight: 4,
+  },
+  exactSplitInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.onSurface,
+    padding: 0,
+    textAlign: 'right',
+  },
+  allocatedTally: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    padding: 10,
+    borderRadius: 10,
+    marginTop: 4,
+  },
+  allocatedTallyMatch: {
+    backgroundColor: '#e8f5e9',
+  },
+  allocatedTallyMismatch: {
+    backgroundColor: COLORS.errorContainer,
+  },
+  allocatedTallyText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
 });

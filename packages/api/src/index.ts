@@ -56,8 +56,6 @@ export type {
   CreateGroupInput,
   UpdateGroupInput,
   AddMemberInput,
-  SettleUpInput,
-  Settlement,
   GroupType,
   GroupDetailConsolidated,
 } from './groups/group.types';
@@ -74,7 +72,6 @@ export {
   removeMemberApi,
   searchUsersApi,
   searchUsersPaginatedApi,
-  settleUpApi,
   leaveGroupApi,
   getGroupDetailApi,
 } from './groups/group.api';
@@ -90,10 +87,9 @@ export {
   useDeactivateGroup,
   useAddMember,
   useRemoveMember,
-  useSettleUp,
   useLeaveGroup,
-  useGroupSettlements,
   useGroupDetail,
+  useSendReminder,
 } from './groups/group.hooks';
 
 export {
@@ -101,6 +97,24 @@ export {
   clientAddMemberSchema,
   clientUpdateGroupSchema,
 } from './groups/group.validation';
+
+// ── Settlement module ─────────────────────────────────
+export type {
+  Settlement,
+  SettlementList,
+  SettleUpResponse,
+  SettleUpInput,
+} from './settlements/settlements.types';
+
+export {
+  settlementSchema,
+  settlementListSchema,
+  settleUpResponseSchema,
+} from './settlements/settlements.types';
+
+export { settleUpApi, getGroupSettlementsApi } from './settlements/settlements.api';
+
+export { settlementKeys, useGroupSettlements, useSettleUp } from './settlements/settlements.hooks';
 
 // QueryClient factory
 export { createQueryClient } from './query-client';
@@ -197,6 +211,20 @@ export {
 export type { DashboardData } from './dashboard/dashboard.types';
 export { getDashboardApi } from './dashboard/dashboard.api';
 export { useDashboard, dashboardKeys } from './dashboard/dashboard.hooks';
+
+// ── Analytics module ──────────────────────────────────
+export type {
+  ExpenseAnalytics,
+  AnalyticsHistoryItem,
+  CategoryAnalyticsItem,
+} from './analytics/analytics.types';
+export {
+  expenseAnalyticsResponseSchema,
+  analyticsHistoryItemSchema,
+  categoryAnalyticsItemSchema,
+} from './analytics/analytics.types';
+export { getExpenseAnalyticsApi } from './analytics/analytics.api';
+export { useExpenseAnalytics, analyticsKeys } from './analytics/analytics.hooks';
 
 // ── Notification module ───────────────────────────────
 export type { NotificationItem } from './notifications/notification.types';

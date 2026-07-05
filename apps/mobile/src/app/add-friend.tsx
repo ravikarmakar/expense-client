@@ -14,10 +14,12 @@ import { useRouter } from 'expo-router';
 import { TopAppBar } from '../components/TopAppBar';
 import { COLORS } from '../constants/theme';
 import { useSearchUsersPaginated } from '@workspace/api';
+import { FeatureUnavailableModal } from '../components/FeatureUnavailableModal';
 
 export default function AddFriendScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [modalVisible, setModalVisible] = useState(true);
 
   // React query search hook - disabled for V1 by passing empty string
   const {
@@ -241,6 +243,13 @@ export default function AddFriendScreen() {
           </ScrollView>
         )}
       </View>
+      <FeatureUnavailableModal
+        visible={modalVisible}
+        onClose={() => {
+          setModalVisible(false);
+          router.back();
+        }}
+      />
     </View>
   );
 }

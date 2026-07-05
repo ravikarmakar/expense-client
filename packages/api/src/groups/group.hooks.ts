@@ -9,18 +9,11 @@ import {
   removeMemberApi,
   searchUsersApi,
   searchUsersPaginatedApi,
-  settleUpApi,
   leaveGroupApi,
-  getGroupSettlementsApi,
   getGroupDetailApi,
+  sendReminderApi,
 } from './group.api';
-import type {
-  Group,
-  CreateGroupInput,
-  UpdateGroupInput,
-  AddMemberInput,
-  SettleUpInput,
-} from './group.types';
+import type { Group, CreateGroupInput, UpdateGroupInput, AddMemberInput } from './group.types';
 
 // ─────────────────────────────────────────────────────
 // Query key factory
@@ -34,7 +27,6 @@ export const groupKeys = {
   detail: (id: string) => [...groupKeys.details(), id] as const,
   detailConsolidated: (id: string) => [...groupKeys.detail(id), 'consolidated'] as const,
   search: (q: string) => ['users', 'search', q] as const,
-  settlements: (groupId: string) => ['groups', groupId, 'settlements'] as const,
 };
 
 // ─────────────────────────────────────────────────────
@@ -98,17 +90,6 @@ export const useSearchUsersPaginated = (query: string) =>
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     enabled: query.trim().length >= 2,
     staleTime: 10 * 1000,
-  });
-
-/**
- * Fetch settlements for a specific group.
- */
-export const useGroupSettlements = (groupId: string) =>
-  useQuery({
-    queryKey: groupKeys.settlements(groupId),
-    queryFn: () => getGroupSettlementsApi(groupId),
-    enabled: !!groupId,
-    staleTime: 3 * 60 * 1000,
   });
 
 // ─────────────────────────────────────────────────────
@@ -191,25 +172,6 @@ export const useRemoveMember = (groupId: string) => {
 };
 
 /**
- * Settle up with a member in a group.
- */
-export const useSettleUp = (groupId: string) => {
-  const queryClient = useQueryClient();
-  return useMutation<Group, Error, SettleUpInput>({
-    mutationFn: (input) => settleUpApi(groupId, input),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: groupKeys.detail(groupId) });
-      queryClient.invalidateQueries({ queryKey: groupKeys.detailConsolidated(groupId) });
-      queryClient.invalidateQueries({ queryKey: groupKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: groupKeys.settlements(groupId) });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['wallet'] });
-    },
-  });
-};
-
-/**
  * Leave a group (current user removes themselves).
  */
 export const useLeaveGroup = () => {
@@ -221,5 +183,14 @@ export const useLeaveGroup = () => {
       queryClient.invalidateQueries({ queryKey: groupKeys.lists() });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
+  });
+};
+
+/**
+ * Send settle up reminder notification to a debtor member in the group.
+ */
+export const useSendReminder = (groupId: string) => {
+  return useMutation<void, Error, string>({
+    mutationFn: (userId) => sendReminderApi(groupId, userId),
   });
 };

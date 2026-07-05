@@ -11,6 +11,15 @@ export const dashboardResponseSchema = z.object({
       totalSpent: z.number(),
       totalGroupSpent: z.number(),
       totalPersonalSpent: z.number(),
+      categorySpent: z
+        .array(
+          z.object({
+            category: z.string(),
+            amount: z.number(),
+          })
+        )
+        .optional()
+        .default([]),
     }),
     recentExpenses: z.array(expenseSchema),
     groups: z.array(groupSchema),

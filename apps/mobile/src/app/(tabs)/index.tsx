@@ -9,22 +9,25 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { COLORS, CURRENCY_SYMBOL, PREDEFINED_AVATARS } from '../../constants/theme';
-import { globalStyles } from '../../styles/globalStyles';
-import { TopAppBar } from '../../components/TopAppBar';
-import { GroupCard } from '../../components/GroupCard';
-import { ExpenseItem } from '../../components/ExpenseItem';
+import { CategorySpendingCard } from '../../components/CategorySpendingCard';
+import { QuickActionsCard } from '../../components/QuickActionsCard';
+import { ActiveGroupsCard } from '../../components/ActiveGroupsCard';
+import { RecentExpensesCard } from '../../components/RecentExpensesCard';
 import { AddExpenseModal } from '../../components/AddExpenseModal';
 import { CreateGroupModal } from '../../components/CreateGroupModal';
 import { LoadingView } from '../../components/LoadingView';
 import { ErrorView } from '../../components/ErrorView';
 import { EmptyState } from '../../components/EmptyState';
 import { useDashboard, useNotifications } from '@workspace/api';
+import { router } from 'expo-router';
+import { COLORS, CURRENCY_SYMBOL, PREDEFINED_AVATARS } from '../../constants/theme';
+import { globalStyles } from '../../styles/globalStyles';
+import { TopAppBar } from '../../components/TopAppBar';
 
 export default function HomeTabScreen() {
   const [addExpenseVisible, setAddExpenseVisible] = useState(false);
   const [createGroupVisible, setCreateGroupVisible] = useState(false);
+
   const {
     data: dashboardData,
     isLoading: expensesLoading,
@@ -149,7 +152,11 @@ export default function HomeTabScreen() {
             </View>
 
             <View style={styles.statsRow}>
-              <View style={styles.statBox}>
+              <TouchableOpacity
+                style={styles.statBox}
+                activeOpacity={0.8}
+                onPress={() => router.push('/total-spent')}
+              >
                 <View style={[styles.statIconBg, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
                   <Ionicons name="wallet-outline" size={16} color="#ffffff" />
                 </View>
@@ -160,7 +167,7 @@ export default function HomeTabScreen() {
                     {totalSpent.toFixed(2)}
                   </Text>
                 </View>
-              </View>
+              </TouchableOpacity>
               <View style={styles.statBox}>
                 <View style={[styles.statIconBg, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
                   <Ionicons name="people-outline" size={16} color="#ffffff" />
@@ -178,138 +185,16 @@ export default function HomeTabScreen() {
         </View>
 
         {/* Quick Actions */}
-        <View style={globalStyles.sectionContainer}>
-          <Text style={globalStyles.sectionTitle}>Quick Actions</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.quickActionsScroll}
-          >
-            {/* Add Expense */}
-            <TouchableOpacity
-              style={styles.quickActionItem}
-              activeOpacity={0.8}
-              onPress={() => setAddExpenseVisible(true)}
-            >
-              <View style={[styles.quickActionIconContainer, { backgroundColor: '#e6f4ea' }]}>
-                <Ionicons name="add" size={30} color={COLORS.primary} />
-              </View>
-              <Text style={styles.quickActionLabel} numberOfLines={2}>
-                Add Expense
-              </Text>
-            </TouchableOpacity>
-
-            {/* My Wallet */}
-            <TouchableOpacity
-              style={styles.quickActionItem}
-              activeOpacity={0.8}
-              onPress={() => router.push('/(tabs)/personal')}
-            >
-              <View style={[styles.quickActionIconContainer, { backgroundColor: '#e8f0fe' }]}>
-                <Ionicons name="wallet" size={28} color="#1a73e8" />
-              </View>
-              <Text style={styles.quickActionLabel} numberOfLines={2}>
-                My Wallet
-              </Text>
-            </TouchableOpacity>
-
-            {/* New Group */}
-            <TouchableOpacity
-              style={styles.quickActionItem}
-              activeOpacity={0.8}
-              onPress={() => setCreateGroupVisible(true)}
-            >
-              <View style={[styles.quickActionIconContainer, { backgroundColor: '#f3e5f5' }]}>
-                <Ionicons name="people" size={28} color="#7b1fa2" />
-              </View>
-              <Text style={styles.quickActionLabel} numberOfLines={2}>
-                New Group
-              </Text>
-            </TouchableOpacity>
-
-            {/* Settle Up */}
-            <TouchableOpacity
-              style={styles.quickActionItem}
-              activeOpacity={0.8}
-              onPress={() => router.push('/(tabs)/groups')}
-            >
-              <View style={[styles.quickActionIconContainer, { backgroundColor: '#fce8e6' }]}>
-                <Ionicons name="checkmark-circle" size={28} color="#c5221f" />
-              </View>
-              <Text style={styles.quickActionLabel} numberOfLines={2}>
-                Settle Up
-              </Text>
-            </TouchableOpacity>
-
-            {/* Ledger */}
-            <TouchableOpacity
-              style={styles.quickActionItem}
-              activeOpacity={0.8}
-              onPress={() => router.push('/(tabs)/activity')}
-            >
-              <View style={[styles.quickActionIconContainer, { backgroundColor: '#fef7e0' }]}>
-                <Ionicons name="receipt" size={28} color="#b06000" />
-              </View>
-              <Text style={styles.quickActionLabel} numberOfLines={2}>
-                Ledger
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
+        <QuickActionsCard
+          onAddExpensePress={() => setAddExpenseVisible(true)}
+          onCreateGroupPress={() => setCreateGroupVisible(true)}
+        />
 
         {/* Active Groups */}
-        {recentGroups.length > 0 && (
-          <View style={globalStyles.sectionContainer}>
-            <View style={globalStyles.sectionHeaderRow}>
-              <Text style={globalStyles.sectionTitle}>Active Groups</Text>
-              <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(tabs)/groups')}>
-                <Text style={globalStyles.seeAllText}>See All</Text>
-              </TouchableOpacity>
-            </View>
-            {recentGroups.map((group) => (
-              <GroupCard
-                key={group.id}
-                name={group.name}
-                emoji={group.emoji ?? '👥'}
-                activity={`${group.memberCount} members`}
-                memberAvatars={group.members.slice(0, 2).map((m) => m.image ?? '')}
-                totalMembersCount={group.memberCount}
-                balanceText={
-                  Math.abs(group.myBalance) < 0.01
-                    ? 'Settled'
-                    : group.myBalance > 0
-                      ? `Owed ${CURRENCY_SYMBOL}${group.myBalance.toFixed(2)}`
-                      : `You owe ${CURRENCY_SYMBOL}${Math.abs(group.myBalance).toFixed(2)}`
-                }
-                balanceType={
-                  Math.abs(group.myBalance) < 0.01
-                    ? 'settled'
-                    : group.myBalance > 0
-                      ? 'owed'
-                      : 'owe'
-                }
-                onPress={() => router.push(`/groups/${group.id}`)}
-              />
-            ))}
-          </View>
-        )}
+        <ActiveGroupsCard recentGroups={recentGroups} />
 
-        {/* Recent Highlights — real expenses */}
-        {expenses.length > 0 && (
-          <View style={[globalStyles.sectionContainer, styles.pbHighlight]}>
-            <View style={globalStyles.sectionHeaderRow}>
-              <Text style={globalStyles.sectionTitle}>Recent Expenses</Text>
-              <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(tabs)/activity')}>
-                <Text style={globalStyles.seeAllText}>See All</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.highlightsContainer}>
-              {expenses.map((expense) => (
-                <ExpenseItem key={expense.id} expense={expense} currentUserId={user?.id} />
-              ))}
-            </View>
-          </View>
-        )}
+        {/* Recent Expenses */}
+        <RecentExpensesCard expenses={expenses} currentUserId={user?.id} />
 
         {/* Empty state */}
         {expenses.length === 0 && !expensesLoading && recentGroups.length === 0 && (
@@ -322,6 +207,9 @@ export default function HomeTabScreen() {
             ctaIcon="add-circle"
           />
         )}
+
+        {/* Category Spending Analytics */}
+        <CategorySpendingCard summary={summary} totalSpent={totalSpent} />
       </ScrollView>
 
       {/* Floating Action Button */}
@@ -479,38 +367,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#ffffff',
   },
-  quickActionsScroll: {
-    paddingLeft: 4,
-    paddingBottom: 4,
-  },
-  quickActionItem: {
-    alignItems: 'center',
-    marginRight: 16,
-    width: 72, // Expanded item width
-  },
-  quickActionIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 22, // Styled rounder corner structure
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-  },
-  quickActionLabel: {
-    fontSize: 11.5,
-    fontWeight: '700', // Bold labels
-    color: COLORS.onSurface,
-    textAlign: 'center',
-    lineHeight: 14,
-  },
   pbHighlight: { paddingBottom: 24 },
-  highlightsContainer: { gap: 12 },
-
   fab: {
     position: 'absolute',
     right: 20,

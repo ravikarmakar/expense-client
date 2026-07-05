@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, CURRENCY_SYMBOL } from '../constants/theme';
+import { FeatureUnavailableModal } from '../components/FeatureUnavailableModal';
 
 interface WalletLog {
   id: string;
@@ -27,9 +28,10 @@ interface WalletLog {
 export default function PersonalWalletScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [unavailableVisible, setUnavailableVisible] = useState(true);
 
   // Stateful balance and logs
-  const [balance, setBalance] = useState<number>(25480.0);
+  const [balance, setBalance] = useState<number>(0);
   const [logs, setLogs] = useState<WalletLog[]>([
     {
       id: '1',
@@ -279,6 +281,13 @@ export default function PersonalWalletScreen() {
           </KeyboardAvoidingView>
         </View>
       </Modal>
+      <FeatureUnavailableModal
+        visible={unavailableVisible}
+        onClose={() => {
+          setUnavailableVisible(false);
+          router.back();
+        }}
+      />
     </View>
   );
 }
