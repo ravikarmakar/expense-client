@@ -65,7 +65,7 @@ export function QuickActionsCard({ onAddExpensePress, onCreateGroupPress }: Quic
         <TouchableOpacity
           style={styles.quickActionItem}
           activeOpacity={0.8}
-          onPress={() => router.push('/(tabs)/groups')}
+          onPress={() => router.push('/settle-up')}
         >
           <View style={[styles.quickActionIconContainer, { backgroundColor: '#fce8e6' }]}>
             <Ionicons name="checkmark-circle" size={28} color="#c5221f" />

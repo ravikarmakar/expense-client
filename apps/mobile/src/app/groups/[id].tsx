@@ -195,6 +195,12 @@ export default function GroupDetailScreen() {
           {group.emoji ?? '👥'} {group.name}
         </Text>
         <TouchableOpacity
+          onPress={() => router.push(`/groups/${id}/analytics`)}
+          style={styles.walletBtn}
+        >
+          <Ionicons name="bar-chart" size={24} color={COLORS.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity
           onPress={() => router.push(`/groups/${id}/wallet`)}
           style={styles.walletBtn}
         >

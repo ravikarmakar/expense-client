@@ -217,14 +217,37 @@ export type {
   ExpenseAnalytics,
   AnalyticsHistoryItem,
   CategoryAnalyticsItem,
+  DebtUser,
+  DebtGroup,
+  GroupSpentItem,
+  GroupDetailAnalytics,
+  MemberSpentItem,
 } from './analytics/analytics.types';
 export {
   expenseAnalyticsResponseSchema,
   analyticsHistoryItemSchema,
   categoryAnalyticsItemSchema,
+  debtGroupSchema,
+  debtUserSchema,
+  debtBalancesResponseSchema,
+  groupSpentItemSchema,
+  groupAnalyticsResponseSchema,
+  groupDetailAnalyticsResponseSchema,
+  memberSpentItemSchema,
 } from './analytics/analytics.types';
-export { getExpenseAnalyticsApi } from './analytics/analytics.api';
-export { useExpenseAnalytics, analyticsKeys } from './analytics/analytics.hooks';
+export {
+  getExpenseAnalyticsApi,
+  getDebtBalancesApi,
+  getGroupAnalyticsApi,
+  getGroupDetailAnalyticsApi,
+} from './analytics/analytics.api';
+export {
+  useExpenseAnalytics,
+  useDebtBalances,
+  useGroupAnalytics,
+  useGroupDetailAnalytics,
+  analyticsKeys,
+} from './analytics/analytics.hooks';
 
 // ── Notification module ───────────────────────────────
 export type { NotificationItem } from './notifications/notification.types';

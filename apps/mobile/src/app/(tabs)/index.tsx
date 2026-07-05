@@ -125,7 +125,11 @@ export default function HomeTabScreen() {
           {/* 2x2 Stats Grid */}
           <View style={styles.statsGrid}>
             <View style={styles.statsRow}>
-              <View style={styles.statBox}>
+              <TouchableOpacity
+                style={styles.statBox}
+                activeOpacity={0.8}
+                onPress={() => router.push({ pathname: '/settle-up', params: { type: 'owed' } })}
+              >
                 <View style={[styles.statIconBg, { backgroundColor: COLORS.primaryFixed }]}>
                   <Ionicons name="arrow-down" size={16} color={COLORS.primary} />
                 </View>
@@ -136,8 +140,12 @@ export default function HomeTabScreen() {
                     {totalOwedToMe.toFixed(2)}
                   </Text>
                 </View>
-              </View>
-              <View style={styles.statBox}>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.statBox}
+                activeOpacity={0.8}
+                onPress={() => router.push({ pathname: '/settle-up', params: { type: 'owe' } })}
+              >
                 <View style={[styles.statIconBg, { backgroundColor: COLORS.errorContainer }]}>
                   <Ionicons name="arrow-up" size={16} color={COLORS.error} />
                 </View>
@@ -148,7 +156,7 @@ export default function HomeTabScreen() {
                     {totalIOwe.toFixed(2)}
                   </Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.statsRow}>
@@ -168,7 +176,11 @@ export default function HomeTabScreen() {
                   </Text>
                 </View>
               </TouchableOpacity>
-              <View style={styles.statBox}>
+              <TouchableOpacity
+                style={styles.statBox}
+                activeOpacity={0.8}
+                onPress={() => router.push('/owed-details')}
+              >
                 <View style={[styles.statIconBg, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
                   <Ionicons name="people-outline" size={16} color="#ffffff" />
                 </View>
@@ -179,7 +191,7 @@ export default function HomeTabScreen() {
                     {totalGroupSpent.toFixed(2)}
                   </Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             </View>
           </View>
         </View>

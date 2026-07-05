@@ -1,10 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
-import { getExpenseAnalyticsApi } from './analytics.api';
+import {
+  getExpenseAnalyticsApi,
+  getDebtBalancesApi,
+  getGroupAnalyticsApi,
+  getGroupDetailAnalyticsApi,
+} from './analytics.api';
 
 export const analyticsKeys = {
   all: ['analytics'] as const,
   detail: (timeframe: 'today' | 'week' | 'month' | 'year', date?: string) =>
     [...analyticsKeys.all, { timeframe, date }] as const,
+  debts: () => [...analyticsKeys.all, 'debts'] as const,
+  groups: () => [...analyticsKeys.all, 'groups'] as const,
+  groupDetail: (groupId: string, timeframe: string, date?: string) =>
+    [...analyticsKeys.all, 'group', groupId, { timeframe, date }] as const,
 };
 
 /**
@@ -18,4 +27,39 @@ export const useExpenseAnalytics = (
     queryKey: analyticsKeys.detail(timeframe, date),
     queryFn: () => getExpenseAnalyticsApi(timeframe, date),
     staleTime: 30 * 1000,
+  });
+
+/**
+ * Fetch consolidated debt balances.
+ */
+export const useDebtBalances = () =>
+  useQuery({
+    queryKey: analyticsKeys.debts(),
+    queryFn: getDebtBalancesApi,
+    staleTime: 15 * 1000,
+  });
+
+/**
+ * Fetch group spending analytics.
+ */
+export const useGroupAnalytics = () =>
+  useQuery({
+    queryKey: analyticsKeys.groups(),
+    queryFn: getGroupAnalyticsApi,
+    staleTime: 30 * 1000,
+  });
+
+/**
+ * Fetch detailed analytics for a specific group by time period.
+ */
+export const useGroupDetailAnalytics = (
+  groupId: string,
+  timeframe: 'today' | 'week' | 'month' | 'year',
+  date?: string
+) =>
+  useQuery({
+    queryKey: analyticsKeys.groupDetail(groupId, timeframe, date),
+    queryFn: () => getGroupDetailAnalyticsApi(groupId, timeframe, date),
+    staleTime: 30 * 1000,
+    enabled: !!groupId,
   });

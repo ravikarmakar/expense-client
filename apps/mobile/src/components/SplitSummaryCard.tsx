@@ -18,6 +18,8 @@ export function SplitSummaryCard({
   currentUserId,
   onSettleUp,
   isSettling,
+  onSendReminder,
+  isReminding,
 }: SplitSummaryCardProps) {
   const currentUser = members.find((m) => m.userId === currentUserId);
   const otherMembers = members.filter((m) => m.userId !== currentUserId);
