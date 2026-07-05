@@ -3,16 +3,12 @@ import {
   groupListSchema,
   groupDetailSchema,
   userSearchListSchema,
-  settleUpSchema,
-  settlementListSchema,
   groupDetailConsolidatedSchema,
   type Group,
   type UserSearchResult,
   type CreateGroupInput,
   type UpdateGroupInput,
   type AddMemberInput,
-  type SettleUpInput,
-  type Settlement,
   type GroupDetailConsolidated,
 } from './group.types';
 
@@ -132,15 +128,6 @@ export const searchUsersPaginatedApi = async (
 };
 
 /**
- * Settle up with a specific member in a group.
- */
-export const settleUpApi = async (groupId: string, input: SettleUpInput): Promise<Group> => {
-  const { data } = await getApiClient().post<unknown>(`/groups/${groupId}/settle`, input);
-  const parsed = settleUpSchema.parse(data);
-  return parsed.data.group;
-};
-
-/**
  * Leave a group (current user exits).
  */
 export const leaveGroupApi = async (groupId: string): Promise<void> => {
@@ -148,15 +135,8 @@ export const leaveGroupApi = async (groupId: string): Promise<void> => {
 };
 
 /**
- * Get all settlements in a group.
+ * Send settle up reminder notification to a debtor in the group.
  */
-export const getGroupSettlementsApi = async (
-  groupId: string
-): Promise<{ settlements: Settlement[]; total: number }> => {
-  const { data } = await getApiClient().get<unknown>(`/groups/${groupId}/settlements`);
-  const parsed = settlementListSchema.parse(data);
-  return {
-    settlements: parsed.data.settlements,
-    total: parsed.data.total,
-  };
+export const sendReminderApi = async (groupId: string, userId: string): Promise<void> => {
+  await getApiClient().post(`/groups/${groupId}/remind`, { userId });
 };

@@ -9,6 +9,8 @@ interface SplitSummaryCardProps {
   currentUserId?: string;
   onSettleUp?: (member: GroupMember) => void;
   isSettling?: string | null; // userId being settled
+  onSendReminder?: (member: GroupMember) => void;
+  isReminding?: string | null; // userId being reminded
 }
 
 export function SplitSummaryCard({
@@ -16,6 +18,8 @@ export function SplitSummaryCard({
   currentUserId,
   onSettleUp,
   isSettling,
+  onSendReminder,
+  isReminding,
 }: SplitSummaryCardProps) {
   const currentUser = members.find((m) => m.userId === currentUserId);
   const otherMembers = members.filter((m) => m.userId !== currentUserId);
@@ -122,23 +126,42 @@ export function SplitSummaryCard({
               )}
             </View>
 
-            {/* Settle button */}
-            {!isSettled && !isMe && member.role !== 'invited' && onSettleUp && (
-              <TouchableOpacity
-                style={[
-                  styles.settleBtn,
-                  isPositive ? styles.settleBtnPositive : styles.settleBtnNegative,
-                ]}
-                onPress={() => onSettleUp(member)}
-                activeOpacity={0.8}
-                disabled={isThisSettling}
-              >
-                {isThisSettling ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.settleBtnText}>Settle</Text>
+            {/* Settle button / Nudge button */}
+            {!isSettled && !isMe && member.role !== 'invited' && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                {isPositive && onSendReminder && (
+                  <TouchableOpacity
+                    style={styles.nudgeBtn}
+                    onPress={() => onSendReminder(member)}
+                    activeOpacity={0.85}
+                    disabled={isThisSettling || isReminding === member.userId}
+                  >
+                    {isReminding === member.userId ? (
+                      <ActivityIndicator size="small" color={COLORS.primary} />
+                    ) : (
+                      <Ionicons name="notifications-outline" size={16} color={COLORS.primary} />
+                    )}
+                  </TouchableOpacity>
                 )}
-              </TouchableOpacity>
+
+                {onSettleUp && (
+                  <TouchableOpacity
+                    style={[
+                      styles.settleBtn,
+                      isPositive ? styles.settleBtnPositive : styles.settleBtnNegative,
+                    ]}
+                    onPress={() => onSettleUp(member)}
+                    activeOpacity={0.8}
+                    disabled={isThisSettling}
+                  >
+                    {isThisSettling ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.settleBtnText}>Settle</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
             )}
 
             {/* Settled badge */}
@@ -238,6 +261,15 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     minWidth: 60,
     alignItems: 'center',
+  },
+  nudgeBtn: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.surfaceContainerLow,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 32,
+    minHeight: 32,
   },
   settleBtnPositive: {
     backgroundColor: COLORS.primary,

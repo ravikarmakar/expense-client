@@ -10,6 +10,9 @@ import {
   Alert,
   Modal,
   Pressable,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,6 +34,7 @@ import {
   useDeactivateGroup,
   useMe,
   getErrorMessage,
+  useSendReminder,
   type GroupMember,
 } from '@workspace/api';
 
@@ -43,6 +47,21 @@ export default function GroupDetailScreen() {
   const settleUp = useSettleUp(id);
   const leaveGroup = useLeaveGroup();
   const deactivateGroup = useDeactivateGroup();
+  const sendReminder = useSendReminder(id);
+
+  const handleSendReminder = (member: GroupMember) => {
+    sendReminder.mutate(member.userId, {
+      onSuccess: () => {
+        Alert.alert(
+          'Reminder Sent! 🔔',
+          `We've sent a settle up reminder notification to ${member.name}.`
+        );
+      },
+      onError: (err) => {
+        Alert.alert('Failed to send reminder', getErrorMessage(err, 'Please try again.'));
+      },
+    });
+  };
 
   const [activeTab, setActiveTab] = useState<'expenses' | 'settlements'>('expenses');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -50,6 +69,11 @@ export default function GroupDetailScreen() {
   const [editGroupVisible, setEditGroupVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [settlingUserId, setSettlingUserId] = useState<string | null>(null);
+
+  // Settle Up custom amount input state
+  const [settleModalVisible, setSettleModalVisible] = useState(false);
+  const [settleMember, setSettleMember] = useState<GroupMember | null>(null);
+  const [settleAmount, setSettleAmount] = useState('');
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -59,36 +83,36 @@ export default function GroupDetailScreen() {
 
   const handleSettleUp = (member: GroupMember) => {
     if (!member.balance) return;
+    setSettleMember(member);
+    setSettleAmount(Math.abs(member.balance).toFixed(2));
+    setSettleModalVisible(true);
+  };
 
-    const amount = Math.abs(member.balance);
-    const isPositive = member.balance >= 0;
-    const message = isPositive
-      ? `Record that ${member.name} paid you ${CURRENCY_SYMBOL}${amount.toFixed(2)}?`
-      : `Record that you paid ${member.name} ${CURRENCY_SYMBOL}${amount.toFixed(2)}?`;
+  const submitSettleUp = () => {
+    if (!settleMember) return;
+    const amount = parseFloat(settleAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert('Invalid Amount', 'Please enter a positive settlement amount.');
+      return;
+    }
 
-    Alert.alert('Settle Up', message, [
-      { text: 'Cancel', style: 'cancel' },
+    setSettleModalVisible(false);
+    setSettlingUserId(settleMember.userId);
+    settleUp.mutate(
+      { withUserId: settleMember.userId, amount },
       {
-        text: 'Confirm',
-        style: 'default',
-        onPress: () => {
-          setSettlingUserId(member.userId);
-          settleUp.mutate(
-            { withUserId: member.userId, amount },
-            {
-              onSuccess: () => {
-                setSettlingUserId(null);
-                Alert.alert('Done! 🎉', 'Settlement recorded successfully.');
-              },
-              onError: (err) => {
-                setSettlingUserId(null);
-                Alert.alert('Error', getErrorMessage(err));
-              },
-            }
-          );
+        onSuccess: () => {
+          setSettlingUserId(null);
+          setSettleAmount('');
+          setSettleMember(null);
+          Alert.alert('Done! 🎉', 'Settlement recorded successfully.');
         },
-      },
-    ]);
+        onError: (err) => {
+          setSettlingUserId(null);
+          Alert.alert('Error', getErrorMessage(err));
+        },
+      }
+    );
   };
 
   const handleLeaveGroup = () => {
@@ -170,6 +194,12 @@ export default function GroupDetailScreen() {
         <Text style={styles.headerTitle} numberOfLines={1}>
           {group.emoji ?? '👥'} {group.name}
         </Text>
+        <TouchableOpacity
+          onPress={() => router.push(`/groups/${id}/analytics`)}
+          style={styles.walletBtn}
+        >
+          <Ionicons name="bar-chart" size={24} color={COLORS.primary} />
+        </TouchableOpacity>
         <TouchableOpacity
           onPress={() => router.push(`/groups/${id}/wallet`)}
           style={styles.walletBtn}
@@ -262,6 +292,8 @@ export default function GroupDetailScreen() {
             currentUserId={user?.id}
             onSettleUp={handleSettleUp}
             isSettling={settlingUserId}
+            onSendReminder={handleSendReminder}
+            isReminding={sendReminder.isPending ? sendReminder.variables : null}
           />
         </View>
 
@@ -387,6 +419,117 @@ export default function GroupDetailScreen() {
           refetch();
         }}
       />
+
+      {/* ── Modal: Settle Up ── */}
+      <Modal
+        visible={settleModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSettleModalVisible(false)}
+        statusBarTranslucent={true}
+      >
+        <View style={styles.modalOverlay}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalContainer}
+          >
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Settle Up</Text>
+                <TouchableOpacity
+                  onPress={() => setSettleModalVisible(false)}
+                  style={styles.modalCloseBtn}
+                >
+                  <Ionicons name="close" size={22} color={COLORS.outline} />
+                </TouchableOpacity>
+              </View>
+
+              {settleMember && (
+                <View style={styles.modalBody}>
+                  <Text style={styles.modalSub}>
+                    {settleMember.balance >= 0
+                      ? `Record the amount ${settleMember.name} paid you:`
+                      : `Record the amount you paid ${settleMember.name}:`}
+                  </Text>
+
+                  <View style={styles.amountInputContainer}>
+                    <Text style={styles.amountCurrency}>{CURRENCY_SYMBOL}</Text>
+                    <TextInput
+                      style={styles.amountInput}
+                      keyboardType="decimal-pad"
+                      placeholder="0.00"
+                      placeholderTextColor={COLORS.outline}
+                      value={settleAmount}
+                      onChangeText={(val) => {
+                        if (/^\d*\.?\d{0,2}$/.test(val)) {
+                          setSettleAmount(val);
+                        }
+                      }}
+                      autoFocus={true}
+                    />
+                  </View>
+
+                  <View style={{ marginBottom: 20, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 13, color: COLORS.outline, fontWeight: '600' }}>
+                      Total Balance: {CURRENCY_SYMBOL}
+                      {Math.abs(settleMember.balance).toFixed(2)}
+                    </Text>
+                    {(() => {
+                      const inputVal = parseFloat(settleAmount) || 0;
+                      const originalVal = Math.abs(settleMember.balance);
+                      const remaining = Math.max(0, originalVal - inputVal);
+                      return (
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            color: COLORS.primary,
+                            fontWeight: '700',
+                            marginTop: 4,
+                          }}
+                        >
+                          Remaining Balance: {CURRENCY_SYMBOL}
+                          {remaining.toFixed(2)}
+                        </Text>
+                      );
+                    })()}
+                  </View>
+
+                  <View style={styles.modalActionButtons}>
+                    <TouchableOpacity
+                      style={styles.modalCancelBtn}
+                      onPress={() => setSettleModalVisible(false)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.modalCancelText}>Cancel</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.modalConfirmBtn,
+                        (!settleAmount ||
+                          parseFloat(settleAmount) <= 0 ||
+                          parseFloat(settleAmount) > Math.abs(settleMember.balance) + 0.005) &&
+                          styles.confirmButtonDisabled,
+                      ]}
+                      disabled={
+                        !settleAmount ||
+                        parseFloat(settleAmount) <= 0 ||
+                        parseFloat(settleAmount) > Math.abs(settleMember.balance) + 0.005
+                      }
+                      onPress={submitSettleUp}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.modalConfirmText}>
+                        {settleUp.isPending ? 'Saving...' : 'Confirm'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
 
       <EditGroupModal
         visible={editGroupVisible}
@@ -720,5 +863,111 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: COLORS.onSurface,
+  },
+
+  // Settle Up Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContainer: {
+    width: '100%',
+    maxWidth: 340,
+  },
+  modalContent: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 24,
+    padding: 24,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+  },
+  modalBody: {
+    gap: 16,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.onSurface,
+  },
+  modalCloseBtn: {
+    padding: 4,
+  },
+  modalSub: {
+    fontSize: 13,
+    color: COLORS.outline,
+    lineHeight: 18,
+    marginBottom: 20,
+    fontWeight: '500',
+  },
+  amountInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surfaceContainerLow,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: COLORS.surfaceContainer,
+    paddingHorizontal: 16,
+    height: 56,
+    marginBottom: 24,
+  },
+  amountCurrency: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.onSurface,
+    marginRight: 8,
+  },
+  amountInput: {
+    flex: 1,
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.onSurface,
+    padding: 0,
+  },
+  modalActionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: COLORS.surfaceContainer,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surface,
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.onSurfaceVariant,
+  },
+  modalConfirmBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+  },
+  modalConfirmText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  confirmButtonDisabled: {
+    backgroundColor: COLORS.outlineVariant,
   },
 });

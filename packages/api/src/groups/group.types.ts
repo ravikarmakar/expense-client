@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { expenseSchema } from '../expenses/expense.types';
+import { settlementSchema, type Settlement } from '../settlements/settlements.types';
 
 // ─────────────────────────────────────────────────────
 // Group member roles
@@ -96,35 +97,6 @@ export const userSearchListSchema = z.object({
   }),
 });
 
-export const settleUpSchema = groupDetailSchema;
-
-export const settlementSchema = z.object({
-  id: z.string(),
-  groupId: z.string(),
-  fromId: z.string().nullable(),
-  toId: z.string().nullable(),
-  amount: z.number(),
-  from: z.object({
-    userId: z.string(),
-    name: z.string(),
-    image: z.string().nullable().optional(),
-  }),
-  to: z.object({
-    userId: z.string(),
-    name: z.string(),
-    image: z.string().nullable().optional(),
-  }),
-  createdAt: z.string(),
-});
-
-export const settlementListSchema = z.object({
-  success: z.boolean(),
-  data: z.object({
-    settlements: z.array(settlementSchema),
-    total: z.number(),
-  }),
-});
-
 export const groupDetailConsolidatedSchema = z.object({
   success: z.boolean(),
   data: z.object({
@@ -141,7 +113,7 @@ export const groupDetailConsolidatedSchema = z.object({
 export type GroupMember = z.infer<typeof groupMemberSchema>;
 export type Group = z.infer<typeof groupSchema>;
 export type UserSearchResult = z.infer<typeof userSearchResultSchema>;
-export type Settlement = z.infer<typeof settlementSchema>;
+export { type Settlement };
 export type GroupDetailConsolidated = z.infer<typeof groupDetailConsolidatedSchema>;
 
 // ─────────────────────────────────────────────────────
@@ -166,11 +138,6 @@ export interface UpdateGroupInput {
 
 export interface AddMemberInput {
   email: string;
-}
-
-export interface SettleUpInput {
-  withUserId: string;
-  amount: number;
 }
 
 // Constants

@@ -96,9 +96,6 @@ export const createGroupExpenseApi = async (
   return parsed.data.expense;
 };
 
-/**
- * Get user expenses summary.
- */
 export const getExpensesSummaryApi = async (): Promise<ExpenseSummary> => {
   const { data } = await getApiClient().get<unknown>('/expenses/summary');
   const parsed = expenseSummarySchema.parse(data);
