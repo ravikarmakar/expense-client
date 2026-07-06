@@ -34,6 +34,7 @@ jobs:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       APP_VERSION: ''
       EXPO_PUBLIC_BUILD_NUMBER: ''
+      EXPO_PUBLIC_APP_VERSION: ''
       APK_SIZE: ''
       SHA256: ''
 
@@ -107,6 +108,76 @@ jobs:
             echo "✅ Version v${{ env.APP_VERSION }} is unique. Proceeding with build."
           fi
 
+      - name: Export Version Environment Variables
+        run: |
+          echo "EXPO_PUBLIC_APP_VERSION=${{ env.APP_VERSION }}" >> $GITHUB_ENV
+          echo "EXPO_PUBLIC_BUILD_NUMBER=${{ env.EXPO_PUBLIC_BUILD_NUMBER }}" >> $GITHUB_ENV
+
+      - name: Debug Environment Variables
+        run: |
+          echo "=== Debug Versioning Environment Variables ==="
+          echo "APP_VERSION: $APP_VERSION"
+          echo "EXPO_PUBLIC_BUILD_NUMBER: $EXPO_PUBLIC_BUILD_NUMBER"
+          echo "EXPO_PUBLIC_APP_VERSION: $EXPO_PUBLIC_APP_VERSION"
+
+      - name: Inject Version and Build Number into eas.json
+        run: |
+          node -e "
+            const fs = require('fs');
+            const easPath = 'apps/mobile/eas.json';
+            const eas = JSON.parse(fs.readFileSync(easPath, 'utf8'));
+            eas.build.production.env = eas.build.production.env || {};
+            eas.build.production.env.EXPO_PUBLIC_APP_VERSION = '${{ env.APP_VERSION }}';
+            eas.build.production.env.EXPO_PUBLIC_BUILD_NUMBER = '${{ env.EXPO_PUBLIC_BUILD_NUMBER }}';
+            fs.writeFileSync(easPath, JSON.stringify(eas, null, 2));
+            console.log('Successfully injected environment variables into eas.json');
+          "
+
+      - name: Debug and Validate Expo Config
+        run: |
+          cd apps/mobile
+          echo "=== Running npx expo config ==="
+          CONFIG_JSON=$(npx expo config --type public)
+          echo "$CONFIG_JSON"
+          
+          # Extract version and versionCode
+          RESOLVED_VERSION=$(echo "$CONFIG_JSON" | node -e "
+            const fs = require('fs');
+            const input = fs.readFileSync(0, 'utf-8');
+            try {
+              const parsed = JSON.parse(input);
+              console.log(parsed.version);
+            } catch (e) {
+              process.exit(1);
+            }
+          ")
+          
+          RESOLVED_VERSION_CODE=$(echo "$CONFIG_JSON" | node -e "
+            const fs = require('fs');
+            const input = fs.readFileSync(0, 'utf-8');
+            try {
+              const parsed = JSON.parse(input);
+              console.log(parsed.android?.versionCode);
+            } catch (e) {
+              process.exit(1);
+            }
+          ")
+          
+          echo "Resolved version: $RESOLVED_VERSION"
+          echo "Resolved versionCode: $RESOLVED_VERSION_CODE"
+          
+          if [ "$RESOLVED_VERSION" != "${{ env.APP_VERSION }}" ]; then
+            echo "❌ Error: Resolved version ($RESOLVED_VERSION) does not match expected version (${{ env.APP_VERSION }})"
+            exit 1
+          fi
+          
+          if [ "$RESOLVED_VERSION_CODE" != "${{ env.EXPO_PUBLIC_BUILD_NUMBER }}" ]; then
+            echo "❌ Error: Resolved versionCode ($RESOLVED_VERSION_CODE) does not match expected build number (${{ env.EXPO_PUBLIC_BUILD_NUMBER }})"
+            exit 1
+          fi
+          
+          echo "✅ Expo config validation passed successfully."
+
       - name: Setup EAS CLI
         run: npm install -g eas-cli
 
@@ -115,7 +186,8 @@ jobs:
           cd apps/mobile
           # Inject App Version and Build Number variables so app.config.ts picks them up.
           # Run build with --wait and --json flags to capture final artifact metadata.
-          EXPO_PUBLIC_APP_VERSION="${{ env.APP_VERSION }}" EXPO_PUBLIC_BUILD_NUMBER="${{ env.EXPO_PUBLIC_BUILD_NUMBER }}" eas build --platform android --profile production --non-interactive --wait --json > ../../build-result.json
+          # Added --clear-cache to ensure clean build.
+          EXPO_PUBLIC_APP_VERSION="${{ env.APP_VERSION }}" EXPO_PUBLIC_BUILD_NUMBER="${{ env.EXPO_PUBLIC_BUILD_NUMBER }}" eas build --platform android --profile production --non-interactive --clear-cache --wait --json > ../../build-result.json
 
       - name: Download APK from Expo Cloud
         run: |
