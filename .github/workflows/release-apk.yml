@@ -137,7 +137,7 @@ jobs:
         run: |
           cd apps/mobile
           echo "=== Running npx expo config ==="
-          CONFIG_JSON=$(npx expo config --type public)
+          CONFIG_JSON=$(npx expo config --json --type public)
           echo "$CONFIG_JSON"
           
           # Extract version and versionCode
@@ -145,9 +145,12 @@ jobs:
             const fs = require('fs');
             const input = fs.readFileSync(0, 'utf-8');
             try {
-              const parsed = JSON.parse(input);
+              const start = input.indexOf('{');
+              if (start === -1) throw new Error('No JSON found');
+              const parsed = JSON.parse(input.slice(start));
               console.log(parsed.version);
             } catch (e) {
+              console.error(e);
               process.exit(1);
             }
           ")
@@ -156,9 +159,12 @@ jobs:
             const fs = require('fs');
             const input = fs.readFileSync(0, 'utf-8');
             try {
-              const parsed = JSON.parse(input);
+              const start = input.indexOf('{');
+              if (start === -1) throw new Error('No JSON found');
+              const parsed = JSON.parse(input.slice(start));
               console.log(parsed.android?.versionCode);
             } catch (e) {
+              console.error(e);
               process.exit(1);
             }
           ")
