@@ -212,7 +212,7 @@ export default function GroupDetailScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={globalStyles.scrollContent}
+        contentContainerStyle={[globalStyles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
       >
@@ -387,7 +387,11 @@ export default function GroupDetailScreen() {
 
       {/* ── FAB: Add Expense ── */}
       <TouchableOpacity
-        style={[styles.fab, group.memberCount <= 1 && styles.fabDisabled]}
+        style={[
+          styles.fab,
+          { bottom: 24 + insets.bottom },
+          group.memberCount <= 1 && styles.fabDisabled,
+        ]}
         activeOpacity={0.85}
         onPress={() => {
           if (group.memberCount <= 1) {

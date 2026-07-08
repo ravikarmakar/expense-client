@@ -140,7 +140,10 @@ export default function PersonalWalletScreen() {
         <View style={{ width: 32 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 20 + insets.bottom }]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* ── Balance Card ── */}
         <View style={styles.balanceCard}>
           <View style={[styles.abstractCircle, styles.circleTopRight]} />

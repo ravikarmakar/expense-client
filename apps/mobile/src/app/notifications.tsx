@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { TopAppBar } from '../components/TopAppBar';
 import { COLORS } from '../constants/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   useNotifications,
   useAcceptInvitation,
@@ -22,6 +23,7 @@ import {
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const { data: notifications = [], isLoading, refetch } = useNotifications();
   const acceptInvitation = useAcceptInvitation();
@@ -79,7 +81,7 @@ export default function NotificationsScreen() {
         </View>
       ) : notifications.length > 0 ? (
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 20 + insets.bottom }]}
           refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
         >
           {notifications.map((item) => {
@@ -160,7 +162,7 @@ export default function NotificationsScreen() {
         </ScrollView>
       ) : (
         <ScrollView
-          contentContainerStyle={styles.emptyContainer}
+          contentContainerStyle={[styles.emptyContainer, { paddingBottom: 60 + insets.bottom }]}
           refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
         >
           <View style={styles.bellBadgeContainer}>
