@@ -13,19 +13,20 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { TopAppBar } from '../components/TopAppBar';
 import { COLORS, CURRENCY_SYMBOL } from '../constants/theme';
 import { useDebtBalances, settleUpApi, analyticsKeys } from '@workspace/api';
+import { useRouteParams, settleUpParamsSchema } from '../hooks/useRouteParams';
 
 export default function SettleUpScreen() {
   const router = useRouter();
-  const searchParams = useLocalSearchParams();
+  const searchParams = useRouteParams(settleUpParamsSchema);
   const queryClient = useQueryClient();
 
   // Tab filter state: 'owed' (Who owes you) | 'owe' (Who you owe)
-  const defaultTab = (searchParams.type as 'owed' | 'owe') || 'owed';
+  const defaultTab = searchParams.type || 'owed';
   const [activeTab, setActiveTab] = useState<'owed' | 'owe'>(defaultTab);
 
   // Track expanded users

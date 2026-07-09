@@ -14,7 +14,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, CURRENCY_SYMBOL } from '../../constants/theme';
@@ -26,6 +26,7 @@ import { EditGroupModal } from '../../components/EditGroupModal';
 import { LoadingView } from '../../components/LoadingView';
 import { ErrorView } from '../../components/ErrorView';
 import { EmptyState } from '../../components/EmptyState';
+import { useRouteParams, idParamSchema } from '../../hooks/useRouteParams';
 
 import {
   useGroupDetail,
@@ -40,7 +41,7 @@ import {
 
 export default function GroupDetailScreen() {
   const insets = useSafeAreaInsets();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useRouteParams(idParamSchema);
   const { data: user } = useMe();
   const { data: detailData, isLoading, isError, refetch } = useGroupDetail(id);
 

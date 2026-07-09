@@ -3,7 +3,14 @@
 // ─────────────────────────────────────────────────────
 
 // Client setup
-export { createApiClient, getApiClient, getStorage, onAuthError, TOKEN_KEY } from './client';
+export {
+  createApiClient,
+  getApiClient,
+  getStorage,
+  onAuthError,
+  onSlowRequest,
+  TOKEN_KEY,
+} from './client';
 
 // ── Expense module ────────────────────────────────────
 export type {
@@ -185,6 +192,7 @@ export {
   clientChangePasswordSchema,
   authUserSchema,
   authSessionSchema,
+  userResponseSchema,
   messageResponseSchema,
 } from './auth/auth.validation';
 

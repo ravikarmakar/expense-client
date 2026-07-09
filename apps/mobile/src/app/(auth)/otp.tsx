@@ -9,9 +9,11 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  AppState,
+  AppStateStatus,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { COLORS } from '../../constants/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -19,13 +21,15 @@ import {
   useResendVerification,
   getErrorMessage,
   clientVerifyEmailSchema,
+  getStorage,
 } from '@workspace/api';
+import { useRouteParams, otpParamsSchema } from '../../hooks/useRouteParams';
 
 const CODE_LENGTH = 6;
 
 export default function OtpScreen() {
-  const params = useLocalSearchParams<{ email?: string }>();
-  const email = params.email ?? '';
+  const params = useRouteParams(otpParamsSchema);
+  const [email, setEmail] = useState(params.email ?? '');
 
   const verifyMutation = useVerifyEmail();
   const resendMutation = useResendVerification();
@@ -36,22 +40,85 @@ export default function OtpScreen() {
   const [cooldown, setCooldown] = useState(0);
 
   const inputRefs = useRef<(TextInput | null)[]>(Array(CODE_LENGTH).fill(null));
+  const cooldownEndTimeRef = useRef<number>(0);
 
   const loading = verifyMutation.isPending;
   const isSubmitDisabled = code.some((digit) => !digit) || loading;
   const resendLoading = resendMutation.isPending;
 
+  const startCooldown = (seconds: number) => {
+    cooldownEndTimeRef.current = Date.now() + seconds * 1000;
+    setCooldown(seconds);
+  };
+
+  // Load and persist email in storage
+  useEffect(() => {
+    const handleEmailPersistence = async () => {
+      try {
+        const storage = getStorage();
+        if (params.email) {
+          await storage.setItem('pending_verification_email', params.email);
+          setEmail(params.email);
+        } else {
+          const storedEmail = await storage.getItem('pending_verification_email');
+          if (storedEmail) {
+            setEmail(storedEmail);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to handle email persistence:', err);
+      }
+    };
+    handleEmailPersistence();
+    startCooldown(60);
+  }, [params.email]);
+
+  // Robust timer for cooldown that updates on AppState change
   useEffect(() => {
     if (cooldown <= 0) return;
-    const timer = setInterval(() => {
-      setCooldown((prev) => prev - 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [cooldown]);
+
+    const updateCooldown = () => {
+      const remaining = Math.ceil((cooldownEndTimeRef.current - Date.now()) / 1000);
+      if (remaining <= 0) {
+        setCooldown(0);
+      } else {
+        setCooldown(remaining);
+      }
+    };
+
+    const timer = setInterval(updateCooldown, 1000);
+
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        updateCooldown();
+      }
+    });
+
+    return () => {
+      clearInterval(timer);
+      subscription.remove();
+    };
+  }, [cooldown > 0]);
 
   const handleTextChange = (text: string, index: number) => {
-    // Allow only digits
-    const digit = text.replace(/[^0-9]/g, '').slice(-1);
+    const cleaned = text.replace(/[^0-9]/g, '');
+    if (cleaned.length > 1) {
+      // Paste behavior
+      const newCode = [...code];
+      const pasteLength = Math.min(cleaned.length, CODE_LENGTH - index);
+      for (let i = 0; i < pasteLength; i++) {
+        newCode[index + i] = cleaned[i];
+      }
+      setCode(newCode);
+
+      // Focus the last filled box
+      const lastFocusIndex = Math.min(index + pasteLength, CODE_LENGTH - 1);
+      inputRefs.current[lastFocusIndex]?.focus();
+      return;
+    }
+
+    // Single digit typing
+    const digit = cleaned.slice(-1);
     const newCode = [...code];
     newCode[index] = digit;
     setCode(newCode);
@@ -68,6 +135,7 @@ export default function OtpScreen() {
   };
 
   const handleVerify = () => {
+    if (!email) return;
     const fullCode = code.join('');
     const result = clientVerifyEmailSchema.safeParse({ email, code: fullCode });
     if (!result.success) {
@@ -78,16 +146,24 @@ export default function OtpScreen() {
     setErrorMessage('');
     verifyMutation.mutate(result.data, {
       onSuccess: () => {
-        // RootLayoutNav automatically switches to the tabs stack thanks to TanStack cache update
+        getStorage()
+          .removeItem('pending_verification_email')
+          .catch(() => {});
       },
       onError: (err) => {
         setErrorMessage(getErrorMessage(err, 'Invalid or expired code. Please try again.'));
-        // Clear the code boxes on error
         setCode(Array(CODE_LENGTH).fill(''));
         inputRefs.current[0]?.focus();
       },
     });
   };
+
+  // Auto-submit when all code digits are filled
+  useEffect(() => {
+    if (code.every((digit) => digit !== '') && email) {
+      handleVerify();
+    }
+  }, [code, email]);
 
   const handleResend = () => {
     if (!email || cooldown > 0) return;
@@ -100,7 +176,7 @@ export default function OtpScreen() {
           setSuccessMessage('A new verification code has been sent to your email.');
           setCode(Array(CODE_LENGTH).fill(''));
           inputRefs.current[0]?.focus();
-          setCooldown(60);
+          startCooldown(60);
         },
         onError: (err) => {
           setErrorMessage(getErrorMessage(err, 'Failed to resend code. Please try again.'));
@@ -174,10 +250,12 @@ export default function OtpScreen() {
                     placeholder="•"
                     placeholderTextColor={COLORS.outlineVariant}
                     keyboardType="number-pad"
-                    maxLength={1}
+                    maxLength={CODE_LENGTH}
                     selectTextOnFocus
                     style={styles.otpInput}
                     editable={!(loading || resendLoading)}
+                    textContentType="oneTimeCode"
+                    autoComplete="one-time-code"
                   />
                 </View>
               ))}

@@ -49,7 +49,7 @@ export const authUserSchema = z.object({
     (val) => (typeof val === 'string' ? val.toUpperCase() : val),
     z.enum(['USER', 'ADMIN'])
   ),
-  emailVerified: z.boolean().optional(),
+  emailVerified: z.boolean(),
   image: z.string().nullable().optional(),
 });
 
@@ -65,6 +65,13 @@ export const authResponseSchema = z.object({
     session: authSessionSchema.optional(),
     token: z.string().optional(),
     requiresVerification: z.boolean().optional(),
+  }),
+});
+
+export const userResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.object({
+    user: authUserSchema,
   }),
 });
 

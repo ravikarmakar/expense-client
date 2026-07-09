@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { LineChart, BarChart, PieChart } from 'react-native-gifted-charts';
 import { TopAppBar } from '../../../components/TopAppBar';
 import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../../../constants/theme';
@@ -9,6 +9,7 @@ import { useGroupDetailAnalytics } from '@workspace/api';
 import { globalStyles } from '../../../styles/globalStyles';
 import { LoadingView } from '../../../components/LoadingView';
 import { ErrorView } from '../../../components/ErrorView';
+import { useRouteParams, idParamSchema } from '../../../hooks/useRouteParams';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -29,7 +30,7 @@ const PALETTE = [
 
 export default function GroupAnalyticsScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useRouteParams(idParamSchema);
   const [timeframe, setTimeframe] = useState<'today' | 'week' | 'month' | 'year'>('month');
 
   // Local reference date formatted to YYYY-MM-DD
@@ -47,7 +48,7 @@ export default function GroupAnalyticsScreen() {
     isLoading,
     isError,
     refetch,
-  } = useGroupDetailAnalytics(id!, timeframe, refDate);
+  } = useGroupDetailAnalytics(id, timeframe, refDate);
 
   const aggregatedData = useMemo(() => {
     if (!analytics) return null;

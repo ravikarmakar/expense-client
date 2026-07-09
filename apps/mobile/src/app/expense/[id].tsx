@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../../constants/theme';
@@ -10,10 +10,11 @@ import { TopAppBar } from '../../components/TopAppBar';
 import { LoadingView } from '../../components/LoadingView';
 import { ErrorView } from '../../components/ErrorView';
 import { EditExpenseModal } from '../../components/EditExpenseModal';
+import { useRouteParams, idParamSchema } from '../../hooks/useRouteParams';
 
 export default function ExpenseDetailScreen() {
-  const { id } = useLocalSearchParams();
-  const { data: expense, isLoading, isError, refetch } = useExpense(id as string);
+  const { id } = useRouteParams(idParamSchema);
+  const { data: expense, isLoading, isError, refetch } = useExpense(id);
   const insets = useSafeAreaInsets();
 
   const [editVisible, setEditVisible] = useState(false);

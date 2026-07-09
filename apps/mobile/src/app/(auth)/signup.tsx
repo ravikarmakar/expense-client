@@ -1,33 +1,67 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   StyleSheet,
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   ActivityIndicator,
+  Animated,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { COLORS } from '../../constants/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRegister, getErrorMessage, clientRegisterSchema } from '@workspace/api';
+import { PasswordRequirements } from '../../components/PasswordRequirements';
+import { TermsAndConditions } from '../../components/TermsAndConditions';
+import { LinearGradient } from 'expo-linear-gradient';
+import { AuthTextInput } from '../../components/AuthTextInput';
 
 export default function SignupScreen() {
   const registerMutation = useRegister();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
+
+  const buttonScale = useRef(new Animated.Value(1)).current;
+  const emailInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
+  const confirmPasswordInputRef = useRef<TextInput>(null);
+
+  const handlePressIn = () => {
+    Animated.spring(buttonScale, {
+      toValue: 0.96,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(buttonScale, {
+      toValue: 1,
+      useNativeDriver: true,
+      friction: 4,
+      tension: 40,
+    }).start();
+  };
 
   const loading = registerMutation.isPending;
-  const isSubmitDisabled = !name.trim() || !email.trim() || !password.trim() || loading;
+  const isSubmitDisabled =
+    !name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim() || loading;
 
   const handleSignUp = () => {
+    if (password !== confirmPassword) {
+      setErrorMessage('Passwords do not match');
+      return;
+    }
+
     const result = clientRegisterSchema.safeParse({
       name: name.trim(),
       email: email.trim(),
@@ -52,24 +86,30 @@ export default function SignupScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <LinearGradient colors={['#f0fdf4', '#f8f9fa']} style={StyleSheet.absoluteFillObject} />
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
         >
-          {/* Header */}
-          <View style={styles.headerSection}>
-            <Text style={styles.headerTitle}>Create Account</Text>
-            <Text style={styles.headerSubtitle}>
-              Start tracking and splitting expenses effortlessly
-            </Text>
+          {/* Unified Branding Header */}
+          <View style={styles.logoSection}>
+            <View style={styles.logoRow}>
+              <Ionicons name="wallet" size={32} color={COLORS.primary} />
+              <Text style={styles.appName}>SplitShare</Text>
+            </View>
+            <Text style={styles.appTagline}>Splitting bills made easy and beautiful</Text>
           </View>
 
           {/* Form */}
           <View style={styles.formSection}>
+            <Text style={styles.screenTitle}>Create Account</Text>
+
             {errorMessage ? (
               <View style={styles.errorContainer}>
                 <Ionicons name="alert-circle" size={18} color={COLORS.error} />
@@ -78,106 +118,139 @@ export default function SignupScreen() {
             ) : null}
 
             {/* Name Input */}
-            <Text style={styles.inputLabel}>Full Name</Text>
-            <View style={[styles.inputContainer, loading && { opacity: 0.6 }]}>
-              <Ionicons
-                name="person-outline"
-                size={20}
-                color={COLORS.outline}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                placeholder="Enter your name"
-                placeholderTextColor={COLORS.outlineVariant}
-                autoCapitalize="words"
-                autoCorrect={false}
-                style={styles.textInput}
-                editable={!loading}
-              />
-            </View>
+            <AuthTextInput
+              label="Full Name"
+              icon="person-outline"
+              value={name}
+              onChangeText={(text) => {
+                setName(text);
+                if (errorMessage) setErrorMessage('');
+              }}
+              placeholder="Enter your name"
+              autoCapitalize="words"
+              autoComplete="name"
+              textContentType="none"
+              returnKeyType="next"
+              onSubmitEditing={() => emailInputRef.current?.focus()}
+              blurOnSubmit={false}
+              loading={loading}
+            />
 
             {/* Email Input */}
-            <Text style={styles.inputLabel}>Email Address</Text>
-            <View style={[styles.inputContainer, loading && { opacity: 0.6 }]}>
-              <Ionicons
-                name="mail-outline"
-                size={20}
-                color={COLORS.outline}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Enter your email"
-                placeholderTextColor={COLORS.outlineVariant}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                style={styles.textInput}
-                editable={!loading}
-              />
-            </View>
+            <AuthTextInput
+              ref={emailInputRef}
+              label="Email Address"
+              icon="mail-outline"
+              value={email}
+              onChangeText={(text) => {
+                setEmail(text);
+                if (errorMessage) setErrorMessage('');
+              }}
+              placeholder="Enter your email"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              textContentType="none"
+              returnKeyType="next"
+              onSubmitEditing={() => passwordInputRef.current?.focus()}
+              blurOnSubmit={false}
+              loading={loading}
+            />
 
             {/* Password Input */}
-            <Text style={styles.inputLabel}>Password</Text>
-            <View style={[styles.inputContainer, loading && { opacity: 0.6 }]}>
-              <Ionicons
-                name="lock-closed-outline"
-                size={20}
-                color={COLORS.outline}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Min 8 chars (A-Z, a-z, 0-9, !@#)"
-                placeholderTextColor={COLORS.outlineVariant}
-                secureTextEntry={!isPasswordVisible}
-                autoCapitalize="none"
-                autoCorrect={false}
-                style={styles.textInput}
-                editable={!loading}
-              />
-              <TouchableOpacity
-                onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-                activeOpacity={0.7}
-                disabled={loading}
-              >
-                <Ionicons
-                  name={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
-                  size={20}
-                  color={COLORS.outline}
-                />
-              </TouchableOpacity>
-            </View>
+            <AuthTextInput
+              ref={passwordInputRef}
+              label="Password"
+              icon="lock-closed-outline"
+              value={password}
+              onChangeText={(text) => {
+                setPassword(text);
+                if (errorMessage) setErrorMessage('');
+              }}
+              placeholder="Min 8 chars (A-Z, a-z, 0-9, !@#)"
+              secureTextEntry={!isPasswordVisible}
+              autoCapitalize="none"
+              autoComplete="new-password"
+              textContentType="none"
+              returnKeyType="next"
+              onSubmitEditing={() => confirmPasswordInputRef.current?.focus()}
+              blurOnSubmit={false}
+              loading={loading}
+              rightIcon={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
+              onRightIconPress={() => setIsPasswordVisible(!isPasswordVisible)}
+            />
+
+            {password.length > 0 && <PasswordRequirements password={password} />}
+
+            {/* Confirm Password Input */}
+            <AuthTextInput
+              ref={confirmPasswordInputRef}
+              label="Confirm Password"
+              icon="lock-closed-outline"
+              value={confirmPassword}
+              onChangeText={(text) => {
+                setConfirmPassword(text);
+                if (errorMessage) setErrorMessage('');
+              }}
+              placeholder="Confirm your password"
+              secureTextEntry={!isConfirmPasswordVisible}
+              autoCapitalize="none"
+              autoComplete="new-password"
+              textContentType="none"
+              returnKeyType="done"
+              onSubmitEditing={handleSignUp}
+              loading={loading}
+              rightIcon={isConfirmPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
+              onRightIconPress={() => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)}
+            />
 
             {/* Sign Up Button */}
             <TouchableOpacity
               onPress={handleSignUp}
-              style={[styles.primaryButton, isSubmitDisabled && styles.disabledButton]}
-              activeOpacity={0.8}
+              onPressIn={handlePressIn}
+              onPressOut={handlePressOut}
+              style={styles.buttonWrapper}
+              activeOpacity={0.9}
               disabled={isSubmitDisabled}
             >
-              {loading ? (
-                <ActivityIndicator color="#ffffff" />
-              ) : (
-                <Text style={styles.primaryButtonText}>Create Account</Text>
-              )}
+              <Animated.View
+                style={[
+                  styles.primaryButtonAnimated,
+                  { transform: [{ scale: buttonScale }] },
+                  isSubmitDisabled && styles.disabledButton,
+                ]}
+              >
+                <LinearGradient
+                  colors={isSubmitDisabled ? ['#a3b8b0', '#a3b8b0'] : [COLORS.primary, '#008f62']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.gradientButton}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#ffffff" />
+                  ) : (
+                    <Text style={styles.primaryButtonText}>Create Account</Text>
+                  )}
+                </LinearGradient>
+              </Animated.View>
             </TouchableOpacity>
           </View>
 
-          {/* Switch to Login */}
-          <View style={styles.footerSection}>
-            <Text style={styles.footerLabel}>Already have an account? </Text>
-            <TouchableOpacity
-              onPress={() => router.push('/login')}
-              activeOpacity={0.7}
-              disabled={loading}
-            >
-              <Text style={styles.footerLink}>Sign In</Text>
-            </TouchableOpacity>
+          {/* Footer Section */}
+          <View style={styles.footerContainer}>
+            <View style={styles.footerSection}>
+              <Text style={styles.footerLabel}>Already have an account? </Text>
+              <TouchableOpacity
+                onPress={() => router.push('/login')}
+                activeOpacity={0.7}
+                disabled={loading}
+              >
+                <Text style={styles.footerLink}>Sign In</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Terms & Conditions Link */}
+            <TermsAndConditions action="signup" />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -200,35 +273,46 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 40,
   },
-  headerSection: {
-    marginTop: 10,
-    marginBottom: 24,
-    paddingHorizontal: 4,
+  logoSection: {
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 20,
   },
-  headerTitle: {
-    fontSize: 28,
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 6,
+  },
+  appName: {
+    fontSize: 26,
     fontWeight: '800',
     color: COLORS.onSurface,
     letterSpacing: -0.5,
   },
-  headerSubtitle: {
-    fontSize: 14,
+  appTagline: {
+    fontSize: 13,
     color: COLORS.outline,
-    marginTop: 6,
-    lineHeight: 20,
+    marginTop: 4,
     fontWeight: '500',
   },
   formSection: {
     backgroundColor: COLORS.surface,
-    borderRadius: 24,
+    borderRadius: 28,
     padding: 24,
     borderWidth: 1,
     borderColor: COLORS.surfaceContainer,
-    elevation: 2,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+  },
+  screenTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: COLORS.onSurface,
+    marginBottom: 20,
   },
   errorContainer: {
     flexDirection: 'row',
@@ -247,48 +331,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
   },
-  inputLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.outline,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 6,
-    paddingLeft: 4,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surfaceContainerLow,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    height: 56,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceContainer,
-    marginBottom: 16,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  textInput: {
-    flex: 1,
-    color: COLORS.onSurface,
-    fontSize: 15,
-    fontWeight: '500',
-    height: '100%',
-  },
-  primaryButton: {
-    backgroundColor: COLORS.primary,
-    height: 56,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
+  buttonWrapper: {
     marginTop: 8,
+    width: '100%',
+  },
+  primaryButtonAnimated: {
+    borderRadius: 18,
+    overflow: 'hidden',
     elevation: 4,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 6,
+  },
+  gradientButton: {
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
   },
   disabledButton: {
     opacity: 0.7,
@@ -298,11 +358,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  footerContainer: {
+    marginTop: 24,
+    alignItems: 'center',
+  },
   footerSection: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 24,
   },
   footerLabel: {
     fontSize: 13,
@@ -313,48 +376,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: COLORS.secondary,
-  },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 16,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: COLORS.surfaceContainer,
-  },
-  dividerText: {
-    fontSize: 12,
-    color: COLORS.outline,
-    marginHorizontal: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 54,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
-    backgroundColor: COLORS.surface,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-  },
-  googleIcon: {
-    width: 22,
-    height: 22,
-    marginRight: 12,
-  },
-  googleButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.onSurface,
   },
 });

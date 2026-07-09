@@ -12,7 +12,7 @@ import {
   Pressable,
   RefreshControl,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
@@ -30,10 +30,11 @@ import {
 import { LoadingView } from '../../../components/LoadingView';
 import { ErrorView } from '../../../components/ErrorView';
 import { EmptyState } from '../../../components/EmptyState';
+import { useRouteParams, idParamSchema } from '../../../hooks/useRouteParams';
 
 export default function WalletScreen() {
   const insets = useSafeAreaInsets();
-  const { id: groupId } = useLocalSearchParams<{ id: string }>();
+  const { id: groupId } = useRouteParams(idParamSchema);
   const { data: user } = useMe();
   const { data: group } = useGroup(groupId);
   const { data: wallet, isLoading, isError, error, refetch } = useWallet(groupId);

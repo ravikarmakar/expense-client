@@ -12,15 +12,16 @@ import {
   Platform,
   Image,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../../constants/theme';
 import { useGroup, useAddMember, useSearchUsers, getErrorMessage } from '@workspace/api';
+import { useRouteParams, idParamSchema } from '../../../hooks/useRouteParams';
 
 export default function AddMemberScreen() {
   const insets = useSafeAreaInsets();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useRouteParams(idParamSchema);
   const { data: group } = useGroup(id);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

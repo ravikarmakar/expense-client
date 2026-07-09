@@ -1,7 +1,7 @@
 import { AxiosError } from 'axios';
 import { z } from 'zod';
 import { getApiClient } from '../client';
-import { authResponseSchema, messageResponseSchema, authUserSchema } from './auth.validation';
+import { authResponseSchema, messageResponseSchema, userResponseSchema } from './auth.validation';
 import type {
   AuthResponse,
   LoginInput,
@@ -26,8 +26,26 @@ export const getErrorMessage = (error: unknown, fallback = 'Something went wrong
     return `Invalid response format: ${error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`;
   }
   if (error instanceof AxiosError) {
-    const data = error.response?.data as { message?: string } | undefined;
-    return data?.message ?? error.message ?? fallback;
+    // 1. Connection / Offline Issues
+    if (error.code === 'ERR_NO_NETWORK' || !error.response) {
+      if (error.message?.includes('internet') || error.code === 'ERR_NO_NETWORK') {
+        return 'No internet connection. Please check your network and try again.';
+      }
+      if (error.code === 'ECONNABORTED') {
+        return 'Connection timed out. The server is taking too long to respond.';
+      }
+      return 'Could not connect to the server. Please verify your connection.';
+    }
+
+    // 2. Server internal errors
+    const status = error.response.status;
+    if (status >= 500) {
+      return 'The server encountered an error. Please try again later.';
+    }
+
+    // 3. Request errors (400, 422, etc.)
+    const data = error.response.data as { message?: string } | undefined;
+    return data?.message ?? fallback;
   }
   if (error instanceof Error) return error.message;
   return fallback;
@@ -67,16 +85,9 @@ export const resetPasswordApi = async (input: ResetPasswordInput): Promise<Messa
   return messageResponseSchema.parse(data);
 };
 
-export const meApi = async (): Promise<AuthUser> => {
-  const { data } = await getApiClient().get<unknown>('/auth/me');
-  const parsed = z
-    .object({
-      success: z.boolean(),
-      data: z.object({
-        user: authUserSchema,
-      }),
-    })
-    .parse(data);
+export const meApi = async (signal?: AbortSignal): Promise<AuthUser> => {
+  const { data } = await getApiClient().get<unknown>('/auth/me', { signal });
+  const parsed = userResponseSchema.parse(data);
   return parsed.data.user;
 };
 
@@ -107,13 +118,6 @@ export const updateProfileApi = async (input: {
   image?: string;
 }): Promise<AuthUser> => {
   const { data } = await getApiClient().patch<unknown>('/users/me', input);
-  const parsed = z
-    .object({
-      success: z.boolean(),
-      data: z.object({
-        user: authUserSchema,
-      }),
-    })
-    .parse(data);
+  const parsed = userResponseSchema.parse(data);
   return parsed.data.user;
 };
