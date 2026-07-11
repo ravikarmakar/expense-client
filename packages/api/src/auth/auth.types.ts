@@ -27,6 +27,14 @@ export interface MessageResponse {
   message: string;
 }
 
+export interface ChangePasswordResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    token?: string | null;
+  };
+}
+
 export interface LoginInput {
   email: string;
   password: string;

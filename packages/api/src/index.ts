@@ -179,6 +179,15 @@ export {
   useUpdateProfile,
 } from './auth/auth.hooks';
 
+// Auth controllers
+export {
+  useLoginController,
+  useRegisterController,
+  useOtpController,
+  useForgotPasswordController,
+  useChangePasswordController,
+} from './auth/auth.controllers';
+
 // Auth validation schemas
 export {
   clientRegisterSchema,

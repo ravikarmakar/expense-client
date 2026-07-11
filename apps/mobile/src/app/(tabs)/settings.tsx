@@ -18,38 +18,19 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, PREDEFINED_AVATARS } from '../../constants/theme';
 import { globalStyles } from '../../styles/globalStyles';
-import {
-  useMe,
-  useLogout,
-  useVerifyPassword,
-  useChangePassword,
-  useUpdateProfile,
-  clientVerifyPasswordSchema,
-  clientChangePasswordSchema,
-  getErrorMessage,
-} from '@workspace/api';
+import { useMe, useLogout, useUpdateProfile, getErrorMessage } from '@workspace/api';
+import { ChangePasswordModal } from '../../module/auth/components/ChangePasswordModal';
 
 export default function SettingsTabScreen() {
   const { data: user } = useMe();
   const logoutMutation = useLogout();
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [step, setStep] = useState<'VERIFY' | 'CHANGE'>('VERIFY');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [isCurrentPasswordVisible, setIsCurrentPasswordVisible] = useState(false);
-  const [isNewPasswordVisible, setIsNewPasswordVisible] = useState(false);
-  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [editName, setEditName] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState('');
   const [profileErrorMessage, setProfileErrorMessage] = useState('');
 
-  const verifyPasswordMutation = useVerifyPassword();
-  const changePasswordMutation = useChangePassword();
   const updateProfileMutation = useUpdateProfile();
 
   const handleSaveProfile = () => {
@@ -71,61 +52,6 @@ export default function SettingsTabScreen() {
         },
         onError: (err) => {
           setProfileErrorMessage(getErrorMessage(err, 'Failed to update profile.'));
-        },
-      }
-    );
-  };
-
-  const handleVerifyPassword = () => {
-    setErrorMessage('');
-    const validation = clientVerifyPasswordSchema.safeParse({ password: currentPassword });
-    if (!validation.success) {
-      setErrorMessage(validation.error.issues[0].message);
-      return;
-    }
-
-    verifyPasswordMutation.mutate(
-      { password: currentPassword },
-      {
-        onSuccess: () => {
-          setStep('CHANGE');
-          setErrorMessage('');
-        },
-        onError: (err) => {
-          setErrorMessage(getErrorMessage(err, 'Incorrect password. Please try again.'));
-        },
-      }
-    );
-  };
-
-  const handleChangePassword = () => {
-    setErrorMessage('');
-    const validation = clientChangePasswordSchema.safeParse({
-      currentPassword,
-      newPassword,
-      confirmPassword,
-    });
-    if (!validation.success) {
-      setErrorMessage(validation.error.issues[0].message);
-      return;
-    }
-
-    changePasswordMutation.mutate(
-      {
-        currentPassword,
-        newPassword,
-      },
-      {
-        onSuccess: () => {
-          Alert.alert('Success', 'Your password has been changed successfully.');
-          setModalVisible(false);
-          setCurrentPassword('');
-          setNewPassword('');
-          setConfirmPassword('');
-          setStep('VERIFY');
-        },
-        onError: (err) => {
-          setErrorMessage(getErrorMessage(err, 'Failed to change password.'));
         },
       }
     );
@@ -265,14 +191,6 @@ export default function SettingsTabScreen() {
             activeOpacity={0.7}
             onPress={() => {
               setModalVisible(true);
-              setStep('VERIFY');
-              setCurrentPassword('');
-              setNewPassword('');
-              setConfirmPassword('');
-              setErrorMessage('');
-              setIsCurrentPasswordVisible(false);
-              setIsNewPasswordVisible(false);
-              setIsConfirmPasswordVisible(false);
             }}
           >
             <View style={styles.settingsItemLeft}>
@@ -333,13 +251,7 @@ export default function SettingsTabScreen() {
         <TouchableOpacity
           style={[styles.logoutButton, logoutMutation.isPending && { opacity: 0.5 }]}
           activeOpacity={0.85}
-          onPress={() =>
-            logoutMutation.mutate(undefined, {
-              onSettled: () => {
-                router.replace('/(auth)/login');
-              },
-            })
-          }
+          onPress={() => logoutMutation.mutate(undefined)}
           disabled={logoutMutation.isPending}
         >
           {logoutMutation.isPending ? (
@@ -360,206 +272,7 @@ export default function SettingsTabScreen() {
         </View>
       </ScrollView>
 
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-        >
-          <View style={styles.modalContent}>
-            {/* Modal Header */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {step === 'VERIFY' ? 'Verify Identity' : 'Set New Password'}
-              </Text>
-              <TouchableOpacity
-                onPress={() => setModalVisible(false)}
-                style={styles.closeButton}
-                activeOpacity={0.7}
-                disabled={verifyPasswordMutation.isPending || changePasswordMutation.isPending}
-              >
-                <Ionicons name="close" size={24} color={COLORS.onSurface} />
-              </TouchableOpacity>
-            </View>
-
-            {errorMessage ? (
-              <View style={styles.errorContainer}>
-                <Ionicons name="alert-circle" size={18} color={COLORS.error} />
-                <Text style={styles.errorText}>{errorMessage}</Text>
-              </View>
-            ) : null}
-
-            {step === 'VERIFY' ? (
-              <View style={styles.modalForm}>
-                <Text style={styles.modalDescription}>
-                  Please enter your current password to continue.
-                </Text>
-
-                <Text style={styles.inputLabel}>Current Password</Text>
-                <View
-                  style={[
-                    styles.inputContainer,
-                    verifyPasswordMutation.isPending && { opacity: 0.6 },
-                  ]}
-                >
-                  <Ionicons
-                    name="lock-closed-outline"
-                    size={20}
-                    color={COLORS.outline}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    value={currentPassword}
-                    onChangeText={setCurrentPassword}
-                    placeholder="Enter current password"
-                    placeholderTextColor={COLORS.outlineVariant}
-                    secureTextEntry={!isCurrentPasswordVisible}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    style={styles.textInput}
-                    editable={!verifyPasswordMutation.isPending}
-                  />
-                  <TouchableOpacity
-                    onPress={() => setIsCurrentPasswordVisible(!isCurrentPasswordVisible)}
-                    activeOpacity={0.7}
-                    disabled={verifyPasswordMutation.isPending}
-                  >
-                    <Ionicons
-                      name={isCurrentPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
-                      size={20}
-                      color={COLORS.outline}
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                <TouchableOpacity
-                  onPress={handleVerifyPassword}
-                  style={[
-                    styles.primaryButton,
-                    (!currentPassword.trim() || verifyPasswordMutation.isPending) &&
-                      styles.disabledButton,
-                  ]}
-                  activeOpacity={0.8}
-                  disabled={!currentPassword.trim() || verifyPasswordMutation.isPending}
-                >
-                  {verifyPasswordMutation.isPending ? (
-                    <ActivityIndicator color="#ffffff" />
-                  ) : (
-                    <Text style={styles.primaryButtonText}>Verify Current Password</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.modalForm}>
-                <Text style={styles.modalDescription}>
-                  Create a new secure password. It must meet complexity requirements.
-                </Text>
-
-                <Text style={styles.inputLabel}>New Password</Text>
-                <View
-                  style={[
-                    styles.inputContainer,
-                    changePasswordMutation.isPending && { opacity: 0.6 },
-                  ]}
-                >
-                  <Ionicons
-                    name="lock-closed-outline"
-                    size={20}
-                    color={COLORS.outline}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    value={newPassword}
-                    onChangeText={setNewPassword}
-                    placeholder="Enter new password"
-                    placeholderTextColor={COLORS.outlineVariant}
-                    secureTextEntry={!isNewPasswordVisible}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    style={styles.textInput}
-                    editable={!changePasswordMutation.isPending}
-                  />
-                  <TouchableOpacity
-                    onPress={() => setIsNewPasswordVisible(!isNewPasswordVisible)}
-                    activeOpacity={0.7}
-                    disabled={changePasswordMutation.isPending}
-                  >
-                    <Ionicons
-                      name={isNewPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
-                      size={20}
-                      color={COLORS.outline}
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                <Text style={styles.inputLabel}>Confirm New Password</Text>
-                <View
-                  style={[
-                    styles.inputContainer,
-                    changePasswordMutation.isPending && { opacity: 0.6 },
-                  ]}
-                >
-                  <Ionicons
-                    name="lock-closed-outline"
-                    size={20}
-                    color={COLORS.outline}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    placeholder="Confirm new password"
-                    placeholderTextColor={COLORS.outlineVariant}
-                    secureTextEntry={!isConfirmPasswordVisible}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    style={styles.textInput}
-                    editable={!changePasswordMutation.isPending}
-                  />
-                  <TouchableOpacity
-                    onPress={() => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)}
-                    activeOpacity={0.7}
-                    disabled={changePasswordMutation.isPending}
-                  >
-                    <Ionicons
-                      name={isConfirmPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
-                      size={20}
-                      color={COLORS.outline}
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                <TouchableOpacity
-                  onPress={handleChangePassword}
-                  style={[
-                    styles.primaryButton,
-                    (!newPassword.trim() ||
-                      !confirmPassword.trim() ||
-                      changePasswordMutation.isPending) &&
-                      styles.disabledButton,
-                  ]}
-                  activeOpacity={0.8}
-                  disabled={
-                    !newPassword.trim() ||
-                    !confirmPassword.trim() ||
-                    changePasswordMutation.isPending
-                  }
-                >
-                  {changePasswordMutation.isPending ? (
-                    <ActivityIndicator color="#ffffff" />
-                  ) : (
-                    <Text style={styles.primaryButtonText}>Update Password</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      <ChangePasswordModal visible={modalVisible} onClose={() => setModalVisible(false)} />
 
       {/* ── Modal: Edit Profile ── */}
       <Modal

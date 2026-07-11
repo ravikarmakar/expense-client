@@ -27,6 +27,7 @@ import type {
   VerifyResetCodeInput,
   VerifyPasswordInput,
   ChangePasswordInput,
+  ChangePasswordResponse,
 } from './auth.types';
 
 export const authKeys = {
@@ -167,8 +168,13 @@ export const useVerifyPassword = () =>
   });
 
 export const useChangePassword = () => {
-  return useMutation<MessageResponse, Error, ChangePasswordInput>({
+  return useMutation<ChangePasswordResponse, Error, ChangePasswordInput>({
     mutationFn: changePasswordApi,
+    onSuccess: async (data) => {
+      if (data.data?.token) {
+        await getStorage().setItem(TOKEN_KEY, data.data.token);
+      }
+    },
   });
 };
 

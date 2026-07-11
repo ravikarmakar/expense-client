@@ -1,7 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, View, AppState, Text } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { Stack, useRouter, useRootNavigationState } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
   QueryClientProvider,
@@ -9,16 +9,11 @@ import {
   focusManager,
   onlineManager,
 } from '@tanstack/react-query';
-import {
-  createApiClient,
-  createQueryClient,
-  useMe,
-  onAuthError,
-  onSlowRequest,
-} from '@workspace/api';
+import { createApiClient, createQueryClient, onAuthError, onSlowRequest } from '@workspace/api';
 import NetInfo from '@react-native-community/netinfo';
 import { COLORS } from '../constants/theme';
 import { env } from '../env';
+import { AuthGuard } from '../module/auth/components/AuthGuard';
 
 // Configure TanStack Query onlineManager for React Native NetInfo connection changes
 onlineManager.setEventListener((setOnline) => {
@@ -64,14 +59,9 @@ const queryClient = createQueryClient();
 
 // ── Root nav — switches between auth and tab stacks ───────────────────────
 function RootLayoutNav() {
-  const { data: user, isLoading, isError } = useMe();
-  const router = useRouter();
-  const rootNavigationState = useRootNavigationState();
   const queryClient = useQueryClient();
   const [isSlowConnection, setIsSlowConnection] = React.useState(false);
   const [authAlertVisible, setAuthAlertVisible] = React.useState(false);
-
-  console.warn('[RootLayoutNav] state:', { user, isLoading, isError });
 
   // ── Listen for 401 events from the axios interceptor ──
   React.useEffect(() => {
@@ -90,43 +80,15 @@ function RootLayoutNav() {
     return cleanup;
   }, []);
 
-  React.useEffect(() => {
-    if (isLoading || !rootNavigationState?.key) return;
-
-    if (user) {
-      if (user.emailVerified === false) {
-        router.replace({ pathname: '/(auth)/otp', params: { email: user.email } });
-      } else {
-        router.replace('/(tabs)');
-      }
-    } else {
-      router.replace('/(auth)/login');
-    }
-  }, [user, isLoading, isError, rootNavigationState?.key]);
-
-  // Show a loading indicator while we check/fetch session
-  if (isLoading) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: COLORS.background,
-        }}
-      >
-        <ActivityIndicator size="large" color={COLORS.secondary} />
-      </View>
-    );
-  }
-
   return (
     <>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="groups/[id]" options={{ headerShown: false }} />
-      </Stack>
+      <AuthGuard>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="groups/[id]" options={{ headerShown: false }} />
+        </Stack>
+      </AuthGuard>
       <UpdateDialog />
       {isSlowConnection && (
         <View

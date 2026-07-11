@@ -1,7 +1,12 @@
 import { AxiosError } from 'axios';
 import { z } from 'zod';
 import { getApiClient } from '../client';
-import { authResponseSchema, messageResponseSchema, userResponseSchema } from './auth.validation';
+import {
+  authResponseSchema,
+  messageResponseSchema,
+  userResponseSchema,
+  changePasswordResponseSchema,
+} from './auth.validation';
 import type {
   AuthResponse,
   LoginInput,
@@ -15,6 +20,7 @@ import type {
   VerifyResetCodeInput,
   VerifyPasswordInput,
   ChangePasswordInput,
+  ChangePasswordResponse,
 } from './auth.types';
 
 // ─────────────────────────────────────────────────────
@@ -108,9 +114,11 @@ export const verifyPasswordApi = async (input: VerifyPasswordInput): Promise<Mes
   return messageResponseSchema.parse(data);
 };
 
-export const changePasswordApi = async (input: ChangePasswordInput): Promise<MessageResponse> => {
+export const changePasswordApi = async (
+  input: ChangePasswordInput
+): Promise<ChangePasswordResponse> => {
   const { data } = await getApiClient().post<unknown>('/auth/change-password', input);
-  return messageResponseSchema.parse(data);
+  return changePasswordResponseSchema.parse(data);
 };
 
 export const updateProfileApi = async (input: {

@@ -89,7 +89,12 @@ export const createApiClient = (
       }
       return storage.setItem(key, value);
     },
-    removeItem: (key) => storage.removeItem(key),
+    removeItem: async (key) => {
+      if (key === TOKEN_KEY) {
+        isEmittingAuthError = false;
+      }
+      return storage.removeItem(key);
+    },
   };
 
   _storage = wrappedStorage;

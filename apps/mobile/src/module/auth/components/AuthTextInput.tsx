@@ -9,7 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/theme';
+import { COLORS } from '../../../constants/theme';
 
 interface AuthTextInputProps extends TextInputProps {
   label: string;

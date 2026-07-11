@@ -83,6 +83,13 @@ export function VerifyStep({
     }
   }, [code, loading]);
 
+  // Auto-focus the first box when code is cleared (e.g., after an error)
+  React.useEffect(() => {
+    if (code.every((digit) => digit === '')) {
+      inputRefs.current[0]?.focus();
+    }
+  }, [code]);
+
   return (
     <View style={styles.stepContainer}>
       {/* Header Section */}
