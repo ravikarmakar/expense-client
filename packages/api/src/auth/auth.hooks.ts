@@ -83,7 +83,8 @@ export const useLogout = () => {
       // 2. Clear any recorded pending verification
       await getStorage().removeItem('pending_verification_email');
 
-      // 3. Remove all other queries from the query client
+      // 3. Cancel in-flight queries and remove other query caches to prevent trailing requests
+      await queryClient.cancelQueries();
       queryClient.removeQueries({
         predicate: (query) => query.queryKey[0] !== 'auth',
       });

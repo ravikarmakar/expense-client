@@ -225,9 +225,32 @@ export {
 } from './wallet/wallet.hooks';
 
 // ── Dashboard module ──────────────────────────────────
-export type { DashboardData } from './dashboard/dashboard.types';
-export { getDashboardApi } from './dashboard/dashboard.api';
-export { useDashboard, dashboardKeys } from './dashboard/dashboard.hooks';
+export type {
+  DashboardData,
+  DashboardStatsData,
+  DashboardExpensesData,
+  DashboardGroupsData,
+} from './dashboard/dashboard.types';
+export {
+  getDashboardApi,
+  getDashboardStatsApi,
+  getDashboardRecentExpensesApi,
+  getDashboardGroupsApi,
+} from './dashboard/dashboard.api';
+export {
+  dashboardResponseSchema,
+  dashboardStatsSchema,
+  dashboardExpensesSchema,
+  dashboardGroupsSchema,
+} from './dashboard/dashboard.validation';
+export {
+  useDashboard,
+  useDashboardStats,
+  useDashboardRecentExpenses,
+  useDashboardGroups,
+  dashboardKeys,
+} from './dashboard/dashboard.hooks';
+export { useDashboardController } from './dashboard/dashboard.controllers';
 
 // ── Analytics module ──────────────────────────────────
 export type {

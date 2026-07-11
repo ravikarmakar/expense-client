@@ -1,29 +1,12 @@
 import { z } from 'zod';
-import { authUserSchema } from '../auth/auth.validation';
-import { expenseSchema } from '../expenses/expense.types';
-import { groupSchema } from '../groups/group.types';
-
-export const dashboardResponseSchema = z.object({
-  success: z.boolean(),
-  data: z.object({
-    user: authUserSchema,
-    stats: z.object({
-      totalSpent: z.number(),
-      totalGroupSpent: z.number(),
-      totalPersonalSpent: z.number(),
-      categorySpent: z
-        .array(
-          z.object({
-            category: z.string(),
-            amount: z.number(),
-          })
-        )
-        .optional()
-        .default([]),
-    }),
-    recentExpenses: z.array(expenseSchema),
-    groups: z.array(groupSchema),
-  }),
-});
+import {
+  dashboardResponseSchema,
+  dashboardStatsSchema,
+  dashboardExpensesSchema,
+  dashboardGroupsSchema,
+} from './dashboard.validation';
 
 export type DashboardData = z.infer<typeof dashboardResponseSchema>['data'];
+export type DashboardStatsData = z.infer<typeof dashboardStatsSchema>['data'];
+export type DashboardExpensesData = z.infer<typeof dashboardExpensesSchema>['data'];
+export type DashboardGroupsData = z.infer<typeof dashboardGroupsSchema>['data'];
