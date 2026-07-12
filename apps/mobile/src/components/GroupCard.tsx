@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 
 interface GroupCardProps {
@@ -38,8 +39,27 @@ export const GroupCard = React.memo(function GroupCard({
     return styles.groupNeutralBadgeText;
   };
 
+  const getBadgeIcon = () => {
+    if (isOwed)
+      return (
+        <Ionicons
+          name="arrow-down-circle"
+          size={13}
+          color={COLORS.primary}
+          style={styles.badgeIcon}
+        />
+      );
+    if (isOwe)
+      return (
+        <Ionicons name="arrow-up-circle" size={13} color={COLORS.error} style={styles.badgeIcon} />
+      );
+    return (
+      <Ionicons name="checkmark-circle" size={13} color={COLORS.outline} style={styles.badgeIcon} />
+    );
+  };
+
   return (
-    <TouchableOpacity style={styles.groupCard} activeOpacity={0.85} onPress={onPress}>
+    <TouchableOpacity style={styles.groupCard} activeOpacity={0.8} onPress={onPress}>
       {/* Left circular emblem container */}
       <View style={styles.emblemContainer}>
         <Text style={styles.emblemEmoji}>{emoji ?? '👥'}</Text>
@@ -77,8 +97,11 @@ export const GroupCard = React.memo(function GroupCard({
 
       {/* Right status badge container */}
       <View style={styles.rightContainer}>
-        <View style={getBadgeStyle()}>
-          <Text style={getBadgeTextStyle()}>{balanceText}</Text>
+        <View style={[styles.badgeBase, getBadgeStyle()]}>
+          {getBadgeIcon()}
+          <Text style={getBadgeTextStyle()} numberOfLines={1}>
+            {balanceText}
+          </Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -88,35 +111,31 @@ export const GroupCard = React.memo(function GroupCard({
 const styles = StyleSheet.create({
   groupCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: 24,
+    borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.surfaceContainer,
+    borderColor: '#e8ece9',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    elevation: 3,
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    marginBottom: 8,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
   },
   emblemContainer: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: COLORS.surfaceContainerLow,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    borderWidth: 1,
+    borderColor: '#f0f2f0',
   },
   emblemEmoji: {
-    fontSize: 26,
+    fontSize: 24,
   },
   centerContainer: {
     flex: 1,
@@ -125,14 +144,14 @@ const styles = StyleSheet.create({
   },
   groupName: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '700',
     color: COLORS.onSurface,
     letterSpacing: -0.2,
   },
   groupActivity: {
     fontSize: 12,
     color: COLORS.outline,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   avatarOverlapContainer: {
     flexDirection: 'row',
@@ -140,18 +159,18 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   overlapAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 1.5,
     borderColor: '#ffffff',
     backgroundColor: COLORS.surfaceContainer,
   },
   overlapAvatar2: {
-    marginLeft: -8,
+    marginLeft: -6,
   },
   overlapAvatarCount: {
-    marginLeft: -8,
+    marginLeft: -6,
     backgroundColor: COLORS.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
@@ -164,42 +183,40 @@ const styles = StyleSheet.create({
   rightContainer: {
     alignItems: 'flex-end',
     justifyContent: 'center',
-    minWidth: 90,
+    maxWidth: 120,
+  },
+  badgeBase: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 10,
+  },
+  badgeIcon: {
+    marginRight: 4,
   },
   groupOweBadge: {
-    backgroundColor: COLORS.primaryFixed,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
+    backgroundColor: 'rgba(0, 105, 72, 0.08)',
   },
   groupOweBadgeText: {
     fontSize: 11,
-    fontWeight: '800',
-    color: COLORS.onPrimaryFixedVariant,
-    textAlign: 'center',
+    fontWeight: '700',
+    color: COLORS.primary,
   },
   groupOweBadgeError: {
-    backgroundColor: COLORS.errorContainer,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
+    backgroundColor: 'rgba(186, 26, 26, 0.08)',
   },
   groupOweBadgeTextError: {
     fontSize: 11,
-    fontWeight: '800',
-    color: COLORS.onErrorContainer,
-    textAlign: 'center',
+    fontWeight: '700',
+    color: COLORS.error,
   },
   groupNeutralBadge: {
-    backgroundColor: COLORS.surfaceContainerHigh,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
+    backgroundColor: COLORS.surfaceContainerLow,
   },
   groupNeutralBadgeText: {
     fontSize: 11,
-    fontWeight: '800',
-    color: COLORS.onSurfaceVariant,
-    textAlign: 'center',
+    fontWeight: '700',
+    color: COLORS.outline,
   },
 });

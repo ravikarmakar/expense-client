@@ -22,7 +22,7 @@ import {
   clientChangePasswordSchema,
 } from './auth.validation';
 import { getErrorMessage } from './auth.api';
-import { getStorage, TOKEN_KEY } from '../client';
+import { getStorage } from '../client';
 
 interface LoginControllerConfig {
   onSuccess: (data: any) => void;
@@ -46,12 +46,7 @@ export function useLoginController({ onSuccess, onError }: LoginControllerConfig
     }
     setErrorMessage('');
     loginMutation.mutate(result.data, {
-      onSuccess: async (data) => {
-        // Ensure the token has been completely saved to SecureStore by the useLogin hook's onSuccess
-        // before we navigate and trigger home screen API queries.
-        if (data.data.token) {
-          await getStorage().setItem(TOKEN_KEY, data.data.token);
-        }
+      onSuccess: (data) => {
         onSuccess(data.data);
       },
       onError: (err) => {

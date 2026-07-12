@@ -10,7 +10,10 @@ interface RecentExpensesCardProps {
   currentUserId?: string;
 }
 
-export function RecentExpensesCard({ expenses, currentUserId }: RecentExpensesCardProps) {
+export const RecentExpensesCard = React.memo(function RecentExpensesCard({
+  expenses,
+  currentUserId,
+}: RecentExpensesCardProps) {
   if (expenses.length === 0) {
     return null;
   }
@@ -30,7 +33,7 @@ export function RecentExpensesCard({ expenses, currentUserId }: RecentExpensesCa
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   pbHighlight: {

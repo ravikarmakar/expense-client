@@ -9,6 +9,12 @@ import { settlementSchema, type Settlement } from '../settlements/settlements.ty
 export const GROUP_MEMBER_ROLES = ['admin', 'member', 'invited'] as const;
 export type GroupMemberRole = (typeof GROUP_MEMBER_ROLES)[number];
 
+export const GroupRole = {
+  ADMIN: 'admin',
+  MEMBER: 'member',
+  INVITED: 'invited',
+} as const;
+
 export const GROUP_TYPES = [
   'Roommates',
   'Travel',
@@ -62,6 +68,7 @@ export const groupSchema = z.object({
   totalExpenses: z.number().default(0),
   myBalance: z.number().default(0), // net balance for the logged-in user in this group
   memberCount: z.number(),
+  isActive: z.boolean().optional().default(true),
   createdBy: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),

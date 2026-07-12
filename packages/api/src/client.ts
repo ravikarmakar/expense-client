@@ -123,6 +123,18 @@ export const createApiClient = (
         emitSlowRequest(true);
       }, 3500);
 
+      // 3. Handle Abort/Cancel events to prevent state leak
+      if (config.signal) {
+        config.signal.addEventListener?.('abort', () => {
+          if (config.slowTimer) {
+            clearTimeout(config.slowTimer);
+            if (config.hasFiredSlow) {
+              emitSlowRequest(false);
+            }
+          }
+        });
+      }
+
       return config;
     },
     (error: AxiosError) => Promise.reject(error)

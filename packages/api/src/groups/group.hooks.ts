@@ -36,13 +36,14 @@ export const groupKeys = {
 /**
  * Fetch all groups the user belongs to.
  */
-export const useGroups = () =>
+export const useGroups = (options?: { enabled?: boolean }) =>
   useInfiniteQuery({
     queryKey: groupKeys.list(),
     queryFn: ({ pageParam }) => getGroupsApi(pageParam as string | undefined),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 
 /**

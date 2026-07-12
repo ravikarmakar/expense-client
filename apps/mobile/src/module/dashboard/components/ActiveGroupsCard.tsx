@@ -24,7 +24,9 @@ interface ActiveGroupsCardProps {
   recentGroups: ActiveGroup[];
 }
 
-export function ActiveGroupsCard({ recentGroups }: ActiveGroupsCardProps) {
+export const ActiveGroupsCard = React.memo(function ActiveGroupsCard({
+  recentGroups,
+}: ActiveGroupsCardProps) {
   if (recentGroups.length === 0) {
     return null;
   }
@@ -60,4 +62,4 @@ export function ActiveGroupsCard({ recentGroups }: ActiveGroupsCardProps) {
       ))}
     </View>
   );
-}
+});

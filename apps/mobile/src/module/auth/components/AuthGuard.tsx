@@ -21,6 +21,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { data: user, isLoading } = useMe();
   const router = useRouter();
   const rootNavigationState = useRootNavigationState();
+  const isNavigationReady = React.useMemo(
+    () => !!rootNavigationState?.key,
+    [rootNavigationState?.key]
+  );
 
   // Track the last route we navigated to so we never fire the same
   // redirect twice in a row (prevents the double-navigation bug).
@@ -28,7 +32,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     // Wait until the query has settled AND the navigator is mounted.
-    if (isLoading || !rootNavigationState?.key) return;
+    if (isLoading || !isNavigationReady) return;
 
     let targetRoute: string;
 
@@ -57,7 +61,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         router.replace('/(auth)/login');
       }
     }
-  }, [user, isLoading, rootNavigationState?.key]);
+  }, [user, isLoading, isNavigationReady]);
 
   // Show a loading spinner while the auth state is being resolved.
   if (isLoading) {

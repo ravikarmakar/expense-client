@@ -8,9 +8,14 @@ import { globalStyles } from '../../../styles/globalStyles';
 interface QuickActionsCardProps {
   onAddExpensePress: () => void;
   onCreateGroupPress: () => void;
+  disabled?: boolean;
 }
 
-export function QuickActionsCard({ onAddExpensePress, onCreateGroupPress }: QuickActionsCardProps) {
+export const QuickActionsCard = React.memo(function QuickActionsCard({
+  onAddExpensePress,
+  onCreateGroupPress,
+  disabled,
+}: QuickActionsCardProps) {
   return (
     <View style={globalStyles.sectionContainer}>
       <Text style={globalStyles.sectionTitle}>Quick Actions</Text>
@@ -21,9 +26,10 @@ export function QuickActionsCard({ onAddExpensePress, onCreateGroupPress }: Quic
       >
         {/* Add Expense */}
         <TouchableOpacity
-          style={styles.quickActionItem}
+          style={[styles.quickActionItem, disabled && { opacity: 0.5 }]}
           activeOpacity={0.8}
           onPress={onAddExpensePress}
+          disabled={disabled}
         >
           <View style={[styles.quickActionIconContainer, { backgroundColor: '#e6f4ea' }]}>
             <Ionicons name="add" size={30} color={COLORS.primary} />
@@ -35,9 +41,10 @@ export function QuickActionsCard({ onAddExpensePress, onCreateGroupPress }: Quic
 
         {/* My Wallet */}
         <TouchableOpacity
-          style={styles.quickActionItem}
+          style={[styles.quickActionItem, disabled && { opacity: 0.5 }]}
           activeOpacity={0.8}
           onPress={() => router.push('/(tabs)/personal')}
+          disabled={disabled}
         >
           <View style={[styles.quickActionIconContainer, { backgroundColor: '#e8f0fe' }]}>
             <Ionicons name="wallet" size={28} color="#1a73e8" />
@@ -49,9 +56,10 @@ export function QuickActionsCard({ onAddExpensePress, onCreateGroupPress }: Quic
 
         {/* New Group */}
         <TouchableOpacity
-          style={styles.quickActionItem}
+          style={[styles.quickActionItem, disabled && { opacity: 0.5 }]}
           activeOpacity={0.8}
           onPress={onCreateGroupPress}
+          disabled={disabled}
         >
           <View style={[styles.quickActionIconContainer, { backgroundColor: '#f3e5f5' }]}>
             <Ionicons name="people" size={28} color="#7b1fa2" />
@@ -63,9 +71,10 @@ export function QuickActionsCard({ onAddExpensePress, onCreateGroupPress }: Quic
 
         {/* Settle Up */}
         <TouchableOpacity
-          style={styles.quickActionItem}
+          style={[styles.quickActionItem, disabled && { opacity: 0.5 }]}
           activeOpacity={0.8}
           onPress={() => router.push('/settle-up')}
+          disabled={disabled}
         >
           <View style={[styles.quickActionIconContainer, { backgroundColor: '#fce8e6' }]}>
             <Ionicons name="checkmark-circle" size={28} color="#c5221f" />
@@ -77,9 +86,10 @@ export function QuickActionsCard({ onAddExpensePress, onCreateGroupPress }: Quic
 
         {/* Ledger */}
         <TouchableOpacity
-          style={styles.quickActionItem}
+          style={[styles.quickActionItem, disabled && { opacity: 0.5 }]}
           activeOpacity={0.8}
           onPress={() => router.push('/(tabs)/activity')}
+          disabled={disabled}
         >
           <View style={[styles.quickActionIconContainer, { backgroundColor: '#fef7e0' }]}>
             <Ionicons name="receipt" size={28} color="#b06000" />
@@ -91,7 +101,7 @@ export function QuickActionsCard({ onAddExpensePress, onCreateGroupPress }: Quic
       </ScrollView>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   quickActionsScroll: {

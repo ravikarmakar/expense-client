@@ -67,7 +67,7 @@ export type {
   GroupDetailConsolidated,
 } from './groups/group.types';
 
-export { MAX_GROUP_MEMBERS, MIN_GROUP_MEMBERS, GROUP_TYPES } from './groups/group.types';
+export { MAX_GROUP_MEMBERS, MIN_GROUP_MEMBERS, GROUP_TYPES, GroupRole } from './groups/group.types';
 
 export {
   createGroupApi,
@@ -98,6 +98,12 @@ export {
   useGroupDetail,
   useSendReminder,
 } from './groups/group.hooks';
+
+export {
+  useGroupDetailController,
+  useGroupAddMemberController,
+  useCreateGroupController,
+} from './groups/group.controllers';
 
 export {
   clientCreateGroupSchema,

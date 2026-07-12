@@ -7,12 +7,12 @@ import { QuickActionsCard } from '../components/QuickActionsCard';
 import { ActiveGroupsCard } from '../components/ActiveGroupsCard';
 import { RecentExpensesCard } from '../components/RecentExpensesCard';
 import { AddExpenseModal } from '../../../components/AddExpenseModal';
-import { CreateGroupModal } from '../../../components/CreateGroupModal';
+import { CreateGroupModal } from '../../groups/components/CreateGroupModal';
 import { EmptyState } from '../../../components/EmptyState';
 import { SkeletonLoader } from '../components/SkeletonLoader';
 import { useDashboardController } from '@workspace/api';
 import { router } from 'expo-router';
-import { COLORS, CURRENCY_SYMBOL, PREDEFINED_AVATARS } from '../../../constants/theme';
+import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
 import { globalStyles } from '../../../styles/globalStyles';
 import { TopAppBar } from '../../../components/TopAppBar';
 
@@ -65,10 +65,22 @@ export default function HomeScreen() {
             <Text style={styles.greetingName}>{user?.name ?? 'Welcome'}</Text>
           </View>
           <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/(tabs)/settings')}>
-            <Image
-              source={{ uri: user?.image || PREDEFINED_AVATARS[0] }}
-              style={styles.greetingAvatar}
-            />
+            {user?.image ? (
+              <Image source={{ uri: user.image }} style={styles.greetingAvatar} />
+            ) : (
+              <View
+                style={[
+                  styles.greetingAvatar,
+                  {
+                    backgroundColor: COLORS.surfaceContainer,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  },
+                ]}
+              >
+                <Ionicons name="person" size={20} color={COLORS.outline} />
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -205,6 +217,7 @@ export default function HomeScreen() {
         <QuickActionsCard
           onAddExpensePress={() => setAddExpenseVisible(true)}
           onCreateGroupPress={() => setCreateGroupVisible(true)}
+          disabled={groupsLoading}
         />
 
         {/* Active Groups */}
@@ -266,9 +279,10 @@ export default function HomeScreen() {
 
       {/* Floating Action Button */}
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, groupsLoading && styles.fabDisabled]}
         activeOpacity={0.85}
         onPress={() => setAddExpenseVisible(true)}
+        disabled={groupsLoading}
       >
         <Ionicons name="add" size={32} color="#ffffff" />
       </TouchableOpacity>

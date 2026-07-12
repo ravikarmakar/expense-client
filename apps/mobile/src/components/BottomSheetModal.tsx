@@ -18,6 +18,7 @@ interface BottomSheetModalProps {
   title: string;
   children: React.ReactNode;
   behavior?: 'padding' | 'height' | 'position';
+  keyboardVerticalOffset?: number;
 }
 
 export const BottomSheetModal = React.memo(function BottomSheetModal({
@@ -25,7 +26,8 @@ export const BottomSheetModal = React.memo(function BottomSheetModal({
   onClose,
   title,
   children,
-  behavior = Platform.OS === 'ios' ? 'padding' : undefined,
+  behavior = Platform.OS === 'ios' ? 'padding' : 'height',
+  keyboardVerticalOffset = 0,
 }: BottomSheetModalProps) {
   return (
     <Modal
@@ -35,10 +37,15 @@ export const BottomSheetModal = React.memo(function BottomSheetModal({
       onRequestClose={onClose}
       statusBarTranslucent={true}
     >
-      <KeyboardAvoidingView behavior={behavior} style={styles.overlay}>
-        {/* Backdrop click to dismiss */}
-        <Pressable style={styles.backdrop} onPress={onClose} />
+      {/* Backdrop click to dismiss - remains absolute-positioned to cover full screen */}
+      <Pressable style={styles.backdrop} onPress={onClose} />
 
+      <KeyboardAvoidingView
+        behavior={behavior}
+        keyboardVerticalOffset={keyboardVerticalOffset}
+        style={styles.overlay}
+        pointerEvents="box-none"
+      >
         <View style={styles.sheet}>
           {/* Handle */}
           <View style={styles.handle} />

@@ -147,4 +147,8 @@ export const styles = StyleSheet.create({
     shadowRadius: 8,
     zIndex: 40,
   },
+  fabDisabled: {
+    backgroundColor: COLORS.outlineVariant,
+    shadowColor: COLORS.outlineVariant,
+  },
 });

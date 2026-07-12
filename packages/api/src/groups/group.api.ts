@@ -1,4 +1,5 @@
 import { getApiClient } from '../client';
+import { messageResponseSchema } from '../auth/auth.validation';
 import {
   groupListSchema,
   groupDetailSchema,
@@ -131,12 +132,14 @@ export const searchUsersPaginatedApi = async (
  * Leave a group (current user exits).
  */
 export const leaveGroupApi = async (groupId: string): Promise<void> => {
-  await getApiClient().delete(`/groups/${groupId}/leave`);
+  const { data } = await getApiClient().delete<unknown>(`/groups/${groupId}/leave`);
+  messageResponseSchema.parse(data);
 };
 
 /**
  * Send settle up reminder notification to a debtor in the group.
  */
 export const sendReminderApi = async (groupId: string, userId: string): Promise<void> => {
-  await getApiClient().post(`/groups/${groupId}/remind`, { userId });
+  const { data } = await getApiClient().post<unknown>(`/groups/${groupId}/remind`, { userId });
+  messageResponseSchema.parse(data);
 };

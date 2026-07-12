@@ -5,6 +5,7 @@
   "license": "MIT",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "sideEffects": false,
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

@@ -1,37 +1,45 @@
 import React, { useState } from 'react';
 import {
-  StyleSheet,
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  TextInput,
+  StyleSheet,
+  FlatList,
   ActivityIndicator,
-  NativeScrollEvent,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { COLORS, CURRENCY_SYMBOL } from '../../constants/theme';
 import { globalStyles } from '../../styles/globalStyles';
 import { GroupCard } from '../../components/GroupCard';
-import { CreateGroupModal } from '../../components/CreateGroupModal';
-import { LoadingView } from '../../components/LoadingView';
+import { CreateGroupModal } from '../../module/groups/components/CreateGroupModal';
+import { SkeletonLoader } from '../../components/SkeletonLoader';
 import { ErrorView } from '../../components/ErrorView';
 import { EmptyState } from '../../components/EmptyState';
 import { useGroups } from '@workspace/api';
+import { styles } from '../../module/groups/styles/groups-tab.styles';
+
+type FilterType = 'all' | 'owed' | 'owe' | 'settled' | 'deactivated';
 
 export default function GroupsTabScreen() {
   const [createGroupVisible, setCreateGroupVisible] = useState(false);
-  const {
-    data: groupsData,
-    isLoading,
-    isError,
-    refetch,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useGroups();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+
+  // Fetch paginated groups from the server
+  const { data, isLoading, isError, hasNextPage, fetchNextPage, isFetchingNextPage, refetch } =
+    useGroups();
+
+  const groupList = React.useMemo(() => {
+    return data?.pages.flatMap((page) => page.groups) ?? [];
+  }, [data]);
+
   const [isRefreshing, setIsRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
 
@@ -41,140 +49,382 @@ export default function GroupsTabScreen() {
     setIsRefreshing(false);
   };
 
-  const groupList = React.useMemo(() => {
-    return groupsData?.pages.flatMap((page) => page.groups) ?? [];
-  }, [groupsData]);
+  // Segment to active groups only for statistics
+  const activeGroupList = React.useMemo(() => {
+    return groupList.filter((g) => g.isActive !== false);
+  }, [groupList]);
 
-  const totalOwedToMe = groupList
+  // Compute overall statistics on active groups
+  const totalOwedToMe = activeGroupList
     .filter((g) => g.myBalance > 0)
     .reduce((sum, g) => sum + g.myBalance, 0);
-  const totalIOwe = groupList
+  const totalIOwe = activeGroupList
     .filter((g) => g.myBalance < 0)
     .reduce((sum, g) => sum + Math.abs(g.myBalance), 0);
 
-  const isCloseToBottom = ({
-    layoutMeasurement,
-    contentOffset,
-    contentSize,
-  }: NativeScrollEvent) => {
-    const paddingToBottom = 50;
-    return layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
-  };
+  const netBalance = totalOwedToMe - totalIOwe;
+
+  // Filter and Search logic
+  const filteredGroups = React.useMemo(() => {
+    let list = groupList;
+
+    // Apply text search
+    if (searchQuery.trim() !== '') {
+      const q = searchQuery.toLowerCase();
+      list = list.filter((g) => g.name.toLowerCase().includes(q));
+    }
+
+    // Apply tab filtering
+    if (activeFilter === 'owed') {
+      list = list.filter((g) => g.isActive !== false && g.myBalance > 0.01);
+    } else if (activeFilter === 'owe') {
+      list = list.filter((g) => g.isActive !== false && g.myBalance < -0.01);
+    } else if (activeFilter === 'settled') {
+      list = list.filter((g) => g.isActive !== false && Math.abs(g.myBalance) <= 0.01);
+    } else if (activeFilter === 'deactivated') {
+      list = list.filter((g) => g.isActive === false);
+    } else {
+      // By default ('all'), show only active groups
+      list = list.filter((g) => g.isActive !== false);
+    }
+
+    return list;
+  }, [groupList, searchQuery, activeFilter]);
 
   return (
     <View style={styles.container}>
-      {/* Header Container with Bottom Divider line */}
-      <View style={[styles.headerContainer, { paddingTop: insets.top + 16 }]}>
+      {/* Premium Background Gradient */}
+      <LinearGradient
+        colors={['#ffffff', '#fafafa', '#f5f6f8']}
+        style={StyleSheet.absoluteFillObject}
+      />
+
+      {/* Decorative Background SVGs */}
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <Svg
+          height="400"
+          width="400"
+          style={{ position: 'absolute', bottom: -100, left: -100, opacity: 0.15 }}
+        >
+          <Circle cx="150" cy="250" r="180" fill="url(#grad2)" />
+          <Defs>
+            <RadialGradient id="grad2" cx="50%" cy="50%" rx="50%" ry="50%">
+              <Stop offset="0%" stopColor="#4b41e1" stopOpacity="0.15" />
+              <Stop offset="100%" stopColor="#4b41e1" stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+        </Svg>
+      </View>
+      {/* Header Container */}
+      <LinearGradient
+        colors={['rgba(75, 65, 225, 0.08)', 'rgba(75, 65, 225, 0.02)', 'transparent']}
+        style={[styles.headerContainer, { paddingTop: insets.top + 12, paddingBottom: 16 }]}
+      >
         <View style={styles.tabHeaderRow}>
-          <View>
-            <Text style={styles.tabTitle}>My Groups</Text>
-            <Text style={styles.tabSubtitle}>Shared Budgets & Splits</Text>
+          <View
+            style={[
+              styles.searchInner,
+              {
+                flex: 1,
+                marginRight: 12,
+                height: 48,
+                elevation: 0,
+                shadowOpacity: 0,
+                borderWidth: 1,
+                borderColor: '#e8ece9',
+                borderRadius: 14,
+                backgroundColor: '#ffffff',
+              },
+            ]}
+          >
+            <Ionicons
+              name="search-outline"
+              size={18}
+              color={COLORS.outline}
+              style={styles.searchIcon}
+            />
+            <TextInput
+              placeholder="Search groups..."
+              placeholderTextColor={COLORS.outline}
+              style={[styles.searchInput, { fontSize: 15 }]}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCorrect={false}
+            />
+            {searchQuery.trim() !== '' && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+                <Ionicons name="close-circle" size={16} color={COLORS.outline} />
+              </TouchableOpacity>
+            )}
           </View>
+
           <TouchableOpacity
-            style={styles.createGroupButton}
-            activeOpacity={0.7}
+            style={[styles.createGroupButton, { width: 48, height: 48, borderRadius: 14 }]}
+            activeOpacity={0.8}
             onPress={() => setCreateGroupVisible(true)}
           >
-            <Ionicons name="add" size={24} color="#ffffff" />
+            <Ionicons name="add" size={26} color="#ffffff" />
           </TouchableOpacity>
         </View>
+      </LinearGradient>
+
+      {/* Scrollable Filter Pills */}
+      <View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterScrollView}
+          contentContainerStyle={styles.filterContainer}
+        >
+          <TouchableOpacity
+            style={[styles.filterPill, activeFilter === 'all' && styles.filterPillActive]}
+            onPress={() => setActiveFilter('all')}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[styles.filterPillText, activeFilter === 'all' && styles.filterPillTextActive]}
+            >
+              All Groups ({activeGroupList.length})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterPill, activeFilter === 'owed' && styles.filterPillActive]}
+            onPress={() => setActiveFilter('owed')}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.filterPillText,
+                activeFilter === 'owed' && styles.filterPillTextActive,
+              ]}
+            >
+              Owed to me
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterPill, activeFilter === 'owe' && styles.filterPillActive]}
+            onPress={() => setActiveFilter('owe')}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[styles.filterPillText, activeFilter === 'owe' && styles.filterPillTextActive]}
+            >
+              You owe
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterPill, activeFilter === 'settled' && styles.filterPillActive]}
+            onPress={() => setActiveFilter('settled')}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.filterPillText,
+                activeFilter === 'settled' && styles.filterPillTextActive,
+              ]}
+            >
+              Settled
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterPill, activeFilter === 'deactivated' && styles.filterPillActive]}
+            onPress={() => setActiveFilter('deactivated')}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.filterPillText,
+                activeFilter === 'deactivated' && styles.filterPillTextActive,
+              ]}
+            >
+              Deactivated ({groupList.filter((g) => g.isActive === false).length})
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
 
-      <ScrollView
+      <FlatList
+        data={filteredGroups}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item: group }) => (
+          <GroupCard
+            name={group.name}
+            emoji={group.emoji ?? '👥'}
+            activity={`${group.type ?? 'Other'} · ${group.memberCount} members`}
+            memberAvatars={group.members.slice(0, 3).map((m) => m.image ?? '')}
+            totalMembersCount={group.memberCount}
+            balanceText={
+              Math.abs(group.myBalance) < 0.01
+                ? 'Settled up'
+                : group.myBalance > 0
+                  ? `Owes ${CURRENCY_SYMBOL}${group.myBalance.toFixed(0)}`
+                  : `Owe ${CURRENCY_SYMBOL}${Math.abs(group.myBalance).toFixed(0)}`
+            }
+            balanceType={
+              Math.abs(group.myBalance) < 0.01 ? 'settled' : group.myBalance > 0 ? 'owed' : 'owe'
+            }
+            onPress={() =>
+              router.push(
+                `/groups/${group.id}?name=${encodeURIComponent(group.name)}&emoji=${encodeURIComponent(group.emoji ?? '👥')}`
+              )
+            }
+          />
+        )}
         contentContainerStyle={globalStyles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
-        onScroll={({ nativeEvent }) => {
-          if (isCloseToBottom(nativeEvent) && hasNextPage && !isFetchingNextPage) {
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={COLORS.primary}
+          />
+        }
+        ListHeaderComponent={
+          <>
+            {/* Premium Net Balance Card */}
+            {!isLoading && !isError && groupList.length > 0 && (
+              <View style={styles.netBalanceCard}>
+                <View style={styles.netBalanceHeader}>
+                  <View>
+                    <Text style={styles.netBalanceLabel}>Net Balance</Text>
+                    <Text
+                      style={[
+                        styles.netBalanceAmount,
+                        {
+                          color:
+                            netBalance > 0
+                              ? COLORS.primary
+                              : netBalance < 0
+                                ? COLORS.error
+                                : COLORS.onSurface,
+                        },
+                      ]}
+                    >
+                      {netBalance > 0 ? '+' : ''}
+                      {CURRENCY_SYMBOL}
+                      {netBalance.toFixed(2)}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name={
+                      netBalance > 0
+                        ? 'trending-up'
+                        : netBalance < 0
+                          ? 'trending-down'
+                          : 'checkmark-circle'
+                    }
+                    size={28}
+                    color={
+                      netBalance > 0
+                        ? COLORS.primary
+                        : netBalance < 0
+                          ? COLORS.error
+                          : COLORS.outline
+                    }
+                  />
+                </View>
+
+                <View style={styles.netBalanceRow}>
+                  {/* Plus flow */}
+                  <View style={styles.netBalanceCol}>
+                    <View
+                      style={[styles.iconRoundBg, { backgroundColor: 'rgba(0, 105, 72, 0.08)' }]}
+                    >
+                      <Ionicons name="arrow-down" size={14} color={COLORS.primary} />
+                    </View>
+                    <View style={styles.netBalanceTextContainer}>
+                      <Text style={styles.netBalanceDetailLabel}>Owed to you:</Text>
+                      <Text style={[styles.netBalanceDetailValue, { color: COLORS.primary }]}>
+                        {CURRENCY_SYMBOL}
+                        {totalOwedToMe.toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.netBalanceColSeparator} />
+
+                  {/* Minus flow */}
+                  <View style={styles.netBalanceCol}>
+                    <View
+                      style={[styles.iconRoundBg, { backgroundColor: 'rgba(186, 26, 26, 0.08)' }]}
+                    >
+                      <Ionicons name="arrow-up" size={14} color={COLORS.error} />
+                    </View>
+                    <View style={styles.netBalanceTextContainer}>
+                      <Text style={styles.netBalanceDetailLabel}>You owe:</Text>
+                      <Text style={[styles.netBalanceDetailValue, { color: COLORS.error }]}>
+                        {CURRENCY_SYMBOL}
+                        {totalIOwe.toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* Loading state */}
+            {isLoading && (
+              <View style={{ gap: 12, marginBottom: 12 }}>
+                <SkeletonLoader height={84} />
+                <SkeletonLoader height={84} />
+                <SkeletonLoader height={84} />
+              </View>
+            )}
+
+            {/* Error state */}
+            {isError && <ErrorView message="Failed to load groups" onRetry={refetch} />}
+          </>
+        }
+        ListEmptyComponent={
+          !isLoading && !isError && filteredGroups.length === 0 ? (
+            <EmptyState
+              emoji={searchQuery.trim() !== '' || activeFilter !== 'all' ? '🔍' : '👥'}
+              title={
+                searchQuery.trim() !== '' || activeFilter !== 'all'
+                  ? 'No matching groups'
+                  : 'No groups yet'
+              }
+              description={
+                searchQuery.trim() !== '' || activeFilter !== 'all'
+                  ? 'Try adjusting your filters or search keywords.'
+                  : 'Create a group to start splitting expenses with friends, roommates, or colleagues.'
+              }
+              ctaText={
+                searchQuery.trim() !== '' || activeFilter !== 'all'
+                  ? 'Clear Filters'
+                  : 'Create First Group'
+              }
+              onCtaPress={() => {
+                if (searchQuery.trim() !== '' || activeFilter !== 'all') {
+                  setSearchQuery('');
+                  setActiveFilter('all');
+                } else {
+                  setCreateGroupVisible(true);
+                }
+              }}
+              ctaIcon={
+                searchQuery.trim() !== '' || activeFilter !== 'all'
+                  ? 'refresh-circle'
+                  : 'add-circle'
+              }
+            />
+          ) : null
+        }
+        onEndReached={() => {
+          if (hasNextPage && !isFetchingNextPage) {
             fetchNextPage();
           }
         }}
-        scrollEventThrottle={400}
-      >
-        {/* Balance summary */}
-        <View style={styles.groupsSummaryRow}>
-          <View style={[styles.groupsSummaryCard, styles.summaryCardGreen]}>
-            <View style={styles.summaryCardHeader}>
-              <Text style={styles.groupsSummaryLabel}>Owed to you</Text>
-              <View style={[styles.summaryIconBg, styles.summaryIconBgGreen]}>
-                <Ionicons name="arrow-down" size={12} color={COLORS.primary} />
-              </View>
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={
+          isFetchingNextPage ? (
+            <View style={{ paddingVertical: 16 }}>
+              <ActivityIndicator size="small" color={COLORS.primary} />
             </View>
-            <Text style={styles.groupsSummaryValueGreen}>
-              {CURRENCY_SYMBOL}
-              {totalOwedToMe.toFixed(2)}
-            </Text>
-          </View>
-          <View style={[styles.groupsSummaryCard, styles.summaryCardRed]}>
-            <View style={styles.summaryCardHeader}>
-              <Text style={styles.groupsSummaryLabel}>You owe</Text>
-              <View style={[styles.summaryIconBg, styles.summaryIconBgRed]}>
-                <Ionicons name="arrow-up" size={12} color={COLORS.error} />
-              </View>
-            </View>
-            <Text style={styles.groupsSummaryValueRed}>
-              {CURRENCY_SYMBOL}
-              {totalIOwe.toFixed(2)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Loading state */}
-        {isLoading && <LoadingView />}
-
-        {/* Error state */}
-        {isError && <ErrorView message="Failed to load groups" onRetry={refetch} />}
-
-        {/* Empty state */}
-        {!isLoading && !isError && groupList.length === 0 && (
-          <EmptyState
-            emoji="👥"
-            title="No groups yet"
-            description="Create a group to start splitting expenses with friends, roommates, or colleagues."
-            ctaText="Create First Group"
-            onCtaPress={() => setCreateGroupVisible(true)}
-            ctaIcon="add-circle"
-          />
-        )}
-
-        {/* Group list */}
-        {groupList.length > 0 && (
-          <View style={styles.groupsList}>
-            {groupList.map((group) => (
-              <GroupCard
-                key={group.id}
-                name={group.name}
-                emoji={group.emoji ?? '👥'}
-                activity={`${group.type ?? 'Other'} · ${group.memberCount} members`}
-                memberAvatars={group.members.slice(0, 3).map((m) => m.image ?? '')}
-                totalMembersCount={group.memberCount}
-                balanceText={
-                  Math.abs(group.myBalance) < 0.01
-                    ? 'All settled'
-                    : group.myBalance > 0
-                      ? `Owed ${CURRENCY_SYMBOL}${group.myBalance.toFixed(2)}`
-                      : `You owe ${CURRENCY_SYMBOL}${Math.abs(group.myBalance).toFixed(2)}`
-                }
-                balanceType={
-                  Math.abs(group.myBalance) < 0.01
-                    ? 'settled'
-                    : group.myBalance > 0
-                      ? 'owed'
-                      : 'owe'
-                }
-                onPress={() => router.push(`/groups/${group.id}`)}
-              />
-            ))}
-          </View>
-        )}
-
-        {isFetchingNextPage && (
-          <View style={styles.loadingMore}>
-            <ActivityIndicator size="small" color={COLORS.primary} />
-            <Text style={styles.loadingMoreText}>Loading more...</Text>
-          </View>
-        )}
-      </ScrollView>
+          ) : null
+        }
+        style={{ flex: 1 }}
+      />
 
       <CreateGroupModal
         visible={createGroupVisible}
@@ -187,125 +437,3 @@ export default function GroupsTabScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  headerContainer: {
-    backgroundColor: COLORS.surface,
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f1f1',
-  },
-  tabHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  tabTitle: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: COLORS.onSurface,
-    letterSpacing: -0.5,
-  },
-  tabSubtitle: {
-    fontSize: 12,
-    color: COLORS.outline,
-    fontWeight: '600',
-    marginTop: 2,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  createGroupButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: COLORS.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 3,
-    shadowColor: COLORS.secondary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  groupsSummaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 24,
-  },
-  groupsSummaryCard: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-  },
-  summaryCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  summaryCardGreen: {
-    backgroundColor: '#e6f4ea',
-    borderColor: '#c2e7cd',
-  },
-  summaryCardRed: {
-    backgroundColor: '#fce8e6',
-    borderColor: '#f9c2bd',
-  },
-  summaryIconBg: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  summaryIconBgGreen: {
-    backgroundColor: 'rgba(0, 105, 72, 0.1)',
-  },
-  summaryIconBgRed: {
-    backgroundColor: 'rgba(186, 26, 26, 0.1)',
-  },
-  groupsSummaryLabel: {
-    fontSize: 11,
-    color: COLORS.outline,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  groupsSummaryValueGreen: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: COLORS.primary,
-  },
-  groupsSummaryValueRed: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: COLORS.error,
-  },
-  groupsList: {
-    gap: 12,
-  },
-  loadingMore: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 8,
-  },
-  loadingMoreText: {
-    fontSize: 13,
-    color: COLORS.outline,
-    fontWeight: '500',
-  },
-});

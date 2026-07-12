@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useMe } from '../auth/auth.hooks';
 import { useNotifications } from '../notifications/notification.hooks';
 import { useDashboard } from './dashboard.hooks';
+
+const RECENT_GROUPS_LIMIT = 2;
 
 export function useDashboardController() {
   const [addExpenseVisible, setAddExpenseVisible] = useState(false);
@@ -35,21 +37,25 @@ export function useDashboardController() {
     await refetchDashboardData();
   };
 
-  const recentGroups = groups.slice(0, 2);
+  const recentGroups = useMemo(() => groups.slice(0, RECENT_GROUPS_LIMIT), [groups]);
 
-  // Compute net balance from groups
-  const rawOwed = (groups ?? [])
-    .filter((g) => g.myBalance > 0)
-    .reduce((sum, g) => sum + g.myBalance, 0);
-  const totalOwedToMe = rawOwed < 0.01 ? 0 : rawOwed;
+  // Compute net balance from groups in a memoized block to optimize rendering performance
+  const { totalOwedToMe, totalIOwe, netBalance } = useMemo(() => {
+    const rawOwed = (groups ?? [])
+      .filter((g) => g.myBalance > 0)
+      .reduce((sum, g) => sum + g.myBalance, 0);
+    const totalOwed = rawOwed < 0.01 ? 0 : rawOwed;
 
-  const rawOwe = (groups ?? [])
-    .filter((g) => g.myBalance < 0)
-    .reduce((sum, g) => sum + Math.abs(g.myBalance), 0);
-  const totalIOwe = rawOwe < 0.01 ? 0 : rawOwe;
+    const rawOwe = (groups ?? [])
+      .filter((g) => g.myBalance < 0)
+      .reduce((sum, g) => sum + Math.abs(g.myBalance), 0);
+    const totalOwe = rawOwe < 0.01 ? 0 : rawOwe;
 
-  const rawNetBalance = totalOwedToMe - totalIOwe;
-  const netBalance = Math.abs(rawNetBalance) < 0.01 ? 0 : rawNetBalance;
+    const rawNet = totalOwed - totalOwe;
+    const net = Math.abs(rawNet) < 0.01 ? 0 : rawNet;
+
+    return { totalOwedToMe: totalOwed, totalIOwe: totalOwe, netBalance: net };
+  }, [groups]);
 
   const totalSpent = stats?.totalSpent ?? 0;
   const totalGroupSpent = stats?.totalGroupSpent ?? 0;

@@ -28,7 +28,10 @@ interface CategorySpendingCardProps {
   totalSpent: number;
 }
 
-export function CategorySpendingCard({ summary, totalSpent }: CategorySpendingCardProps) {
+export const CategorySpendingCard = React.memo(function CategorySpendingCard({
+  summary,
+  totalSpent,
+}: CategorySpendingCardProps) {
   const [spendingView, setSpendingView] = useState<'list' | 'pie' | 'bar'>('list');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -261,7 +264,7 @@ export function CategorySpendingCard({ summary, totalSpent }: CategorySpendingCa
                 pointerStripColor: COLORS.surfaceContainer,
                 pointerLabelWidth: 80,
                 pointerLabelHeight: 30,
-                pointerLabelComponent: (items: Array<{ value: number }>) => {
+                pointerLabelComponent: (items: { value: number }[]) => {
                   if (!items || items.length === 0) return null;
                   return (
                     <View style={styles.barTooltip}>
@@ -279,7 +282,7 @@ export function CategorySpendingCard({ summary, totalSpent }: CategorySpendingCa
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   pbHighlight: {

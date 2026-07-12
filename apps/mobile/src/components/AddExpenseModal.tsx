@@ -353,7 +353,7 @@ export function AddExpenseModal({
 
   const createExpense = useCreateExpense();
 
-  const { data: groupsData } = useGroups();
+  const { data: groupsData } = useGroups({ enabled: visible });
   const userGroups = React.useMemo(() => {
     return groupsData?.pages.flatMap((page) => page.groups) ?? [];
   }, [groupsData]);
@@ -361,7 +361,7 @@ export function AddExpenseModal({
   const [hasManuallyToggled, setHasManuallyToggled] = useState(false);
 
   const activeGroupId = groupId || selectedGroupId || '';
-  const { data: groupData, refetch: refetchGroup } = useGroup(activeGroupId);
+  const { data: groupData, refetch: refetchGroup } = useGroup(visible ? activeGroupId : '');
 
   useEffect(() => {
     if (visible && activeGroupId) {
@@ -373,7 +373,7 @@ export function AddExpenseModal({
     return (groupData?.members ?? []).filter((m) => m.role !== 'invited');
   }, [groupData]);
 
-  const { data: walletData } = useWallet(activeGroupId);
+  const { data: walletData } = useWallet(visible ? activeGroupId : '');
   const [useWalletBalance, setUseWalletBalance] = useState(false);
 
   const sortedGroupMembers = React.useMemo(() => {

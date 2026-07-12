@@ -5,6 +5,7 @@ import {
   getDashboardRecentExpensesApi,
   getDashboardGroupsApi,
 } from './dashboard.api';
+import type { DashboardData } from './dashboard.types';
 
 export const dashboardKeys = {
   all: ['dashboard'] as const,
@@ -14,11 +15,17 @@ export const dashboardKeys = {
   groups: () => [...dashboardKeys.all, 'groups'] as const,
 };
 
-export const useDashboard = () =>
-  useQuery({
+export const useDashboard = <TData = DashboardData>(
+  options?: Omit<
+    Partial<import('@tanstack/react-query').UseQueryOptions<any, Error, TData>>,
+    'queryKey' | 'queryFn'
+  >
+) =>
+  useQuery<any, Error, TData>({
     queryKey: dashboardKeys.detail(),
     queryFn: getDashboardApi,
     staleTime: 60 * 1000, // 1 minute
+    ...options,
   });
 
 export const useDashboardStats = () =>
