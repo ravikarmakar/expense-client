@@ -5,6 +5,7 @@ import { COLORS } from '../../../constants/theme';
 import { GROUP_TYPES, useCreateGroupController, type GroupType } from '@workspace/api';
 import { BottomSheetModal } from '../../../components/BottomSheetModal';
 import { FormInput } from '../../../components/FormInput';
+import { DropdownSelector } from '../../../components/DropdownSelector';
 import { createGroupStyles as styles } from '../styles/create-group.styles';
 
 export const TYPE_EMOJIS: Record<GroupType, string> = {
@@ -32,6 +33,7 @@ export function CreateGroupModal({ visible, onClose, onSuccess }: CreateGroupMod
     name,
     description,
     type,
+    isTypeDropdownOpen,
     errorMessage,
     isPending,
     handleClose,
@@ -39,6 +41,7 @@ export function CreateGroupModal({ visible, onClose, onSuccess }: CreateGroupMod
     handleChangeName,
     handleChangeDescription,
     handleChangeType,
+    handleToggleTypeDropdown,
   } = useCreateGroupController({
     onSuccess,
     onClose,
@@ -83,32 +86,28 @@ export function CreateGroupModal({ visible, onClose, onSuccess }: CreateGroupMod
           maxLength={200}
         />
 
-        {/* Group Type Pill Selector */}
-        <Text style={styles.inputLabel}>Group Type</Text>
-        <View style={{ marginBottom: 12 }}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.typeSelectorRow}
-          >
-            {(GROUP_TYPES as unknown as GroupType[]).map((t) => {
-              const isSelected = type === t;
-              return (
-                <TouchableOpacity
-                  key={t}
-                  style={[styles.typePill, isSelected && styles.typePillSelected]}
-                  onPress={() => handleChangeType(t)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.typePillEmoji}>{TYPE_EMOJIS[t]}</Text>
-                  <Text style={[styles.typePillText, isSelected && styles.typePillTextSelected]}>
-                    {t}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
+        <DropdownSelector
+          label="Group Type"
+          isOpen={isTypeDropdownOpen}
+          onToggle={handleToggleTypeDropdown}
+          selectedItem={type}
+          placeholder="Select Type"
+          options={GROUP_TYPES}
+          getOptionKey={(item) => item}
+          onSelect={(item) => {
+            handleChangeType(item);
+          }}
+          renderHeaderContent={(item) => (
+            <Text style={styles.dropdownHeaderText}>
+              {TYPE_EMOJIS[item]} {item}
+            </Text>
+          )}
+          renderOptionContent={(item) => (
+            <Text style={styles.dropdownItemLabel}>
+              {TYPE_EMOJIS[item]} {item}
+            </Text>
+          )}
+        />
 
         <TouchableOpacity
           style={[

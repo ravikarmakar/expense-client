@@ -71,16 +71,19 @@ export const deleteExpenseApi = async (id: string): Promise<void> => {
 };
 
 /**
- * Get expenses for a specific group.
+ * Get expenses for a specific group (cursor paginated).
  */
 export const getGroupExpensesApi = async (
-  groupId: string
-): Promise<{ expenses: Expense[]; total: number }> => {
-  const { data } = await getApiClient().get<unknown>(`/groups/${groupId}/expenses`);
+  groupId: string,
+  cursor?: string
+): Promise<{ expenses: Expense[]; nextCursor: string | null }> => {
+  const { data } = await getApiClient().get<unknown>(`/groups/${groupId}/expenses`, {
+    params: { cursor },
+  });
   const parsed = expenseListSchema.parse(data);
   return {
     expenses: parsed.data.expenses,
-    total: parsed.data.total ?? parsed.data.expenses.length,
+    nextCursor: parsed.data.nextCursor ?? null,
   };
 };
 

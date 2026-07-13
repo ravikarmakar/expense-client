@@ -69,14 +69,16 @@ export const useExpensesSummary = () =>
   });
 
 /**
- * Fetch expenses for a specific group.
+ * Fetch expenses for a specific group (paginated).
  */
 export const useGroupExpenses = (groupId: string) =>
-  useQuery({
+  useInfiniteQuery({
     queryKey: expenseKeys.groupExpenses(groupId),
-    queryFn: () => getGroupExpensesApi(groupId),
-    enabled: !!groupId,
+    queryFn: ({ pageParam }) => getGroupExpensesApi(groupId, pageParam as string | undefined),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: 3 * 60 * 1000,
+    enabled: !!groupId,
   });
 
 // ─────────────────────────────────────────────────────

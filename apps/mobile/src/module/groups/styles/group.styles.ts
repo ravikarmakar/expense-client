@@ -198,6 +198,23 @@ export const detailStyles = StyleSheet.create({
   expensesList: {
     gap: 10,
   },
+  viewHistoryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surface,
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: COLORS.surfaceContainer,
+    marginTop: 8,
+    gap: 4,
+  },
+  viewHistoryBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
   fab: {
     position: 'absolute',
     right: 20,

@@ -65,6 +65,7 @@ export type {
   AddMemberInput,
   GroupType,
   GroupDetailConsolidated,
+  GroupBalances,
 } from './groups/group.types';
 
 export { MAX_GROUP_MEMBERS, MIN_GROUP_MEMBERS, GROUP_TYPES, GroupRole } from './groups/group.types';
@@ -72,6 +73,7 @@ export { MAX_GROUP_MEMBERS, MIN_GROUP_MEMBERS, GROUP_TYPES, GroupRole } from './
 export {
   createGroupApi,
   getGroupsApi,
+  getGroupBalancesApi,
   getGroupApi,
   updateGroupApi,
   deactivateGroupApi,
@@ -86,6 +88,7 @@ export {
 export {
   groupKeys,
   useGroups,
+  useGroupBalances,
   useGroup,
   useSearchUsers,
   useSearchUsersPaginated,
@@ -103,6 +106,10 @@ export {
   useGroupDetailController,
   useGroupAddMemberController,
   useCreateGroupController,
+  useGroupsController,
+  type GroupsFilterType,
+  useAddGroupExpenseController,
+  type UseAddGroupExpenseControllerProps,
 } from './groups/group.controllers';
 
 export {

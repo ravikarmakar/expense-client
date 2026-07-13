@@ -243,36 +243,4 @@ export const createGroupStyles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: '500',
   },
-  typeSelectorRow: {
-    paddingHorizontal: 4,
-    gap: 10,
-    paddingBottom: 24,
-  },
-  typePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: COLORS.surfaceContainerLow,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceContainer,
-  },
-  typePillSelected: {
-    backgroundColor: COLORS.secondaryFixed,
-    borderColor: COLORS.secondary,
-  },
-  typePillEmoji: {
-    fontSize: 16,
-    marginRight: 6,
-  },
-  typePillText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.onSurfaceVariant,
-  },
-  typePillTextSelected: {
-    color: COLORS.secondary,
-    fontWeight: '700',
-  },
 });

@@ -5,12 +5,14 @@ import {
   groupDetailSchema,
   userSearchListSchema,
   groupDetailConsolidatedSchema,
+  groupBalancesSchema,
   type Group,
   type UserSearchResult,
   type CreateGroupInput,
   type UpdateGroupInput,
   type AddMemberInput,
   type GroupDetailConsolidated,
+  type GroupBalances,
 } from './group.types';
 
 /**
@@ -49,6 +51,15 @@ export const getGroupsApi = async (
     groups: parsed.data.groups,
     nextCursor: parsed.data.nextCursor ?? null,
   };
+};
+
+/**
+ * Get group balances for all active groups (used for background loading).
+ */
+export const getGroupBalancesApi = async (): Promise<GroupBalances> => {
+  const { data } = await getApiClient().get<unknown>('/groups/balances');
+  const parsed = groupBalancesSchema.parse(data);
+  return parsed.data.balances;
 };
 
 /**

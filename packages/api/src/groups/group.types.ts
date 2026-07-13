@@ -109,7 +109,20 @@ export const groupDetailConsolidatedSchema = z.object({
   data: z.object({
     group: groupSchema,
     expenses: z.array(expenseSchema),
-    settlements: z.array(settlementSchema),
+    settlements: z.array(settlementSchema).optional().default([]),
+  }),
+});
+
+export const groupBalancesSchema = z.object({
+  success: z.boolean(),
+  data: z.object({
+    balances: z.record(
+      z.string(),
+      z.object({
+        myBalance: z.number(),
+        totalExpenses: z.number(),
+      })
+    ),
   }),
 });
 
@@ -122,6 +135,7 @@ export type Group = z.infer<typeof groupSchema>;
 export type UserSearchResult = z.infer<typeof userSearchResultSchema>;
 export { type Settlement };
 export type GroupDetailConsolidated = z.infer<typeof groupDetailConsolidatedSchema>;
+export type GroupBalances = z.infer<typeof groupBalancesSchema>['data']['balances'];
 
 // ─────────────────────────────────────────────────────
 // Input types for mutations

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from '@tansta
 import {
   createGroupApi,
   getGroupsApi,
+  getGroupBalancesApi,
   getGroupApi,
   updateGroupApi,
   deactivateGroupApi,
@@ -43,6 +44,17 @@ export const useGroups = (options?: { enabled?: boolean }) =>
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: 5 * 60 * 1000,
+    ...options,
+  });
+
+/**
+ * Fetch dynamic group balances (used for deferred loading).
+ */
+export const useGroupBalances = (options?: { enabled?: boolean }) =>
+  useQuery({
+    queryKey: [...groupKeys.all, 'balances'] as const,
+    queryFn: getGroupBalancesApi,
+    staleTime: 30 * 1000,
     ...options,
   });
 

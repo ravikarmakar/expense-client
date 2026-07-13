@@ -1,4 +1,8 @@
-import { useState, useCallback, useReducer } from 'react';
+import { useState, useCallback, useReducer, useMemo, useEffect } from 'react';
+import { useCreateExpense } from '../expenses/expense.hooks';
+import { useWallet } from '../wallet/wallet.hooks';
+import { clientCreateExpenseSchema } from '../expenses/expense.validation';
+import { type ExpenseCategory } from '../expenses/expense.types';
 import { useMe } from '../auth/auth.hooks';
 import {
   useGroupDetail,
@@ -9,6 +13,8 @@ import {
   useSendReminder,
   useGroup,
   useCreateGroup,
+  useGroups,
+  useGroupBalances,
 } from './group.hooks';
 import { useSettleUp } from '../settlements/settlements.hooks';
 import { getErrorMessage } from '../auth/auth.api';
@@ -36,7 +42,6 @@ export function useGroupDetailQuery(groupId: string) {
 
   const group = detailData?.group;
   const expenses = detailData?.expenses ?? [];
-  const settlements = detailData?.settlements ?? [];
   const myBalance = group?.myBalance ?? 0;
   const isAdmin = group?.members.find((m) => m.userId === user?.id)?.role === GroupRole.ADMIN;
   const isFullySettled = group?.members.every((m) => Math.abs(m.balance ?? 0) < 0.01) ?? true;
@@ -45,7 +50,7 @@ export function useGroupDetailQuery(groupId: string) {
     user,
     group,
     expenses,
-    settlements,
+    settlements: [],
     myBalance,
     isAdmin,
     isFullySettled,
@@ -447,5 +452,438 @@ export function useCreateGroupController({
     handleChangeDescription,
     handleChangeType,
     handleToggleTypeDropdown,
+  };
+}
+
+export type GroupsFilterType = 'all' | 'owed' | 'owe' | 'settled' | 'deactivated';
+
+/**
+ * Controller hook to manage state, filtering, searching, and balance calculations for GroupsScreen
+ */
+export function useGroupsController() {
+  const [createGroupVisible, setCreateGroupVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<GroupsFilterType>('all');
+
+  // Fetch paginated groups from the server
+  const { data, isLoading, isError, hasNextPage, fetchNextPage, isFetchingNextPage, refetch } =
+    useGroups();
+
+  // Fetch dynamic group balances in background
+  const {
+    data: balancesData,
+    isLoading: isBalancesLoading,
+    refetch: refetchBalances,
+  } = useGroupBalances();
+
+  const groupList = useMemo(() => {
+    return data?.pages.flatMap((page) => page.groups) ?? [];
+  }, [data]);
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await Promise.all([refetch(), refetchBalances()]);
+    setIsRefreshing(false);
+  }, [refetch, refetchBalances]);
+
+  // Segment to active groups only for statistics
+  const activeGroupList = useMemo(() => {
+    return groupList.filter((g) => g.isActive !== false);
+  }, [groupList]);
+
+  // Compute overall statistics on active groups
+  const totalOwedToMe = useMemo(() => {
+    if (!balancesData) return 0;
+    return activeGroupList
+      .map((g) => balancesData[g.id]?.myBalance ?? 0)
+      .filter((bal) => bal > 0)
+      .reduce((sum, bal) => sum + bal, 0);
+  }, [activeGroupList, balancesData]);
+
+  const totalIOwe = useMemo(() => {
+    if (!balancesData) return 0;
+    return activeGroupList
+      .map((g) => balancesData[g.id]?.myBalance ?? 0)
+      .filter((bal) => bal < 0)
+      .reduce((sum, bal) => sum + Math.abs(bal), 0);
+  }, [activeGroupList, balancesData]);
+
+  // Filter and Search logic
+  const filteredGroups = useMemo(() => {
+    let list = groupList;
+
+    // Apply text search
+    if (searchQuery.trim() !== '') {
+      const q = searchQuery.toLowerCase();
+      list = list.filter((g) => g.name.toLowerCase().includes(q));
+    }
+
+    // Apply tab filtering
+    if (activeFilter === 'owed') {
+      list = list.filter((g) => {
+        const bal = balancesData ? (balancesData[g.id]?.myBalance ?? 0) : 0;
+        return g.isActive !== false && bal > 0.01;
+      });
+    } else if (activeFilter === 'owe') {
+      list = list.filter((g) => {
+        const bal = balancesData ? (balancesData[g.id]?.myBalance ?? 0) : 0;
+        return g.isActive !== false && bal < -0.01;
+      });
+    } else if (activeFilter === 'settled') {
+      list = list.filter((g) => {
+        const bal = balancesData ? (balancesData[g.id]?.myBalance ?? 0) : 0;
+        return g.isActive !== false && Math.abs(bal) <= 0.01;
+      });
+    } else if (activeFilter === 'deactivated') {
+      list = list.filter((g) => g.isActive === false);
+    } else {
+      // By default ('all'), show only active groups
+      list = list.filter((g) => g.isActive !== false);
+    }
+
+    return list;
+  }, [groupList, searchQuery, activeFilter, balancesData]);
+
+  return {
+    createGroupVisible,
+    setCreateGroupVisible,
+    searchQuery,
+    setSearchQuery,
+    activeFilter,
+    setActiveFilter,
+    isLoading,
+    isError,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    refetch,
+    balancesData,
+    isBalancesLoading,
+    refetchBalances,
+    groupList,
+    activeGroupList,
+    totalOwedToMe,
+    totalIOwe,
+    filteredGroups,
+    isRefreshing,
+    handleRefresh,
+  };
+}
+
+export interface UseAddGroupExpenseControllerProps {
+  visible: boolean;
+  onClose: () => void;
+  groupId?: string;
+  groupName?: string;
+  onSuccess?: () => void;
+}
+
+/**
+ * Controller hook to manage form state, validation, splits, wallet deductions,
+ * and mutations for the AddGroupExpenseModal presentational component.
+ */
+export function useAddGroupExpenseController({
+  visible,
+  onClose,
+  groupId,
+  groupName,
+  onSuccess,
+}: UseAddGroupExpenseControllerProps) {
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(groupId ?? null);
+  const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState(false);
+
+  const [category, setCategory] = useState<ExpenseCategory | null>(null);
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+
+  const [amount, setAmount] = useState('');
+  const [title, setTitle] = useState('');
+  const [notes, setNotes] = useState('');
+
+  const getLocalTodayString = () => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const [date, setDate] = useState(getLocalTodayString);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [addedExpenseInfo, setAddedExpenseInfo] = useState<{
+    amount: number;
+    title: string;
+    category: string;
+    type: 'GROUP';
+    groupName?: string;
+  } | null>(null);
+
+  const { data: currentUser } = useMe();
+  const createExpense = useCreateExpense();
+
+  const {
+    data: groupsData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useGroups({ enabled: visible && isGroupDropdownOpen });
+  const userGroups = useMemo(() => {
+    return groupsData?.pages.flatMap((page) => page.groups) ?? [];
+  }, [groupsData]);
+
+  const [hasManuallyToggled, setHasManuallyToggled] = useState(false);
+  const activeGroupId = groupId || selectedGroupId || '';
+  const {
+    data: groupData,
+    refetch: refetchGroup,
+    isLoading: isLoadingMembers,
+  } = useGroup(visible ? activeGroupId : '');
+
+  useEffect(() => {
+    if (visible && activeGroupId) {
+      refetchGroup();
+    }
+  }, [visible, activeGroupId, refetchGroup]);
+
+  const groupMembers = useMemo(() => {
+    return (groupData?.members ?? []).filter((m) => m.role !== 'invited');
+  }, [groupData]);
+
+  const { data: walletData, isLoading: isLoadingWallet } = useWallet(visible ? activeGroupId : '');
+  const [useWalletBalance, setUseWalletBalance] = useState(false);
+
+  const sortedGroupMembers = useMemo(() => {
+    if (!currentUser || !groupMembers.length) return groupMembers;
+    const self = groupMembers.find((m) => m.userId === currentUser.id);
+    if (!self) return groupMembers;
+    return [self, ...groupMembers.filter((m) => m.userId !== currentUser.id)];
+  }, [groupMembers, currentUser]);
+
+  const [splitMemberIds, setSplitMemberIds] = useState<string[]>([]);
+  const [splitMode, setSplitMode] = useState<'equal' | 'exact'>('equal');
+  const [customSplits, setCustomSplits] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (visible && (groupId || selectedGroupId) && groupMembers.length > 0 && !hasManuallyToggled) {
+      setSplitMemberIds(groupMembers.map((m) => m.userId));
+    }
+  }, [visible, groupId, selectedGroupId, groupMembers, hasManuallyToggled]);
+
+  const toggleMember = useCallback(
+    (id: string) => {
+      if (currentUser && id === currentUser.id) return; // Cannot toggle self
+      setHasManuallyToggled(true);
+      setSplitMemberIds((prev) => {
+        const isDeselecting = prev.includes(id);
+        if (isDeselecting) {
+          const otherSelected = prev.filter((m) => m !== currentUser?.id && m !== id);
+          if (otherSelected.length === 0) {
+            return prev;
+          }
+          setCustomSplits((current) => {
+            const next = { ...current };
+            delete next[id];
+            return next;
+          });
+          return prev.filter((m) => m !== id);
+        } else {
+          return [...prev, id];
+        }
+      });
+    },
+    [currentUser]
+  );
+
+  const handleToggleGroupDropdown = useCallback(() => {
+    setIsGroupDropdownOpen((prev) => !prev);
+  }, []);
+
+  const handleSelectGroup = useCallback((id: string) => {
+    setSelectedGroupId(id);
+    setIsGroupDropdownOpen(false);
+    setSplitMemberIds([]);
+    setCustomSplits({});
+    setSplitMode('equal');
+    setHasManuallyToggled(false);
+  }, []);
+
+  const handleToggleCategoryDropdown = useCallback(() => {
+    setIsCategoryDropdownOpen((prev) => !prev);
+  }, []);
+
+  const handleSelectCategory = useCallback(
+    (cat: ExpenseCategory) => {
+      setCategory(cat);
+      setIsCategoryDropdownOpen(false);
+      if (!title) setTitle(cat);
+    },
+    [title]
+  );
+
+  const resetForm = () => {
+    setSelectedGroupId(groupId ?? null);
+    setIsGroupDropdownOpen(false);
+    setCategory(null);
+    setIsCategoryDropdownOpen(false);
+    setAmount('');
+    setTitle('');
+    setNotes('');
+    setDate(getLocalTodayString());
+    setSplitMemberIds([]);
+    setCustomSplits({});
+    setSplitMode('equal');
+    setErrorMessage('');
+    setUseWalletBalance(false);
+    setHasManuallyToggled(false);
+    setIsSuccess(false);
+    setAddedExpenseInfo(null);
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
+  const handleSubmit = () => {
+    setErrorMessage('');
+    const parsed = parseFloat(amount.replace(',', '.'));
+
+    if (!amount || isNaN(parsed) || parsed <= 0) {
+      setErrorMessage('Please enter a valid amount greater than 0');
+      return;
+    }
+
+    if (!category) {
+      setErrorMessage('Please pick a category');
+      return;
+    }
+
+    if (!title.trim()) {
+      setErrorMessage('Title is required');
+      return;
+    }
+
+    if (splitMemberIds.length === 0) {
+      setErrorMessage('Please select at least one member to split with');
+      return;
+    }
+    const otherMembers = splitMemberIds.filter((id) => id !== currentUser?.id);
+    if (otherMembers.length === 0) {
+      setErrorMessage('A group expense must be split with at least one other member');
+      return;
+    }
+
+    let customSplitsPayload: { userId: string; amount: number }[] | undefined = undefined;
+
+    if (splitMode === 'exact') {
+      const total = parsed;
+      const walletDeduction =
+        useWalletBalance && walletData ? Math.min(walletData.balance, total) : 0;
+      const netAmountToSplit = total - walletDeduction;
+
+      const activeMemberIds = splitMemberIds;
+      const splitsArray = activeMemberIds.map((uid) => {
+        const val = parseFloat(customSplits[uid]) || 0;
+        return { userId: uid, amount: val };
+      });
+
+      const sumOfSplits = splitsArray.reduce((sum, s) => sum + s.amount, 0);
+      const difference = Math.abs(netAmountToSplit - sumOfSplits);
+
+      if (difference > 0.005) {
+        setErrorMessage(
+          `Sum of splits (₹${sumOfSplits.toFixed(2)}) must equal net expense amount (₹${netAmountToSplit.toFixed(2)})`
+        );
+        return;
+      }
+
+      customSplitsPayload = splitsArray;
+    }
+
+    const validation = clientCreateExpenseSchema.safeParse({
+      title: title.trim(),
+      amount: parsed,
+      category: category as ExpenseCategory,
+      date,
+      notes: notes.trim() || undefined,
+      groupId: activeGroupId || undefined,
+      splitMemberIds: splitMemberIds,
+      useWallet: useWalletBalance,
+      splitMode: splitMode,
+      splits: splitMode === 'exact' ? customSplitsPayload : undefined,
+    });
+
+    if (!validation.success) {
+      setErrorMessage(validation.error.issues[0].message);
+      return;
+    }
+
+    createExpense.mutate(validation.data, {
+      onSuccess: () => {
+        setAddedExpenseInfo({
+          amount: parsed,
+          title: title.trim(),
+          category: category as string,
+          type: 'GROUP',
+          groupName: groupData?.name || groupName || 'Group',
+        });
+        setIsSuccess(true);
+        onSuccess?.();
+      },
+      onError: (err) => {
+        setErrorMessage(getErrorMessage(err, 'Failed to add expense. Please try again.'));
+      },
+    });
+  };
+
+  return {
+    selectedGroupId,
+    isGroupDropdownOpen,
+    category,
+    setCategory,
+    isCategoryDropdownOpen,
+    amount,
+    setAmount,
+    title,
+    setTitle,
+    notes,
+    setNotes,
+    date,
+    setDate,
+    errorMessage,
+    setErrorMessage,
+    isSuccess,
+    addedExpenseInfo,
+    currentUser,
+    createExpense,
+    userGroups,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isLoadingMembers,
+    activeGroupId,
+    groupData,
+    walletData,
+    isLoadingWallet,
+    useWalletBalance,
+    setUseWalletBalance,
+    groupMembers,
+    sortedGroupMembers,
+    splitMemberIds,
+    splitMode,
+    setSplitMode,
+    customSplits,
+    setCustomSplits,
+    toggleMember,
+    handleToggleGroupDropdown,
+    handleSelectGroup,
+    handleToggleCategoryDropdown,
+    handleSelectCategory,
+    handleClose,
+    handleSubmit,
   };
 }

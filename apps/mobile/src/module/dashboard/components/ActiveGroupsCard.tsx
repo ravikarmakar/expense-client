@@ -3,7 +3,7 @@ import { Text, View, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { CURRENCY_SYMBOL } from '../../../constants/theme';
 import { globalStyles } from '../../../styles/globalStyles';
-import { GroupCard } from '../../../components/GroupCard';
+import { GroupCard } from '../../../module/groups/components/GroupCard';
 
 interface GroupMember {
   userId: string;

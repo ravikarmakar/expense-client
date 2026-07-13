@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { settleUpApi, getGroupSettlementsApi } from './settlements.api';
 import { type SettleUpInput } from './settlements.types';
 import type { Group } from '../groups/group.types';
@@ -9,11 +9,13 @@ export const settlementKeys = {
   group: (groupId: string) => [...settlementKeys.all, 'group', groupId] as const,
 };
 
-export const useGroupSettlements = (groupId: string) =>
-  useQuery({
+export const useGroupSettlements = (groupId: string, options?: { enabled?: boolean }) =>
+  useInfiniteQuery({
     queryKey: settlementKeys.group(groupId),
-    queryFn: () => getGroupSettlementsApi(groupId),
-    enabled: !!groupId,
+    queryFn: ({ pageParam }) => getGroupSettlementsApi(groupId, pageParam as string | undefined),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    enabled: !!groupId && (options?.enabled ?? true),
     staleTime: 3 * 60 * 1000,
   });
 

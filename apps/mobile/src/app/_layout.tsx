@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, View, AppState, Text } from 'react-native';
+import { AppState } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -9,7 +9,7 @@ import {
   focusManager,
   onlineManager,
 } from '@tanstack/react-query';
-import { createApiClient, createQueryClient, onAuthError, onSlowRequest } from '@workspace/api';
+import { createApiClient, createQueryClient, onAuthError } from '@workspace/api';
 import NetInfo from '@react-native-community/netinfo';
 import { COLORS } from '../constants/theme';
 import { env } from '../env';
@@ -60,7 +60,6 @@ const queryClient = createQueryClient();
 // ── Root nav — switches between auth and tab stacks ───────────────────────
 function RootLayoutNav() {
   const queryClient = useQueryClient();
-  const [isSlowConnection, setIsSlowConnection] = React.useState(false);
   const [authAlertVisible, setAuthAlertVisible] = React.useState(false);
 
   // ── Listen for 401 events from the axios interceptor ──
@@ -72,14 +71,6 @@ function RootLayoutNav() {
     return cleanup;
   }, [queryClient]);
 
-  // ── Listen for slow requests ──
-  React.useEffect(() => {
-    const cleanup = onSlowRequest((isSlow) => {
-      setIsSlowConnection(isSlow);
-    });
-    return cleanup;
-  }, []);
-
   return (
     <>
       <AuthGuard>
@@ -90,34 +81,6 @@ function RootLayoutNav() {
         </Stack>
       </AuthGuard>
       <UpdateDialog />
-      {isSlowConnection && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 50,
-            left: 20,
-            right: 20,
-            backgroundColor: 'rgba(235, 94, 40, 0.95)',
-            paddingVertical: 8,
-            paddingHorizontal: 16,
-            borderRadius: 8,
-            flexDirection: 'row',
-            justifyContent: 'center',
-            alignItems: 'center',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 5,
-            zIndex: 9999,
-          }}
-        >
-          <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
-          <Text style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>
-            Slow network connection detected...
-          </Text>
-        </View>
-      )}
       <CustomAlertDialog
         visible={authAlertVisible}
         title="Session Expired"

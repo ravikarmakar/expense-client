@@ -24,7 +24,8 @@ export const settlementListSchema = z.object({
   success: z.boolean(),
   data: z.object({
     settlements: z.array(settlementSchema),
-    total: z.number(),
+    total: z.number().optional(),
+    nextCursor: z.string().nullable().optional(),
   }),
 });
 

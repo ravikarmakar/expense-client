@@ -17,12 +17,12 @@ import { globalStyles } from '../../../styles/globalStyles';
 import { SplitSummaryCard } from '../../../components/SplitSummaryCard';
 import { ExpenseItem } from '../../../components/ExpenseItem';
 import { AddExpenseModal } from '../../../components/AddExpenseModal';
-import { EditGroupModal } from '../../../components/EditGroupModal';
+import { EditGroupModal } from '../components/EditGroupModal';
 import { ErrorView } from '../../../components/ErrorView';
 import { EmptyState } from '../../../components/EmptyState';
 import { z } from 'zod';
 import { useRouteParams } from '../../../hooks/useRouteParams';
-import { useGroupDetailController } from '@workspace/api';
+import { useGroupDetailController, useGroupSettlements, Settlement } from '@workspace/api';
 import { detailStyles as styles } from '../styles/group.styles';
 import { SkeletonLoader } from '../../dashboard/components/SkeletonLoader';
 import SettleUpModal from '../components/SettleUpModal';
@@ -42,7 +42,6 @@ export default function GroupDetailScreen() {
     user,
     group,
     expenses,
-    settlements,
     myBalance,
     isAdmin,
     isFullySettled,
@@ -101,6 +100,12 @@ export default function GroupDetailScreen() {
       Alert.alert('Failed to send reminder', err);
     },
   });
+
+  const { data: settlementsData } = useGroupSettlements(id, {
+    enabled: activeTab === 'settlements',
+  });
+  const settlements = (settlementsData?.pages.flatMap((page) => page.settlements) ||
+    []) as Settlement[];
 
   const confirmLeaveGroup = () => {
     Alert.alert(
@@ -329,6 +334,19 @@ export default function GroupDetailScreen() {
                 {expenses.map((expense) => (
                   <ExpenseItem key={expense.id} expense={expense} currentUserId={user?.id} />
                 ))}
+                <TouchableOpacity
+                  onPress={() =>
+                    router.push({
+                      pathname: `/groups/${id}/expenses`,
+                      params: { name: group?.name },
+                    })
+                  }
+                  style={styles.viewHistoryBtn}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.viewHistoryBtnText}>View Full History</Text>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
+                </TouchableOpacity>
               </View>
             )
           ) : settlements.length === 0 ? (
@@ -367,6 +385,19 @@ export default function GroupDetailScreen() {
                   </View>
                 );
               })}
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({
+                    pathname: `/groups/${id}/expenses`,
+                    params: { name: group?.name, type: 'settlements' },
+                  })
+                }
+                style={styles.viewHistoryBtn}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.viewHistoryBtnText}>View Full History</Text>
+                <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
+              </TouchableOpacity>
             </View>
           )}
         </View>

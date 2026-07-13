@@ -10,7 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/theme';
+import { COLORS } from '../../../constants/theme';
 import {
   useUpdateGroup,
   clientCreateGroupSchema,
@@ -19,9 +19,9 @@ import {
   type Group,
   type GroupType,
 } from '@workspace/api';
-import { BottomSheetModal } from './BottomSheetModal';
-import { FormInput } from './FormInput';
-import { DropdownSelector } from './DropdownSelector';
+import { BottomSheetModal } from '../../../components/BottomSheetModal';
+import { FormInput } from '../../../components/FormInput';
+import { DropdownSelector } from '../../../components/DropdownSelector';
 
 export const TYPE_EMOJIS: Record<GroupType, string> = {
   Roommates: '🏠',
@@ -150,7 +150,7 @@ export function EditGroupModal({ visible, onClose, group, onSuccess }: EditGroup
           onToggle={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
           selectedItem={type}
           placeholder="Select Type"
-          options={GROUP_TYPES as any}
+          options={GROUP_TYPES}
           getOptionKey={(item) => item}
           onSelect={(item) => {
             setType(item);
