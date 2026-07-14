@@ -75,10 +75,11 @@ export const deleteExpenseApi = async (id: string): Promise<void> => {
  */
 export const getGroupExpensesApi = async (
   groupId: string,
-  cursor?: string
+  cursor?: string,
+  search?: string
 ): Promise<{ expenses: Expense[]; nextCursor: string | null }> => {
   const { data } = await getApiClient().get<unknown>(`/groups/${groupId}/expenses`, {
-    params: { cursor },
+    params: { cursor, search },
   });
   const parsed = expenseListSchema.parse(data);
   return {

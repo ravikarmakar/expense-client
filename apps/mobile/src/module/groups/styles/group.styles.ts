@@ -161,15 +161,15 @@ export const detailStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceContainer,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f3f4',
   },
   settlementIconBg: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: COLORS.primaryFixed,
     alignItems: 'center',
     justifyContent: 'center',
@@ -196,7 +196,7 @@ export const detailStyles = StyleSheet.create({
     color: COLORS.primary,
   },
   expensesList: {
-    gap: 10,
+    // Gap removed to keep flat TransactionItems flush
   },
   viewHistoryBtn: {
     flexDirection: 'row',
@@ -371,6 +371,20 @@ export const detailStyles = StyleSheet.create({
   },
   confirmButtonDisabled: {
     backgroundColor: COLORS.outlineVariant,
+  },
+  dateHeaderContainer: {
+    backgroundColor: COLORS.surfaceContainerLow,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.surfaceContainer,
+  },
+  dateHeaderText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.outline,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
 });
 

@@ -3,7 +3,7 @@ import { useMe } from '../auth/auth.hooks';
 import { useNotifications } from '../notifications/notification.hooks';
 import { useDashboard } from './dashboard.hooks';
 
-const RECENT_GROUPS_LIMIT = 2;
+const RECENT_GROUPS_LIMIT = 4;
 
 export function useDashboardController() {
   const [addExpenseVisible, setAddExpenseVisible] = useState(false);

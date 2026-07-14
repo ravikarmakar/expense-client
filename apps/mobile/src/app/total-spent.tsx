@@ -7,7 +7,8 @@ import { TopAppBar } from '../components/TopAppBar';
 import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../constants/theme';
 import { useExpenseAnalytics, useMe } from '@workspace/api';
 import { globalStyles } from '../styles/globalStyles';
-import { ExpenseItem } from '../components/ExpenseItem';
+import { TransactionItem } from '../components/TransactionItem';
+import { getDateHeading } from '../utils/date';
 import { LoadingView } from '../components/LoadingView';
 import { ErrorView } from '../components/ErrorView';
 
@@ -472,18 +473,34 @@ export default function TotalSpentScreen() {
         {/* Expense List in Active Period */}
         <View style={[styles.sectionContainer, { marginBottom: 40 }]}>
           <Text style={globalStyles.sectionTitle}>Expenses in Period</Text>
-          <View style={styles.expenseList}>
-            {filteredExpenses.length === 0 ? (
-              <View style={styles.emptyExpensesContainer}>
-                <Ionicons name="receipt-outline" size={32} color={COLORS.outlineVariant} />
-                <Text style={styles.emptyExpensesText}>No expenses logged in this period</Text>
-              </View>
-            ) : (
-              filteredExpenses.map((expense) => (
-                <ExpenseItem key={expense.id} expense={expense} currentUserId={me?.id} />
-              ))
-            )}
-          </View>
+          {filteredExpenses.length === 0 ? (
+            <View style={styles.emptyExpensesContainer}>
+              <Ionicons name="receipt-outline" size={32} color={COLORS.outlineVariant} />
+              <Text style={styles.emptyExpensesText}>No expenses logged in this period</Text>
+            </View>
+          ) : (
+            <View style={{ marginHorizontal: -20 }}>
+              {(() => {
+                let lastDateHeading = '';
+                return filteredExpenses.map((expense) => {
+                  const currentHeading = getDateHeading(expense.date);
+                  const showHeading = currentHeading !== lastDateHeading;
+                  lastDateHeading = currentHeading;
+
+                  return (
+                    <React.Fragment key={expense.id}>
+                      {showHeading && (
+                        <View style={styles.dateHeaderContainer}>
+                          <Text style={styles.dateHeaderText}>{currentHeading}</Text>
+                        </View>
+                      )}
+                      <TransactionItem expense={expense} currentUserId={me?.id} />
+                    </React.Fragment>
+                  );
+                });
+              })()}
+            </View>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -751,6 +768,21 @@ const styles = StyleSheet.create({
   },
   expenseList: {
     gap: 12,
+  },
+
+  dateHeaderContainer: {
+    backgroundColor: COLORS.surfaceContainerLow,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.surfaceContainer,
+  },
+  dateHeaderText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.outline,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   emptyExpensesContainer: {
     backgroundColor: COLORS.surface,

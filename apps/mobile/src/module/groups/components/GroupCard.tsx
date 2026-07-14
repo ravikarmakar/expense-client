@@ -95,6 +95,9 @@ export const GroupCard = React.memo(function GroupCard({
               <Text style={styles.overlapAvatarCountText}>+{totalMembersCount - 3}</Text>
             </View>
           )}
+          <Text style={styles.memberCountText}>
+            {totalMembersCount} {totalMembersCount === 1 ? 'member' : 'members'}
+          </Text>
         </View>
       </View>
 
@@ -118,23 +121,18 @@ export const GroupCard = React.memo(function GroupCard({
 const styles = StyleSheet.create({
   groupCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e8ece9',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: COLORS.surfaceContainer,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
+    gap: 14,
   },
   emblemContainer: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: COLORS.surfaceContainerLow,
     alignItems: 'center',
     justifyContent: 'center',
@@ -142,7 +140,7 @@ const styles = StyleSheet.create({
     borderColor: '#f0f2f0',
   },
   emblemEmoji: {
-    fontSize: 24,
+    fontSize: 22,
   },
   centerContainer: {
     flex: 1,
@@ -151,14 +149,14 @@ const styles = StyleSheet.create({
   },
   groupName: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
     color: COLORS.onSurface,
-    letterSpacing: -0.2,
+    letterSpacing: -0.1,
   },
   groupActivity: {
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.outline,
-    fontWeight: '500',
+    fontWeight: '400',
   },
   avatarOverlapContainer: {
     flexDirection: 'row',
@@ -225,5 +223,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: COLORS.outline,
+  },
+  memberCountText: {
+    fontSize: 12,
+    color: COLORS.outline,
+    fontWeight: '500',
+    marginLeft: 8,
   },
 });

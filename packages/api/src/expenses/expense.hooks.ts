@@ -71,10 +71,11 @@ export const useExpensesSummary = () =>
 /**
  * Fetch expenses for a specific group (paginated).
  */
-export const useGroupExpenses = (groupId: string) =>
+export const useGroupExpenses = (groupId: string, search?: string) =>
   useInfiniteQuery({
-    queryKey: expenseKeys.groupExpenses(groupId),
-    queryFn: ({ pageParam }) => getGroupExpensesApi(groupId, pageParam as string | undefined),
+    queryKey: [...expenseKeys.groupExpenses(groupId), { search }] as const,
+    queryFn: ({ pageParam }) =>
+      getGroupExpensesApi(groupId, pageParam as string | undefined, search),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: 3 * 60 * 1000,

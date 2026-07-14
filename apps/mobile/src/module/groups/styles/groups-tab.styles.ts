@@ -81,17 +81,17 @@ export const styles = StyleSheet.create({
 
   // Premium Pill Filters
   filterScrollView: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   filterContainer: {
     flexDirection: 'row',
     gap: 8,
+    paddingHorizontal: 16, // aligned with screen border padding
     paddingVertical: 4,
   },
   filterPill: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: 20,
     backgroundColor: COLORS.surface,
     borderWidth: 1,

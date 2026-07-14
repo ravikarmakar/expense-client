@@ -14,8 +14,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
 import { globalStyles } from '../../../styles/globalStyles';
-import { SplitSummaryCard } from '../../../components/SplitSummaryCard';
-import { ExpenseItem } from '../../../components/ExpenseItem';
+import { SplitSummaryCard } from '../components/SplitSummaryCard';
+import { TransactionItem } from '../../../components/TransactionItem';
+import { SettlementItem } from '../components/SettlementItem';
 import { AddExpenseModal } from '../../../components/AddExpenseModal';
 import { EditGroupModal } from '../components/EditGroupModal';
 import { ErrorView } from '../../../components/ErrorView';
@@ -25,6 +26,7 @@ import { useRouteParams } from '../../../hooks/useRouteParams';
 import { useGroupDetailController, useGroupSettlements, Settlement } from '@workspace/api';
 import { detailStyles as styles } from '../styles/group.styles';
 import { SkeletonLoader } from '../../dashboard/components/SkeletonLoader';
+import { getDateHeading } from '../../../utils/date';
 import SettleUpModal from '../components/SettleUpModal';
 
 const groupRouteSchema = z.object({
@@ -50,8 +52,6 @@ export default function GroupDetailScreen() {
     refetch,
     isRefreshing,
     handleRefresh,
-    activeTab,
-    setActiveTab,
     addExpenseVisible,
     setAddExpenseVisible,
     editGroupVisible,
@@ -101,11 +101,12 @@ export default function GroupDetailScreen() {
     },
   });
 
-  const { data: settlementsData } = useGroupSettlements(id, {
-    enabled: activeTab === 'settlements',
-  });
+  const { data: settlementsData, isLoading: isLoadingSettlements } = useGroupSettlements(id);
   const settlements = (settlementsData?.pages.flatMap((page) => page.settlements) ||
     []) as Settlement[];
+
+  const recentExpenses = React.useMemo(() => expenses.slice(0, 10), [expenses]);
+  const recentSettlements = React.useMemo(() => settlements.slice(0, 10), [settlements]);
 
   const confirmLeaveGroup = () => {
     Alert.alert(
@@ -253,7 +254,21 @@ export default function GroupDetailScreen() {
         {/* ── Member Balances ── */}
         <View style={globalStyles.sectionContainer}>
           <View style={globalStyles.sectionHeaderRow}>
-            <Text style={globalStyles.sectionTitle}>Balances</Text>
+            <Text
+              style={[
+                globalStyles.sectionTitle,
+                {
+                  fontSize: 16,
+                  color: COLORS.onSurface,
+                  textTransform: 'none',
+                  letterSpacing: 0,
+                  fontWeight: '700',
+                  marginBottom: 0,
+                },
+              ]}
+            >
+              Balances
+            </Text>
             {isAdmin && (
               <TouchableOpacity
                 onPress={() => router.push(`/groups/${id}/add-member`)}
@@ -283,37 +298,31 @@ export default function GroupDetailScreen() {
           )}
         </View>
 
-        {/* ── Tabs Selector & History List ── */}
-        <View style={[globalStyles.sectionContainer, styles.historySection]}>
-          <View style={styles.tabsContainer}>
-            <TouchableOpacity
-              style={[styles.tabButton, activeTab === 'expenses' && styles.tabActiveButton]}
-              onPress={() => setActiveTab('expenses')}
-              activeOpacity={0.7}
+        {/* ── Recent Activity (Expenses) ── */}
+        <View style={[globalStyles.sectionContainer]}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 16,
+            }}
+          >
+            <Text
+              style={[
+                globalStyles.sectionTitle,
+                {
+                  fontSize: 16,
+                  color: COLORS.onSurface,
+                  textTransform: 'none',
+                  letterSpacing: 0,
+                  fontWeight: '700',
+                  marginBottom: 0,
+                },
+              ]}
             >
-              <Text
-                style={[
-                  styles.tabButtonText,
-                  activeTab === 'expenses' && styles.tabActiveButtonText,
-                ]}
-              >
-                Expenses
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tabButton, activeTab === 'settlements' && styles.tabActiveButton]}
-              onPress={() => setActiveTab('settlements')}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.tabButtonText,
-                  activeTab === 'settlements' && styles.tabActiveButtonText,
-                ]}
-              >
-                Settlements
-              </Text>
-            </TouchableOpacity>
+              Recent Activity
+            </Text>
           </View>
 
           {isLoading || !group ? (
@@ -322,69 +331,108 @@ export default function GroupDetailScreen() {
               <SkeletonLoader height={64} borderRadius={16} />
               <SkeletonLoader height={64} borderRadius={16} />
             </View>
-          ) : activeTab === 'expenses' ? (
-            expenses.length === 0 ? (
-              <EmptyState
-                icon="receipt-outline"
-                title="No expenses yet"
-                description="Add the first expense to start splitting!"
-              />
-            ) : (
-              <View style={styles.expensesList}>
-                {expenses.map((expense) => (
-                  <ExpenseItem key={expense.id} expense={expense} currentUserId={user?.id} />
-                ))}
-                <TouchableOpacity
-                  onPress={() =>
-                    router.push({
-                      pathname: `/groups/${id}/expenses`,
-                      params: { name: group?.name },
-                    })
-                  }
-                  style={styles.viewHistoryBtn}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.viewHistoryBtnText}>View Full History</Text>
-                  <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
-                </TouchableOpacity>
-              </View>
-            )
-          ) : settlements.length === 0 ? (
+          ) : recentExpenses.length === 0 ? (
+            <EmptyState
+              icon="receipt-outline"
+              title="No expenses yet"
+              description="Add the first expense to start splitting!"
+            />
+          ) : (
+            <View style={styles.expensesList}>
+              {(() => {
+                let lastDateHeading = '';
+                return recentExpenses.map((expense) => {
+                  const currentHeading = getDateHeading(expense.date);
+                  const showHeading = currentHeading !== lastDateHeading;
+                  lastDateHeading = currentHeading;
+
+                  return (
+                    <React.Fragment key={expense.id}>
+                      {showHeading && (
+                        <View style={[styles.dateHeaderContainer, { marginHorizontal: -20 }]}>
+                          <Text style={styles.dateHeaderText}>{currentHeading}</Text>
+                        </View>
+                      )}
+                      <View style={{ marginHorizontal: -20 }}>
+                        <TransactionItem expense={expense} currentUserId={user?.id} />
+                      </View>
+                    </React.Fragment>
+                  );
+                });
+              })()}
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({
+                    pathname: `/groups/${id}/expenses`,
+                    params: { name: group?.name },
+                  })
+                }
+                style={[
+                  styles.viewHistoryBtn,
+                  {
+                    marginHorizontal: -20,
+                    borderRadius: 0,
+                    borderWidth: 0,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#f1f3f4',
+                    marginTop: 0,
+                    paddingVertical: 18,
+                  },
+                ]}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.viewHistoryBtnText}>View Full History</Text>
+                <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* ── Recent Settlements ── */}
+        <View style={[globalStyles.sectionContainer, styles.historySection]}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 16,
+            }}
+          >
+            <Text
+              style={[
+                globalStyles.sectionTitle,
+                {
+                  fontSize: 16,
+                  color: COLORS.onSurface,
+                  textTransform: 'none',
+                  letterSpacing: 0,
+                  fontWeight: '700',
+                  marginBottom: 0,
+                },
+              ]}
+            >
+              Recent Settlements
+            </Text>
+          </View>
+
+          {isLoadingSettlements ? (
+            <View style={{ gap: 12, paddingVertical: 8 }}>
+              <SkeletonLoader height={64} borderRadius={16} />
+              <SkeletonLoader height={64} borderRadius={16} />
+            </View>
+          ) : recentSettlements.length === 0 ? (
             <EmptyState
               icon="checkmark-circle-outline"
               title="No settlements yet"
               description="Payments between members will show up here."
             />
           ) : (
-            <View style={styles.settlementsList}>
-              {settlements.map((s) => {
-                const isFromMe = s.fromId === user?.id;
-                const isToMe = s.toId === user?.id;
-                const dateStr = new Date(s.createdAt).toLocaleDateString(undefined, {
-                  month: 'short',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                });
-                return (
-                  <View key={s.id} style={styles.settlementItem}>
-                    <View style={styles.settlementIconBg}>
-                      <Ionicons name="swap-horizontal" size={20} color={COLORS.primary} />
-                    </View>
-                    <View style={styles.settlementInfo}>
-                      <Text style={styles.settlementText}>
-                        <Text style={styles.boldText}>{isFromMe ? 'You' : s.from.name}</Text> paid{' '}
-                        <Text style={styles.boldText}>{isToMe ? 'you' : s.to.name}</Text>
-                      </Text>
-                      <Text style={styles.settlementDate}>{dateStr}</Text>
-                    </View>
-                    <Text style={styles.settlementAmount}>
-                      {CURRENCY_SYMBOL}
-                      {s.amount.toFixed(2)}
-                    </Text>
-                  </View>
-                );
-              })}
+            <View style={styles.expensesList}>
+              {recentSettlements.map((s) => (
+                <View key={s.id} style={{ marginHorizontal: -20 }}>
+                  <SettlementItem settlement={s} currentUserId={user?.id} />
+                </View>
+              ))}
               <TouchableOpacity
                 onPress={() =>
                   router.push({
@@ -392,7 +440,18 @@ export default function GroupDetailScreen() {
                     params: { name: group?.name, type: 'settlements' },
                   })
                 }
-                style={styles.viewHistoryBtn}
+                style={[
+                  styles.viewHistoryBtn,
+                  {
+                    marginHorizontal: -20,
+                    borderRadius: 0,
+                    borderWidth: 0,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#f1f3f4',
+                    marginTop: 0,
+                    paddingVertical: 18,
+                  },
+                ]}
                 activeOpacity={0.7}
               >
                 <Text style={styles.viewHistoryBtnText}>View Full History</Text>

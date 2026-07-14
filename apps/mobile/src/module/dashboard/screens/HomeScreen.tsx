@@ -5,7 +5,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { CategorySpendingCard } from '../components/CategorySpendingCard';
 import { QuickActionsCard } from '../components/QuickActionsCard';
 import { ActiveGroupsCard } from '../components/ActiveGroupsCard';
-import { RecentExpensesCard } from '../components/RecentExpensesCard';
 import { AddExpenseModal } from '../../../components/AddExpenseModal';
 import { CreateGroupModal } from '../../groups/components/CreateGroupModal';
 import { EmptyState } from '../../../components/EmptyState';
@@ -15,6 +14,7 @@ import { router } from 'expo-router';
 import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
 import { globalStyles } from '../../../styles/globalStyles';
 import { TopAppBar } from '../../../components/TopAppBar';
+import { RecentExpenses } from '../components/RecentExpenses';
 
 export default function HomeScreen() {
   const {
@@ -54,7 +54,7 @@ export default function HomeScreen() {
       />
 
       <ScrollView
-        contentContainerStyle={globalStyles.scrollContent}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
       >
@@ -223,12 +223,43 @@ export default function HomeScreen() {
         {/* Active Groups */}
         {groupsLoading && groups.length === 0 ? (
           <View style={globalStyles.sectionContainer}>
-            <View style={globalStyles.sectionHeaderRow}>
-              <Text style={globalStyles.sectionTitle}>Active Groups</Text>
+            <View
+              style={[globalStyles.sectionHeaderRow, { paddingHorizontal: 16, marginBottom: 14 }]}
+            >
+              <Text
+                style={[
+                  globalStyles.sectionTitle,
+                  {
+                    fontSize: 20,
+                    fontWeight: '700',
+                    color: COLORS.onSurface,
+                    textTransform: 'none',
+                    letterSpacing: 0,
+                    marginBottom: 0,
+                    marginLeft: 0,
+                  },
+                ]}
+              >
+                Active Groups
+              </Text>
             </View>
-            <View style={{ gap: 12 }}>
-              <SkeletonLoader height={72} />
-              <SkeletonLoader height={72} />
+            <View>
+              <SkeletonLoader
+                height={80}
+                style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+              />
+              <SkeletonLoader
+                height={80}
+                style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+              />
+              <SkeletonLoader
+                height={80}
+                style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+              />
+              <SkeletonLoader
+                height={80}
+                style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+              />
             </View>
           </View>
         ) : (
@@ -238,17 +269,43 @@ export default function HomeScreen() {
         {/* Recent Expenses */}
         {expensesLoading && expenses.length === 0 ? (
           <View style={[globalStyles.sectionContainer, { paddingBottom: 24 }]}>
-            <View style={globalStyles.sectionHeaderRow}>
-              <Text style={globalStyles.sectionTitle}>Recent Expenses</Text>
+            <View
+              style={[globalStyles.sectionHeaderRow, { paddingHorizontal: 16, marginBottom: 14 }]}
+            >
+              <Text
+                style={[
+                  globalStyles.sectionTitle,
+                  {
+                    fontSize: 20,
+                    fontWeight: '700',
+                    color: COLORS.onSurface,
+                    textTransform: 'none',
+                    letterSpacing: 0,
+                    marginBottom: 0,
+                    marginLeft: 0,
+                  },
+                ]}
+              >
+                Recent Expenses
+              </Text>
             </View>
-            <View style={{ gap: 12 }}>
-              <SkeletonLoader height={60} />
-              <SkeletonLoader height={60} />
-              <SkeletonLoader height={60} />
+            <View>
+              <SkeletonLoader
+                height={80}
+                style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+              />
+              <SkeletonLoader
+                height={80}
+                style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+              />
+              <SkeletonLoader
+                height={80}
+                style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+              />
             </View>
           </View>
         ) : (
-          <RecentExpensesCard expenses={expenses} currentUserId={user?.id} />
+          <RecentExpenses expenses={expenses} currentUserId={user?.id} />
         )}
 
         {/* Empty state */}

@@ -41,10 +41,11 @@ export const createGroupApi = async (input: CreateGroupInput): Promise<Group> =>
  * Get all groups the current user belongs to.
  */
 export const getGroupsApi = async (
-  cursor?: string
+  cursor?: string,
+  search?: string
 ): Promise<{ groups: Group[]; nextCursor: string | null }> => {
   const { data } = await getApiClient().get<unknown>('/groups', {
-    params: { cursor },
+    params: { cursor, search },
   });
   const parsed = groupListSchema.parse(data);
   return {

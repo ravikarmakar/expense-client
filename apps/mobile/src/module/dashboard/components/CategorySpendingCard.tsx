@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { PieChart, LineChart } from 'react-native-gifted-charts';
 import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
@@ -32,7 +32,7 @@ export const CategorySpendingCard = React.memo(function CategorySpendingCard({
   summary,
   totalSpent,
 }: CategorySpendingCardProps) {
-  const [spendingView, setSpendingView] = useState<'list' | 'pie' | 'bar'>('list');
+  const [spendingView, setSpendingView] = useState<'list' | 'pie' | 'bar'>('bar');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const handleSetSpendingView = (view: 'list' | 'pie' | 'bar') => {
@@ -83,7 +83,7 @@ export const CategorySpendingCard = React.memo(function CategorySpendingCard({
   return (
     <View style={[globalStyles.sectionContainer, styles.pbHighlight]}>
       <View style={styles.categoryCardHeader}>
-        <Text style={globalStyles.sectionTitle}>Spending by Category</Text>
+        <Text style={[globalStyles.sectionTitle, styles.sectionTitle]}>Spending by Category</Text>
         <View style={styles.viewSelector}>
           <TouchableOpacity
             style={[styles.selectorBtn, spendingView === 'list' && styles.selectorBtnActive]}
@@ -237,46 +237,50 @@ export const CategorySpendingCard = React.memo(function CategorySpendingCard({
 
         {spendingView === 'bar' && (
           <View style={styles.barContainer}>
-            <LineChart
-              data={areaData}
-              height={120}
-              areaChart
-              thickness={3}
-              color={COLORS.primary}
-              startFillColor={COLORS.primary}
-              endFillColor={COLORS.primary}
-              startOpacity={0.4}
-              endOpacity={0.05}
-              noOfSections={4}
-              yAxisThickness={0}
-              xAxisThickness={1}
-              xAxisColor={COLORS.surfaceContainer}
-              rulesColor={COLORS.surfaceContainer}
-              rulesType="solid"
-              spacing={36}
-              dataPointsColor={COLORS.primary}
-              dataPointsRadius={4}
-              xAxisLabelTextStyle={styles.barLabelText}
-              yAxisTextStyle={{ color: COLORS.outline, fontSize: 10 }}
-              pointerConfig={{
-                pointerColor: COLORS.primary,
-                showPointerStrip: true,
-                pointerStripColor: COLORS.surfaceContainer,
-                pointerLabelWidth: 80,
-                pointerLabelHeight: 30,
-                pointerLabelComponent: (items: { value: number }[]) => {
-                  if (!items || items.length === 0) return null;
-                  return (
-                    <View style={styles.barTooltip}>
-                      <Text style={styles.barTooltipText}>
-                        {CURRENCY_SYMBOL}
-                        {items[0].value.toFixed(0)}
-                      </Text>
-                    </View>
-                  );
-                },
-              }}
-            />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={{ paddingRight: 20 }}>
+                <LineChart
+                  data={areaData}
+                  height={160}
+                  areaChart
+                  thickness={3}
+                  color={COLORS.primary}
+                  startFillColor={COLORS.primary}
+                  endFillColor={COLORS.primary}
+                  startOpacity={0.4}
+                  endOpacity={0.05}
+                  noOfSections={4}
+                  yAxisThickness={0}
+                  xAxisThickness={1}
+                  xAxisColor={COLORS.surfaceContainer}
+                  rulesColor={COLORS.surfaceContainer}
+                  rulesType="solid"
+                  spacing={50}
+                  dataPointsColor={COLORS.primary}
+                  dataPointsRadius={4}
+                  xAxisLabelTextStyle={styles.barLabelText}
+                  yAxisTextStyle={{ color: COLORS.outline, fontSize: 10 }}
+                  pointerConfig={{
+                    pointerColor: COLORS.primary,
+                    showPointerStrip: true,
+                    pointerStripColor: COLORS.surfaceContainer,
+                    pointerLabelWidth: 80,
+                    pointerLabelHeight: 30,
+                    pointerLabelComponent: (items: { value: number }[]) => {
+                      if (!items || items.length === 0) return null;
+                      return (
+                        <View style={styles.barTooltip}>
+                          <Text style={styles.barTooltipText}>
+                            {CURRENCY_SYMBOL}
+                            {items[0].value.toFixed(0)}
+                          </Text>
+                        </View>
+                      );
+                    },
+                  }}
+                />
+              </View>
+            </ScrollView>
           </View>
         )}
       </View>
@@ -292,7 +296,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 14,
+    paddingHorizontal: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.onSurface,
+    textTransform: 'none',
+    letterSpacing: 0,
+    marginBottom: 0,
+    marginLeft: 0,
   },
   viewSelector: {
     flexDirection: 'row',
@@ -312,12 +326,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
   categoryCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 24,
-    borderWidth: 1.5,
-    borderColor: COLORS.surfaceContainer,
-    padding: 20,
+    paddingVertical: 12,
     gap: 16,
+    marginHorizontal: 16,
   },
   listViewContainer: {
     gap: 16,

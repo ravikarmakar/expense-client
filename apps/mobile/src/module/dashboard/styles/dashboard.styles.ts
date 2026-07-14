@@ -6,12 +6,16 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  scrollContent: {
+    paddingTop: 12,
+    paddingBottom: 100,
+  },
   greetingHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 24,
-    paddingHorizontal: 4,
+    paddingHorizontal: 16,
   },
   greetingSub: {
     fontSize: 13,
@@ -38,6 +42,7 @@ export const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 24,
     marginBottom: 24,
+    marginHorizontal: 16,
     overflow: 'hidden',
     position: 'relative',
     elevation: 8,

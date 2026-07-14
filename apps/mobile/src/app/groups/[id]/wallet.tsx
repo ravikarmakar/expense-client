@@ -1,1 +1,1 @@
-export { default } from '../../../module/groups/screens/GroupWalletScreen';
+export { default } from '../../../module/wallet/screens/GroupWalletScreen';

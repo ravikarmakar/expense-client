@@ -463,11 +463,20 @@ export type GroupsFilterType = 'all' | 'owed' | 'owe' | 'settled' | 'deactivated
 export function useGroupsController() {
   const [createGroupVisible, setCreateGroupVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<GroupsFilterType>('all');
 
-  // Fetch paginated groups from the server
+  // Debounce search input to avoid hitting database on every keystroke
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // Fetch paginated groups from the server, filtered by search query
   const { data, isLoading, isError, hasNextPage, fetchNextPage, isFetchingNextPage, refetch } =
-    useGroups();
+    useGroups(debouncedSearchQuery);
 
   // Fetch dynamic group balances in background
   const {
@@ -510,15 +519,9 @@ export function useGroupsController() {
       .reduce((sum, bal) => sum + Math.abs(bal), 0);
   }, [activeGroupList, balancesData]);
 
-  // Filter and Search logic
+  // Filter and Search logic (Search query is now handled server-side)
   const filteredGroups = useMemo(() => {
     let list = groupList;
-
-    // Apply text search
-    if (searchQuery.trim() !== '') {
-      const q = searchQuery.toLowerCase();
-      list = list.filter((g) => g.name.toLowerCase().includes(q));
-    }
 
     // Apply tab filtering
     if (activeFilter === 'owed') {
@@ -544,7 +547,7 @@ export function useGroupsController() {
     }
 
     return list;
-  }, [groupList, searchQuery, activeFilter, balancesData]);
+  }, [groupList, activeFilter, balancesData]);
 
   return {
     createGroupVisible,
@@ -629,7 +632,7 @@ export function useAddGroupExpenseController({
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-  } = useGroups({ enabled: visible && isGroupDropdownOpen });
+  } = useGroups(undefined, { enabled: visible && isGroupDropdownOpen });
   const userGroups = useMemo(() => {
     return groupsData?.pages.flatMap((page) => page.groups) ?? [];
   }, [groupsData]);

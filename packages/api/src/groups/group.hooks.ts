@@ -23,7 +23,7 @@ import type { Group, CreateGroupInput, UpdateGroupInput, AddMemberInput } from '
 export const groupKeys = {
   all: ['groups'] as const,
   lists: () => [...groupKeys.all, 'list'] as const,
-  list: () => [...groupKeys.lists()] as const,
+  list: (search?: string) => [...groupKeys.lists(), { search }] as const,
   details: () => [...groupKeys.all, 'detail'] as const,
   detail: (id: string) => [...groupKeys.details(), id] as const,
   detailConsolidated: (id: string) => [...groupKeys.detail(id), 'consolidated'] as const,
@@ -37,10 +37,10 @@ export const groupKeys = {
 /**
  * Fetch all groups the user belongs to.
  */
-export const useGroups = (options?: { enabled?: boolean }) =>
+export const useGroups = (search?: string, options?: { enabled?: boolean }) =>
   useInfiniteQuery({
-    queryKey: groupKeys.list(),
-    queryFn: ({ pageParam }) => getGroupsApi(pageParam as string | undefined),
+    queryKey: groupKeys.list(search),
+    queryFn: ({ pageParam }) => getGroupsApi(pageParam as string | undefined, search),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: 5 * 60 * 1000,

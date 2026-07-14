@@ -17,8 +17,10 @@ export const QuickActionsCard = React.memo(function QuickActionsCard({
   disabled,
 }: QuickActionsCardProps) {
   return (
-    <View style={globalStyles.sectionContainer}>
-      <Text style={globalStyles.sectionTitle}>Quick Actions</Text>
+    <View style={[globalStyles.sectionContainer, styles.container]}>
+      <View style={styles.headerRow}>
+        <Text style={[globalStyles.sectionTitle, styles.sectionTitle]}>Quick Actions</Text>
+      </View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -104,14 +106,30 @@ export const QuickActionsCard = React.memo(function QuickActionsCard({
 });
 
 const styles = StyleSheet.create({
+  container: {
+    marginBottom: 16,
+  },
+  headerRow: {
+    marginBottom: 8,
+    paddingHorizontal: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.onSurface,
+    textTransform: 'none',
+    letterSpacing: 0,
+    marginBottom: 0,
+    marginLeft: 0,
+  },
   quickActionsScroll: {
-    paddingHorizontal: 4,
-    gap: 16,
+    paddingHorizontal: 16,
+    gap: 12,
   },
   quickActionItem: {
     alignItems: 'center',
     width: 72,
-    gap: 8,
+    gap: 6,
   },
   quickActionIconContainer: {
     width: 56,

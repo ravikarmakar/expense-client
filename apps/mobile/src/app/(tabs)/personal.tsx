@@ -13,13 +13,13 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../../constants/theme';
-import { globalStyles } from '../../styles/globalStyles';
-import { ExpenseItem } from '../../components/ExpenseItem';
 import { AddExpenseModal } from '../../components/AddExpenseModal';
-import { LoadingView } from '../../components/LoadingView';
+import { TransactionItem } from '../../components/TransactionItem';
+import { SkeletonLoader } from '../../components/SkeletonLoader';
 import { ErrorView } from '../../components/ErrorView';
 import { EmptyState } from '../../components/EmptyState';
 import { useExpenses, useMe, type ExpenseCategory } from '@workspace/api';
+import { getDateHeading } from '../../utils/date';
 
 const PERSONAL_CATEGORIES = [
   'Food',
@@ -119,7 +119,7 @@ export default function PersonalTabScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={[globalStyles.scrollContent, styles.scrollContentExtra]}
+        contentContainerStyle={[styles.scrollContent, styles.scrollContentExtra]}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
         onScroll={({ nativeEvent }) => {
@@ -226,7 +226,54 @@ export default function PersonalTabScreen() {
         </View>
 
         {/* Loading State */}
-        {isLoading && <LoadingView />}
+        {isLoading && (
+          <View>
+            <SkeletonLoader
+              height={80}
+              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+            />
+            <SkeletonLoader
+              height={80}
+              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+            />
+            <SkeletonLoader
+              height={80}
+              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+            />
+            <SkeletonLoader
+              height={80}
+              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+            />
+            <SkeletonLoader
+              height={80}
+              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+            />
+            <SkeletonLoader
+              height={80}
+              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+            />
+            <SkeletonLoader
+              height={80}
+              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+            />
+            <SkeletonLoader
+              height={80}
+              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+            />
+            <SkeletonLoader
+              height={80}
+              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+            />
+            <SkeletonLoader
+              height={80}
+              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+            />
+            <SkeletonLoader
+              height={80}
+              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+            />
+          </View>
+        )}
 
         {/* Error State */}
         {isError && <ErrorView message="Failed to load personal expenses" onRetry={refetch} />}
@@ -247,9 +294,25 @@ export default function PersonalTabScreen() {
         {/* Expenses List */}
         {expensesList.length > 0 && (
           <View style={styles.expensesFeed}>
-            {expensesList.map((expense) => (
-              <ExpenseItem key={expense.id} expense={expense} currentUserId={user?.id} />
-            ))}
+            {(() => {
+              let lastDateHeading = '';
+              return expensesList.map((expense) => {
+                const currentHeading = getDateHeading(expense.date);
+                const showHeading = currentHeading !== lastDateHeading;
+                lastDateHeading = currentHeading;
+
+                return (
+                  <React.Fragment key={expense.id}>
+                    {showHeading && (
+                      <View style={styles.dateHeaderContainer}>
+                        <Text style={styles.dateHeaderText}>{currentHeading}</Text>
+                      </View>
+                    )}
+                    <TransactionItem expense={expense} currentUserId={user?.id} />
+                  </React.Fragment>
+                );
+              });
+            })()}
           </View>
         )}
 
@@ -286,9 +349,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  scrollContent: {
+    paddingTop: 12,
+    paddingBottom: 100,
+    paddingHorizontal: 0,
+  },
   headerContainer: {
     backgroundColor: COLORS.surface,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#f1f1f1',
@@ -330,6 +398,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 24,
     marginBottom: 24,
+    marginHorizontal: 16,
     overflow: 'hidden',
     position: 'relative',
     elevation: 8,
@@ -386,7 +455,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
-    paddingHorizontal: 4,
+    paddingHorizontal: 16,
   },
   sectionTitle: {
     fontSize: 18,
@@ -400,8 +469,7 @@ const styles = StyleSheet.create({
     color: COLORS.secondary,
   },
   carouselContainer: {
-    paddingLeft: 4,
-    paddingRight: 16,
+    paddingHorizontal: 16,
     paddingBottom: 4,
     gap: 12,
   },
@@ -444,9 +512,7 @@ const styles = StyleSheet.create({
   mtNormal: {
     marginTop: 20,
   },
-  expensesFeed: {
-    gap: 12,
-  },
+  expensesFeed: {},
   loadingMore: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -475,5 +541,19 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     zIndex: 40,
+  },
+  dateHeaderContainer: {
+    backgroundColor: COLORS.surfaceContainerLow,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.surfaceContainer,
+  },
+  dateHeaderText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.outline,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
 });

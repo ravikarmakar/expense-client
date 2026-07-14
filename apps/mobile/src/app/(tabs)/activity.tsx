@@ -15,13 +15,13 @@ import {
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../../constants/theme';
-import { globalStyles } from '../../styles/globalStyles';
-import { ExpenseItem } from '../../components/ExpenseItem';
+import { TransactionItem } from '../../components/TransactionItem';
 import { AddExpenseModal } from '../../components/AddExpenseModal';
-import { LoadingView } from '../../components/LoadingView';
+import { SkeletonLoader } from '../../components/SkeletonLoader';
 import { ErrorView } from '../../components/ErrorView';
 import { EmptyState } from '../../components/EmptyState';
 import { useExpenses, useMe, type ExpenseCategory } from '@workspace/api';
+import { getDateHeading } from '../../utils/date';
 
 const FILTER_TABS: Array<{ label: string; value: ExpenseCategory | 'All' }> = [
   { label: 'All', value: 'All' },
@@ -272,7 +272,7 @@ export default function ActivityTabScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={globalStyles.scrollContent}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
         onScroll={({ nativeEvent }) => {
@@ -310,7 +310,50 @@ export default function ActivityTabScreen() {
         )}
 
         {/* Loading */}
-        {isLoading && <LoadingView />}
+        {isLoading && (
+          <View>
+            <SkeletonLoader
+              height={80}
+              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+            />
+            <SkeletonLoader
+              height={80}
+              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+            />
+            <SkeletonLoader
+              height={80}
+              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+            />
+            <SkeletonLoader
+              height={80}
+              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+            />
+            <SkeletonLoader
+              height={80}
+              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+            />
+            <SkeletonLoader
+              height={80}
+              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+            />
+            <SkeletonLoader
+              height={80}
+              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+            />
+            <SkeletonLoader
+              height={80}
+              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+            />
+            <SkeletonLoader
+              height={80}
+              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+            />
+            <SkeletonLoader
+              height={80}
+              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
+            />
+          </View>
+        )}
 
         {/* Error */}
         {isError && <ErrorView message="Failed to load expenses" onRetry={refetch} />}
@@ -335,9 +378,25 @@ export default function ActivityTabScreen() {
         {/* Expense list */}
         {sortedExpenses.length > 0 && (
           <View style={styles.activityFeed}>
-            {sortedExpenses.map((expense) => (
-              <ExpenseItem key={expense.id} expense={expense} currentUserId={user?.id} />
-            ))}
+            {(() => {
+              let lastDateHeading = '';
+              return sortedExpenses.map((expense) => {
+                const currentHeading = getDateHeading(expense.date);
+                const showHeading = currentHeading !== lastDateHeading;
+                lastDateHeading = currentHeading;
+
+                return (
+                  <React.Fragment key={expense.id}>
+                    {showHeading && (
+                      <View style={styles.dateHeaderContainer}>
+                        <Text style={styles.dateHeaderText}>{currentHeading}</Text>
+                      </View>
+                    )}
+                    <TransactionItem expense={expense} currentUserId={user?.id} />
+                  </React.Fragment>
+                );
+              });
+            })()}
           </View>
         )}
 
@@ -707,9 +766,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  scrollContent: {
+    paddingTop: 12,
+    paddingBottom: 100,
+    paddingHorizontal: 0,
+  },
   headerContainer: {
     backgroundColor: COLORS.surface,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#f1f1f1',
@@ -1031,6 +1095,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 20,
     marginBottom: 20,
+    marginHorizontal: 16,
     overflow: 'hidden',
     position: 'relative',
     elevation: 8,
@@ -1105,7 +1170,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#ffffff',
   },
-  activityFeed: { gap: 10 },
+  activityFeed: {},
   loadingMore: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1117,5 +1182,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.outline,
     fontWeight: '500',
+  },
+  dateHeaderContainer: {
+    backgroundColor: COLORS.surfaceContainerLow,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.surfaceContainer,
+  },
+  dateHeaderText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.outline,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
 });

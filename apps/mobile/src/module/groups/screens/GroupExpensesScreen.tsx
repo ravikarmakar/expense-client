@@ -6,15 +6,18 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  TextInput,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
-import { ExpenseItem } from '../../../components/ExpenseItem';
+import { COLORS } from '../../../constants/theme';
+import { TransactionItem } from '../../../components/TransactionItem';
+import { SettlementItem } from '../components/SettlementItem';
 import { z } from 'zod';
 import { useRouteParams } from '../../../hooks/useRouteParams';
 import { useGroupExpenses, useGroupSettlements, useMe, Settlement, Expense } from '@workspace/api';
+import { getDateHeading } from '../../../utils/date';
 
 const routeSchema = z.object({
   id: z.string(),
@@ -28,7 +31,17 @@ export default function GroupExpensesScreen() {
   const { data: userData } = useMe();
   const isSettlements = type === 'settlements';
 
-  const expensesQuery = useGroupExpenses(groupId);
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = React.useState('');
+
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  const expensesQuery = useGroupExpenses(groupId, debouncedSearchQuery);
   const settlementsQuery = useGroupSettlements(groupId);
 
   const query = isSettlements ? settlementsQuery : expensesQuery;
@@ -63,6 +76,33 @@ export default function GroupExpensesScreen() {
         <View style={styles.rightPlaceholder} />
       </View>
 
+      {/* ── Search Bar (only for expenses) ── */}
+      {!isSettlements && (
+        <View style={styles.searchBarContainer}>
+          <View style={styles.searchInner}>
+            <Ionicons
+              name="search-outline"
+              size={18}
+              color={COLORS.outline}
+              style={styles.searchIcon}
+            />
+            <TextInput
+              placeholder="Search expenses..."
+              placeholderTextColor={COLORS.outline}
+              style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCorrect={false}
+            />
+            {searchQuery.trim() !== '' && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+                <Ionicons name="close-circle" size={16} color={COLORS.outline} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
+
       {/* ── List View ── */}
       {isLoading ? (
         <View style={styles.centerContainer}>
@@ -91,40 +131,30 @@ export default function GroupExpensesScreen() {
         <FlatList
           data={items}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => {
+          renderItem={({ item, index }) => {
             if (isSettlements) {
               const s = item as Settlement;
-              const isFromMe = s.fromId === userData?.id;
-              const isToMe = s.toId === userData?.id;
-              const dateStr = new Date(s.createdAt).toLocaleDateString(undefined, {
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              });
               return (
-                <View style={styles.settlementItem}>
-                  <View style={styles.settlementIconBg}>
-                    <Ionicons name="swap-horizontal" size={20} color={COLORS.primary} />
-                  </View>
-                  <View style={styles.settlementInfo}>
-                    <Text style={styles.settlementText}>
-                      <Text style={styles.boldText}>{isFromMe ? 'You' : s.from.name}</Text> paid{' '}
-                      <Text style={styles.boldText}>{isToMe ? 'you' : s.to.name}</Text>
-                    </Text>
-                    <Text style={styles.settlementDate}>{dateStr}</Text>
-                  </View>
-                  <Text style={styles.settlementAmount}>
-                    {CURRENCY_SYMBOL}
-                    {s.amount.toFixed(2)}
-                  </Text>
+                <View style={{ marginHorizontal: -16 }}>
+                  <SettlementItem settlement={s} currentUserId={userData?.id} />
                 </View>
               );
             }
             const expense = item as Expense;
+            const prevItem = index > 0 ? items[index - 1] : null;
+            const currentHeading = getDateHeading(expense.date);
+            const prevHeading =
+              prevItem && !isSettlements ? getDateHeading((prevItem as Expense).date) : '';
+            const showHeading = currentHeading !== prevHeading;
+
             return (
-              <View style={styles.itemWrapper}>
-                <ExpenseItem expense={expense} currentUserId={userData?.id} />
+              <View style={{ marginHorizontal: -16 }}>
+                {showHeading && (
+                  <View style={styles.dateHeaderContainer}>
+                    <Text style={styles.dateHeaderText}>{currentHeading}</Text>
+                  </View>
+                )}
+                <TransactionItem expense={expense} currentUserId={userData?.id} />
               </View>
             );
           }}
@@ -150,6 +180,41 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  searchBarContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+    backgroundColor: COLORS.background,
+  },
+  searchInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    height: 44,
+    borderWidth: 1,
+    borderColor: '#e8ece9',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 2,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14.5,
+    color: COLORS.onSurface,
+    fontWeight: '500',
+    height: '100%',
+    paddingVertical: 0,
+  },
+  clearButton: {
+    padding: 4,
   },
   header: {
     flexDirection: 'row',
@@ -201,7 +266,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    gap: 12,
   },
   itemWrapper: {
     marginBottom: 0,
@@ -214,6 +278,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.surfaceContainer,
+    marginBottom: 12,
   },
   settlementIconBg: {
     width: 38,
@@ -243,5 +308,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: COLORS.primary,
+  },
+  dateHeaderContainer: {
+    backgroundColor: COLORS.surfaceContainerLow,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.surfaceContainer,
+  },
+  dateHeaderText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.outline,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
 });

@@ -16,6 +16,30 @@ import { NetBalanceCard } from '../components/NetBalanceCard';
 import { GroupsFilterPills } from '../components/GroupsFilterPills';
 import { GroupsHeader } from '../components/GroupsHeader';
 
+function formatLastActive(dateStr?: string | Date) {
+  if (!dateStr) return 'recently';
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 5) {
+    return 'just now';
+  } else if (diffMins < 60) {
+    return `${diffMins}m ago`;
+  } else if (diffHours < 24) {
+    return `${diffHours}h ago`;
+  } else if (diffDays === 1) {
+    return 'yesterday';
+  } else if (diffDays < 7) {
+    return `${diffDays}d ago`;
+  } else {
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  }
+}
+
 export default function GroupsScreen() {
   const {
     createGroupVisible,
@@ -83,41 +107,42 @@ export default function GroupsScreen() {
       <FlatList
         data={filteredGroups}
         keyExtractor={(item) => item.id}
-        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         renderItem={({ item: group }) => {
           const bal = balancesData ? (balancesData[group.id]?.myBalance ?? 0) : 0;
           return (
-            <GroupCard
-              name={group.name}
-              emoji={group.emoji ?? '👥'}
-              activity={`${group.type ?? 'Other'} · ${group.memberCount} members`}
-              memberAvatars={group.members.slice(0, 3).map((m) => m.image ?? '')}
-              totalMembersCount={group.memberCount}
-              isLoadingBalance={isBalancesLoading}
-              balanceText={
-                isBalancesLoading
-                  ? '...'
-                  : Math.abs(bal) < 0.01
-                    ? 'Settled up'
-                    : bal > 0
-                      ? `Owes ${CURRENCY_SYMBOL}${bal.toFixed(0)}`
-                      : `Owe ${CURRENCY_SYMBOL}${Math.abs(bal).toFixed(0)}`
-              }
-              balanceType={
-                isBalancesLoading
-                  ? 'settled'
-                  : Math.abs(bal) < 0.01
+            <View style={{ marginHorizontal: -20 }}>
+              <GroupCard
+                name={group.name}
+                emoji={group.emoji ?? '👥'}
+                activity={`${group.type ?? 'Other'} · Active ${formatLastActive(group.updatedAt)}`}
+                memberAvatars={group.members.slice(0, 3).map((m) => m.image ?? '')}
+                totalMembersCount={group.memberCount}
+                isLoadingBalance={isBalancesLoading}
+                balanceText={
+                  isBalancesLoading
+                    ? '...'
+                    : Math.abs(bal) < 0.01
+                      ? 'Settled up'
+                      : bal > 0
+                        ? `Owes ${CURRENCY_SYMBOL}${bal.toFixed(0)}`
+                        : `Owe ${CURRENCY_SYMBOL}${Math.abs(bal).toFixed(0)}`
+                }
+                balanceType={
+                  isBalancesLoading
                     ? 'settled'
-                    : bal > 0
-                      ? 'owed'
-                      : 'owe'
-              }
-              onPress={() =>
-                router.push(
-                  `/groups/${group.id}?name=${encodeURIComponent(group.name)}&emoji=${encodeURIComponent(group.emoji ?? '👥')}`
-                )
-              }
-            />
+                    : Math.abs(bal) < 0.01
+                      ? 'settled'
+                      : bal > 0
+                        ? 'owed'
+                        : 'owe'
+                }
+                onPress={() =>
+                  router.push(
+                    `/groups/${group.id}?name=${encodeURIComponent(group.name)}&emoji=${encodeURIComponent(group.emoji ?? '👥')}`
+                  )
+                }
+              />
+            </View>
           );
         }}
         contentContainerStyle={globalStyles.scrollContent}
@@ -138,10 +163,87 @@ export default function GroupsScreen() {
 
             {/* Loading state */}
             {isLoading && (
-              <View style={{ gap: 12, marginBottom: 12 }}>
-                <SkeletonLoader height={84} />
-                <SkeletonLoader height={84} />
-                <SkeletonLoader height={84} />
+              <View style={{ marginHorizontal: -20, marginBottom: 12 }}>
+                <SkeletonLoader
+                  height={80}
+                  style={{
+                    borderBottomWidth: 2,
+                    borderBottomColor: COLORS.surfaceContainer,
+                    borderRadius: 0,
+                  }}
+                />
+                <SkeletonLoader
+                  height={80}
+                  style={{
+                    borderBottomWidth: 2,
+                    borderBottomColor: COLORS.surfaceContainer,
+                    borderRadius: 0,
+                  }}
+                />
+                <SkeletonLoader
+                  height={80}
+                  style={{
+                    borderBottomWidth: 2,
+                    borderBottomColor: COLORS.surfaceContainer,
+                    borderRadius: 0,
+                  }}
+                />
+                <SkeletonLoader
+                  height={80}
+                  style={{
+                    borderBottomWidth: 2,
+                    borderBottomColor: COLORS.surfaceContainer,
+                    borderRadius: 0,
+                  }}
+                />
+                <SkeletonLoader
+                  height={80}
+                  style={{
+                    borderBottomWidth: 2,
+                    borderBottomColor: COLORS.surfaceContainer,
+                    borderRadius: 0,
+                  }}
+                />
+                <SkeletonLoader
+                  height={80}
+                  style={{
+                    borderBottomWidth: 2,
+                    borderBottomColor: COLORS.surfaceContainer,
+                    borderRadius: 0,
+                  }}
+                />
+                <SkeletonLoader
+                  height={80}
+                  style={{
+                    borderBottomWidth: 2,
+                    borderBottomColor: COLORS.surfaceContainer,
+                    borderRadius: 0,
+                  }}
+                />
+                <SkeletonLoader
+                  height={80}
+                  style={{
+                    borderBottomWidth: 2,
+                    borderBottomColor: COLORS.surfaceContainer,
+                    borderRadius: 0,
+                  }}
+                />
+                <SkeletonLoader
+                  height={80}
+                  style={{
+                    borderBottomWidth: 2,
+                    borderBottomColor: COLORS.surfaceContainer,
+                    borderRadius: 0,
+                  }}
+                />
+                <SkeletonLoader
+                  height={80}
+                  style={{
+                    borderBottomWidth: 2,
+                    borderBottomColor: COLORS.surfaceContainer,
+                    borderRadius: 0,
+                  }}
+                />
               </View>
             )}
 
