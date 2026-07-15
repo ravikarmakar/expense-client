@@ -3,20 +3,24 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { CURRENCY_SYMBOL, CATEGORY_ICONS } from '../constants/theme';
-import type { Expense } from '@workspace/api';
+import { type Expense } from '@workspace/api';
 
 interface TransactionItemProps {
   expense: Expense;
   currentUserId?: string;
   onPress?: () => void;
+  isSettled?: boolean;
 }
 
 export const TransactionItem = React.memo(function TransactionItem({
   expense,
   currentUserId,
   onPress,
+  isSettled,
 }: TransactionItemProps) {
   const defaultOnPress = () => router.push(`/expense/${expense.id}`);
+
+  const finalIsSettled = isSettled !== undefined ? isSettled : expense.isSettled || false;
 
   // Format payer name display
   const isMyExpense = expense.paidBy.userId === currentUserId;
@@ -59,7 +63,7 @@ export const TransactionItem = React.memo(function TransactionItem({
         : 0;
       if (othersOwe > 0) {
         balanceLabel = `Owed ${CURRENCY_SYMBOL}${othersOwe.toFixed(2)}`;
-        balanceColor = '#1b5e20';
+        balanceColor = finalIsSettled ? '#70757a' : '#1b5e20';
       } else {
         balanceLabel = 'Settled';
         balanceColor = '#137333';
@@ -72,7 +76,7 @@ export const TransactionItem = React.memo(function TransactionItem({
           balanceColor = '#137333';
         } else {
           balanceLabel = `Owe ${CURRENCY_SYMBOL}${mySplit.amount.toFixed(2)}`;
-          balanceColor = '#c62828';
+          balanceColor = finalIsSettled ? '#70757a' : '#c62828';
         }
       }
     }
@@ -115,6 +119,11 @@ export const TransactionItem = React.memo(function TransactionItem({
             <Text style={[styles.balanceText, { color: balanceColor }]} numberOfLines={1}>
               {balanceLabel}
             </Text>
+          ) : null}
+          {finalIsSettled ? (
+            <View style={styles.settledBadgeContainer}>
+              <Text style={styles.settledBadgeText}>Covered by settlement</Text>
+            </View>
           ) : null}
         </View>
         <Ionicons name="chevron-forward" size={16} color="#000000" style={styles.chevron} />
@@ -228,5 +237,17 @@ const styles = StyleSheet.create({
   chevron: {
     marginLeft: 10,
     opacity: 0.8,
+  },
+  settledBadgeContainer: {
+    backgroundColor: '#e6f4ea',
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    marginTop: 3,
+  },
+  settledBadgeText: {
+    fontSize: 9.5,
+    color: '#137333',
+    fontWeight: '700',
   },
 });

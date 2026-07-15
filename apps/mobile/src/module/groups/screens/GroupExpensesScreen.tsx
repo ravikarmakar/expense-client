@@ -13,23 +13,33 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../../constants/theme';
 import { TransactionItem } from '../../../components/TransactionItem';
-import { SettlementItem } from '../components/SettlementItem';
+import { SettlementItem } from '../../settlements/components/SettlementItem';
 import { z } from 'zod';
 import { useRouteParams } from '../../../hooks/useRouteParams';
-import { useGroupExpenses, useGroupSettlements, useMe, Settlement, Expense } from '@workspace/api';
+import {
+  useGroupExpenses,
+  useGroupSettlements,
+  useGroupActivity,
+  useMe,
+  Settlement,
+  Expense,
+  ActivityItem,
+} from '@workspace/api';
 import { getDateHeading } from '../../../utils/date';
 
 const routeSchema = z.object({
   id: z.string(),
   name: z.string().optional(),
-  type: z.enum(['expenses', 'settlements']).optional().default('expenses'),
+  type: z.enum(['expenses', 'settlements', 'activity']).optional().default('expenses'),
 });
 
 export default function GroupExpensesScreen() {
   const insets = useSafeAreaInsets();
   const { id: groupId, name: groupName, type } = useRouteParams(routeSchema);
   const { data: userData } = useMe();
+
   const isSettlements = type === 'settlements';
+  const isActivity = type === 'activity';
 
   const [searchQuery, setSearchQuery] = React.useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = React.useState('');
@@ -43,8 +53,9 @@ export default function GroupExpensesScreen() {
 
   const expensesQuery = useGroupExpenses(groupId, debouncedSearchQuery);
   const settlementsQuery = useGroupSettlements(groupId);
+  const activityQuery = useGroupActivity(groupId);
 
-  const query = isSettlements ? settlementsQuery : expensesQuery;
+  const query = isSettlements ? settlementsQuery : isActivity ? activityQuery : expensesQuery;
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError, refetch } =
     query;
@@ -52,8 +63,10 @@ export default function GroupExpensesScreen() {
   const items = (
     isSettlements
       ? data?.pages.flatMap((page) => (page as { settlements: Settlement[] }).settlements) || []
-      : data?.pages.flatMap((page) => (page as { expenses: Expense[] }).expenses) || []
-  ) as (Settlement | Expense)[];
+      : isActivity
+        ? data?.pages.flatMap((page) => (page as { activity: ActivityItem[] }).activity) || []
+        : data?.pages.flatMap((page) => (page as { expenses: Expense[] }).expenses) || []
+  ) as (Settlement | Expense | ActivityItem)[];
 
   const handleLoadMore = () => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -70,14 +83,14 @@ export default function GroupExpensesScreen() {
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {groupName
-            ? `${groupName} ${isSettlements ? 'Settlements' : 'Expenses'}`
-            : `${isSettlements ? 'Settlement' : 'Expense'} History`}
+            ? `${groupName} ${isSettlements ? 'Settlements' : isActivity ? 'Activity' : 'Expenses'}`
+            : `${isSettlements ? 'Settlement' : isActivity ? 'Activity' : 'Expense'} History`}
         </Text>
         <View style={styles.rightPlaceholder} />
       </View>
 
       {/* ── Search Bar (only for expenses) ── */}
-      {!isSettlements && (
+      {!isSettlements && !isActivity && (
         <View style={styles.searchBarContainer}>
           <View style={styles.searchInner}>
             <Ionicons
@@ -118,19 +131,27 @@ export default function GroupExpensesScreen() {
       ) : items.length === 0 ? (
         <View style={styles.centerContainer}>
           <Ionicons
-            name={isSettlements ? 'checkmark-circle-outline' : 'receipt-outline'}
+            name={
+              isSettlements
+                ? 'checkmark-circle-outline'
+                : isActivity
+                  ? 'pulse-outline'
+                  : 'receipt-outline'
+            }
             size={48}
             color={COLORS.outline}
             style={{ marginBottom: 12 }}
           />
           <Text style={styles.emptyText}>
-            No {isSettlements ? 'settlements' : 'expenses'} logged yet
+            No {isSettlements ? 'settlements' : isActivity ? 'activity' : 'expenses'} logged yet
           </Text>
         </View>
       ) : (
         <FlatList
           data={items}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) =>
+            isActivity ? (item as ActivityItem).data.id : (item as Settlement | Expense).id
+          }
           renderItem={({ item, index }) => {
             if (isSettlements) {
               const s = item as Settlement;
@@ -140,6 +161,44 @@ export default function GroupExpensesScreen() {
                 </View>
               );
             }
+
+            if (isActivity) {
+              const act = item as ActivityItem;
+              const prevItem = index > 0 ? (items[index - 1] as ActivityItem) : null;
+
+              const actDate =
+                act.type === 'expense' ? act.data.date : act.data.createdAt.split('T')[0];
+              const currentHeading = getDateHeading(actDate);
+
+              const prevActDate = prevItem
+                ? prevItem.type === 'expense'
+                  ? prevItem.data.date
+                  : prevItem.data.createdAt.split('T')[0]
+                : '';
+              const prevHeading = prevItem ? getDateHeading(prevActDate) : '';
+
+              const showHeading = currentHeading !== prevHeading;
+
+              return (
+                <View style={{ marginHorizontal: -16 }}>
+                  {showHeading && (
+                    <View style={styles.dateHeaderContainer}>
+                      <Text style={styles.dateHeaderText}>{currentHeading}</Text>
+                    </View>
+                  )}
+                  {act.type === 'expense' ? (
+                    <TransactionItem
+                      expense={act.data}
+                      currentUserId={userData?.id}
+                      isSettled={act.data.isSettled}
+                    />
+                  ) : (
+                    <SettlementItem settlement={act.data} currentUserId={userData?.id} />
+                  )}
+                </View>
+              );
+            }
+
             const expense = item as Expense;
             const prevItem = index > 0 ? items[index - 1] : null;
             const currentHeading = getDateHeading(expense.date);
@@ -154,7 +213,11 @@ export default function GroupExpensesScreen() {
                     <Text style={styles.dateHeaderText}>{currentHeading}</Text>
                   </View>
                 )}
-                <TransactionItem expense={expense} currentUserId={userData?.id} />
+                <TransactionItem
+                  expense={expense}
+                  currentUserId={userData?.id}
+                  isSettled={expense.isSettled}
+                />
               </View>
             );
           }}

@@ -7,10 +7,11 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
-import { detailStyles as styles } from '../styles/group.styles';
+import { detailStyles as styles } from '../../groups/styles/group.styles';
 import type { GroupMember } from '@workspace/api';
 
 interface SettleUpModalProps {
@@ -42,10 +43,10 @@ export default function SettleUpModal({
     >
       <View style={styles.modalOverlay}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalContainer}
         >
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { maxHeight: '90%' }]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Settle Up</Text>
               <TouchableOpacity onPress={onClose} style={styles.modalCloseBtn}>
@@ -54,7 +55,12 @@ export default function SettleUpModal({
             </View>
 
             {settleMember && (
-              <View style={styles.modalBody}>
+              <ScrollView
+                style={{ flexShrink: 1 }}
+                contentContainerStyle={styles.modalBody}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
                 <Text style={styles.modalSub}>
                   {settleMember.balance >= 0
                     ? `Record the amount ${settleMember.name} paid you:`
@@ -115,12 +121,14 @@ export default function SettleUpModal({
                   <TouchableOpacity
                     style={[
                       styles.modalConfirmBtn,
-                      (!settleAmount ||
+                      (isPending ||
+                        !settleAmount ||
                         parseFloat(settleAmount) <= 0 ||
                         parseFloat(settleAmount) > Math.abs(settleMember.balance) + 0.005) &&
                         styles.confirmButtonDisabled,
                     ]}
                     disabled={
+                      isPending ||
                       !settleAmount ||
                       parseFloat(settleAmount) <= 0 ||
                       parseFloat(settleAmount) > Math.abs(settleMember.balance) + 0.005
@@ -133,7 +141,7 @@ export default function SettleUpModal({
                     </Text>
                   </TouchableOpacity>
                 </View>
-              </View>
+              </ScrollView>
             )}
           </View>
         </KeyboardAvoidingView>

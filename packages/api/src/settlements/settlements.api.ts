@@ -7,10 +7,12 @@ import {
 } from './settlements.types';
 import type { Group } from '../groups/group.types';
 
-export const settleUpApi = async (input: SettleUpInput): Promise<Group> => {
+export const settleUpApi = async (
+  input: SettleUpInput
+): Promise<{ group?: Group; settlement?: Settlement }> => {
   const { data } = await getApiClient().post<unknown>('/settlements', input);
   const parsed = settleUpResponseSchema.parse(data);
-  return parsed.data.group;
+  return parsed.data;
 };
 
 export const getGroupSettlementsApi = async (

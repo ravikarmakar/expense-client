@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
+import { COLORS, CURRENCY_SYMBOL } from '../../../../constants/theme';
 import type { GroupMember } from '@workspace/api';
 
 interface MemberBalanceItemProps {
@@ -112,12 +112,9 @@ export const MemberBalanceItem: React.FC<MemberBalanceItemProps> = ({
             </TouchableOpacity>
           )}
 
-          {onSettleUp && (
+          {!isPositive && onSettleUp && (
             <TouchableOpacity
-              style={[
-                styles.settleBtn,
-                isPositive ? styles.settleBtnPositive : styles.settleBtnNegative,
-              ]}
+              style={[styles.settleBtn, styles.settleBtnNegative]}
               onPress={() => onSettleUp(member)}
               activeOpacity={0.8}
               disabled={isSettling}

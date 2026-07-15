@@ -3,16 +3,17 @@ import { View, RefreshControl, StyleSheet, FlatList, ActivityIndicator } from 'r
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
-import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
+import { COLORS } from '../../../constants/theme';
 import { globalStyles } from '../../../styles/globalStyles';
 import { GroupCard } from '../components/GroupCard';
+import { GroupCardSkeleton } from '../components/GroupCardSkeleton';
 import { CreateGroupModal } from '../components/CreateGroupModal';
-import { SkeletonLoader } from '../../../components/SkeletonLoader';
 import { ErrorView } from '../../../components/ErrorView';
 import { EmptyState } from '../../../components/EmptyState';
 import { useGroupsController } from '@workspace/api';
 import { styles } from '../styles/groups-tab.styles';
 import { NetBalanceCard } from '../components/NetBalanceCard';
+import { NetBalanceCardSkeleton } from '../components/NetBalanceCardSkeleton';
 import { GroupsFilterPills } from '../components/GroupsFilterPills';
 import { GroupsHeader } from '../components/GroupsHeader';
 
@@ -118,24 +119,7 @@ export default function GroupsScreen() {
                 memberAvatars={group.members.slice(0, 3).map((m) => m.image ?? '')}
                 totalMembersCount={group.memberCount}
                 isLoadingBalance={isBalancesLoading}
-                balanceText={
-                  isBalancesLoading
-                    ? '...'
-                    : Math.abs(bal) < 0.01
-                      ? 'Settled up'
-                      : bal > 0
-                        ? `Owes ${CURRENCY_SYMBOL}${bal.toFixed(0)}`
-                        : `Owe ${CURRENCY_SYMBOL}${Math.abs(bal).toFixed(0)}`
-                }
-                balanceType={
-                  isBalancesLoading
-                    ? 'settled'
-                    : Math.abs(bal) < 0.01
-                      ? 'settled'
-                      : bal > 0
-                        ? 'owed'
-                        : 'owe'
-                }
+                balance={bal}
                 onPress={() =>
                   router.push(
                     `/groups/${group.id}?name=${encodeURIComponent(group.name)}&emoji=${encodeURIComponent(group.emoji ?? '👥')}`
@@ -163,88 +147,15 @@ export default function GroupsScreen() {
 
             {/* Loading state */}
             {isLoading && (
-              <View style={{ marginHorizontal: -20, marginBottom: 12 }}>
-                <SkeletonLoader
-                  height={80}
-                  style={{
-                    borderBottomWidth: 2,
-                    borderBottomColor: COLORS.surfaceContainer,
-                    borderRadius: 0,
-                  }}
-                />
-                <SkeletonLoader
-                  height={80}
-                  style={{
-                    borderBottomWidth: 2,
-                    borderBottomColor: COLORS.surfaceContainer,
-                    borderRadius: 0,
-                  }}
-                />
-                <SkeletonLoader
-                  height={80}
-                  style={{
-                    borderBottomWidth: 2,
-                    borderBottomColor: COLORS.surfaceContainer,
-                    borderRadius: 0,
-                  }}
-                />
-                <SkeletonLoader
-                  height={80}
-                  style={{
-                    borderBottomWidth: 2,
-                    borderBottomColor: COLORS.surfaceContainer,
-                    borderRadius: 0,
-                  }}
-                />
-                <SkeletonLoader
-                  height={80}
-                  style={{
-                    borderBottomWidth: 2,
-                    borderBottomColor: COLORS.surfaceContainer,
-                    borderRadius: 0,
-                  }}
-                />
-                <SkeletonLoader
-                  height={80}
-                  style={{
-                    borderBottomWidth: 2,
-                    borderBottomColor: COLORS.surfaceContainer,
-                    borderRadius: 0,
-                  }}
-                />
-                <SkeletonLoader
-                  height={80}
-                  style={{
-                    borderBottomWidth: 2,
-                    borderBottomColor: COLORS.surfaceContainer,
-                    borderRadius: 0,
-                  }}
-                />
-                <SkeletonLoader
-                  height={80}
-                  style={{
-                    borderBottomWidth: 2,
-                    borderBottomColor: COLORS.surfaceContainer,
-                    borderRadius: 0,
-                  }}
-                />
-                <SkeletonLoader
-                  height={80}
-                  style={{
-                    borderBottomWidth: 2,
-                    borderBottomColor: COLORS.surfaceContainer,
-                    borderRadius: 0,
-                  }}
-                />
-                <SkeletonLoader
-                  height={80}
-                  style={{
-                    borderBottomWidth: 2,
-                    borderBottomColor: COLORS.surfaceContainer,
-                    borderRadius: 0,
-                  }}
-                />
-              </View>
+              <>
+                <NetBalanceCardSkeleton />
+                <View style={{ marginHorizontal: -20, marginBottom: 12 }}>
+                  <GroupCardSkeleton />
+                  <GroupCardSkeleton />
+                  <GroupCardSkeleton />
+                  <GroupCardSkeleton />
+                </View>
+              </>
             )}
 
             {/* Error state */}

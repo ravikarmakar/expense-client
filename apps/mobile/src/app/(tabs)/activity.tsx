@@ -16,8 +16,9 @@ import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../../constants/theme';
 import { TransactionItem } from '../../components/TransactionItem';
-import { AddExpenseModal } from '../../components/AddExpenseModal';
+import { TransactionItemSkeleton } from '../../components/TransactionItemSkeleton';
 import { SkeletonLoader } from '../../components/SkeletonLoader';
+import { AddExpenseModal } from '../../components/AddExpenseModal';
 import { ErrorView } from '../../components/ErrorView';
 import { EmptyState } from '../../components/EmptyState';
 import { useExpenses, useMe, type ExpenseCategory } from '@workspace/api';
@@ -283,27 +284,45 @@ export default function ActivityTabScreen() {
         scrollEventThrottle={400}
       >
         {/* Premium Total Spent Banner */}
-        {sortedExpenses.length > 0 && (
+        {(isLoading || sortedExpenses.length > 0) && (
           <View style={styles.premiumCard}>
             <View style={styles.cardCircle1} />
             <View style={styles.cardCircle2} />
             <View style={styles.premiumCardContent}>
               <View style={styles.premiumCardLeft}>
                 <Text style={styles.premiumCardLabel}>Total Shared Spend</Text>
-                <Text style={styles.premiumCardValue}>
-                  {CURRENCY_SYMBOL}
-                  {sortedExpenses
-                    .reduce((s, e) => s + e.amount, 0)
-                    .toLocaleString('en-IN', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                </Text>
+                {isLoading ? (
+                  <SkeletonLoader
+                    width={100}
+                    height={28}
+                    borderRadius={6}
+                    style={{ marginTop: 4, backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+                  />
+                ) : (
+                  <Text style={styles.premiumCardValue}>
+                    {CURRENCY_SYMBOL}
+                    {sortedExpenses
+                      .reduce((s, e) => s + e.amount, 0)
+                      .toLocaleString('en-IN', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                  </Text>
+                )}
               </View>
               <View style={styles.premiumCardDivider} />
               <View style={styles.premiumCardRight}>
                 <Text style={styles.premiumCardRightLabel}>Transactions</Text>
-                <Text style={styles.premiumCardRightValue}>{sortedExpenses.length}</Text>
+                {isLoading ? (
+                  <SkeletonLoader
+                    width={30}
+                    height={20}
+                    borderRadius={4}
+                    style={{ marginTop: 4, backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+                  />
+                ) : (
+                  <Text style={styles.premiumCardRightValue}>{sortedExpenses.length}</Text>
+                )}
               </View>
             </View>
           </View>
@@ -312,46 +331,12 @@ export default function ActivityTabScreen() {
         {/* Loading */}
         {isLoading && (
           <View>
-            <SkeletonLoader
-              height={80}
-              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-            />
-            <SkeletonLoader
-              height={80}
-              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-            />
-            <SkeletonLoader
-              height={80}
-              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-            />
-            <SkeletonLoader
-              height={80}
-              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-            />
-            <SkeletonLoader
-              height={80}
-              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-            />
-            <SkeletonLoader
-              height={80}
-              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-            />
-            <SkeletonLoader
-              height={80}
-              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-            />
-            <SkeletonLoader
-              height={80}
-              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-            />
-            <SkeletonLoader
-              height={80}
-              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-            />
-            <SkeletonLoader
-              height={80}
-              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-            />
+            <TransactionItemSkeleton />
+            <TransactionItemSkeleton />
+            <TransactionItemSkeleton />
+            <TransactionItemSkeleton />
+            <TransactionItemSkeleton />
+            <TransactionItemSkeleton />
           </View>
         )}
 

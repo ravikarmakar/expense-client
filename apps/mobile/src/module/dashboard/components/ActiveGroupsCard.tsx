@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
+import { COLORS } from '../../../constants/theme';
 import { globalStyles } from '../../../styles/globalStyles';
 import { GroupCard } from '../../../module/groups/components/GroupCard';
 
@@ -85,16 +85,7 @@ export const ActiveGroupsCard = React.memo(function ActiveGroupsCard({
             activity={`${group.type ?? 'Other'} • Active ${formatLastActive(group.updatedAt)}`}
             memberAvatars={group.members.slice(0, 2).map((m) => m.image ?? '')}
             totalMembersCount={group.memberCount}
-            balanceText={
-              Math.abs(group.myBalance) < 0.01
-                ? 'Settled'
-                : group.myBalance > 0
-                  ? `Owed ${CURRENCY_SYMBOL}${group.myBalance.toFixed(2)}`
-                  : `You owe ${CURRENCY_SYMBOL}${Math.abs(group.myBalance).toFixed(2)}`
-            }
-            balanceType={
-              Math.abs(group.myBalance) < 0.01 ? 'settled' : group.myBalance > 0 ? 'owed' : 'owe'
-            }
+            balance={group.myBalance}
             onPress={() => router.push(`/groups/${group.id}`)}
           />
         ))}

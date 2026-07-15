@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, Image, TouchableOpacity, Modal, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,17 +7,37 @@ import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../../../constants/them
 import { globalStyles } from '../../../styles/globalStyles';
 import { useExpense, useDeleteExpense, useMe } from '@workspace/api';
 import { TopAppBar } from '../../../components/TopAppBar';
-import { LoadingView } from '../../../components/LoadingView';
 import { ErrorView } from '../../../components/ErrorView';
 import { EditExpenseModal } from '../../../components/EditExpenseModal';
 import { useRouteParams, idParamSchema } from '../../../hooks/useRouteParams';
+import { ExpenseDetailSkeleton } from '../components/ExpenseDetailSkeleton';
+import { detailStyles as styles } from '../styles/expense.styles';
+import { CustomAlertDialog } from '../../../components/CustomAlertDialog';
 
 export default function ExpenseDetailScreen() {
   const { id } = useRouteParams(idParamSchema);
   const { data: expense, isLoading, isError, refetch } = useExpense(id);
   const insets = useSafeAreaInsets();
-
   const [editVisible, setEditVisible] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    showCancel?: boolean;
+    onConfirm: () => void;
+    confirmText?: string;
+    cancelText?: string;
+    icon?: keyof typeof Ionicons.glyphMap;
+    iconColor?: string;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
   const { data: user } = useMe();
   const deleteExpense = useDeleteExpense();
 
@@ -26,34 +46,55 @@ export default function ExpenseDetailScreen() {
   const canModify = isPersonal && isCreator;
 
   const handleDelete = () => {
-    Alert.alert(
-      'Delete Expense',
-      'Are you sure you want to delete this expense? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            if (expense) {
-              deleteExpense.mutate(expense.id, {
-                onSuccess: () => {
-                  Alert.alert('Success', 'Expense deleted successfully');
+    setAlertConfig({
+      visible: true,
+      title: 'Delete Expense',
+      message: 'Are you sure you want to delete this expense? This action cannot be undone.',
+      showCancel: true,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      icon: 'trash',
+      iconColor: COLORS.error,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (expense) {
+          deleteExpense.mutate(expense.id, {
+            onSuccess: () => {
+              setAlertConfig({
+                visible: true,
+                title: 'Success',
+                message: 'Expense deleted successfully',
+                icon: 'checkmark-circle',
+                iconColor: COLORS.primary,
+                onConfirm: () => {
+                  setAlertConfig((prev) => ({ ...prev, visible: false }));
                   router.back();
                 },
-                onError: (err) => {
-                  Alert.alert('Error', err.message || 'Failed to delete expense');
+              });
+            },
+            onError: (err) => {
+              setAlertConfig({
+                visible: true,
+                title: 'Error',
+                message: err.message || 'Failed to delete expense',
+                icon: 'alert-circle',
+                iconColor: COLORS.error,
+                onConfirm: () => {
+                  setAlertConfig((prev) => ({ ...prev, visible: false }));
                 },
               });
-            }
-          },
-        },
-      ]
-    );
+            },
+          });
+        }
+      },
+      onCancel: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+      },
+    });
   };
 
   if (isLoading) {
-    return <LoadingView />;
+    return <ExpenseDetailSkeleton />;
   }
 
   if (isError || !expense) {
@@ -78,7 +119,13 @@ export default function ExpenseDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <TopAppBar title="Transaction Details" showBack onBack={() => router.back()} />
+      <TopAppBar
+        title="Expense Details"
+        showBack
+        onBack={() => router.back()}
+        rightActionIcon={canModify ? 'ellipsis-vertical' : undefined}
+        onRightActionPress={canModify ? () => setMenuVisible(true) : undefined}
+      />
 
       <ScrollView
         contentContainerStyle={[globalStyles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
@@ -134,32 +181,6 @@ export default function ExpenseDetailScreen() {
             )}
           </View>
         </View>
-
-        {/* Action Buttons (Only for Personal & Creator) */}
-        {canModify && (
-          <View style={styles.actionButtonsContainer}>
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.editBtn]}
-              onPress={() => setEditVisible(true)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="pencil" size={18} color={COLORS.primary} style={{ marginRight: 6 }} />
-              <Text style={styles.editBtnText}>Edit Details</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.deleteBtn]}
-              onPress={handleDelete}
-              disabled={deleteExpense.isPending}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="trash" size={18} color={COLORS.error} style={{ marginRight: 6 }} />
-              <Text style={styles.deleteBtnText}>
-                {deleteExpense.isPending ? 'Deleting...' : 'Delete Expense'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
 
         {/* Paid By Section */}
         <View style={styles.section}>
@@ -243,233 +264,53 @@ export default function ExpenseDetailScreen() {
           onSuccess={() => refetch()}
         />
       )}
+
+      <CustomAlertDialog
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onConfirm={alertConfig.onConfirm}
+        confirmText={alertConfig.confirmText}
+        cancelText={alertConfig.cancelText}
+        showCancel={alertConfig.showCancel}
+        onCancel={alertConfig.onCancel}
+        icon={alertConfig.icon}
+        iconColor={alertConfig.iconColor}
+      />
+
+      {/* 3-Dot Overflow Menu Modal */}
+      <Modal
+        visible={menuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <Pressable style={styles.menuOverlay} onPress={() => setMenuVisible(false)}>
+          <View style={[styles.menuContainer, { top: insets.top + 50 }]}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                setEditVisible(true);
+              }}
+            >
+              <Ionicons name="pencil-outline" size={20} color={COLORS.onSurface} />
+              <Text style={styles.menuItemText}>Edit Details</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.menuItem, styles.menuItemBorder]}
+              onPress={() => {
+                setMenuVisible(false);
+                handleDelete();
+              }}
+            >
+              <Ionicons name="trash-outline" size={20} color={COLORS.error} />
+              <Text style={[styles.menuItemText, { color: COLORS.error }]}>Delete Expense</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-
-  heroCard: {
-    backgroundColor: COLORS.surface,
-    padding: 24,
-    borderRadius: 24,
-    alignItems: 'center',
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceContainer,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-  },
-  heroIconBg: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  heroTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: COLORS.onSurface,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  heroAmount: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: COLORS.onSurface,
-    marginBottom: 16,
-  },
-  walletBadgeLarge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.primaryFixed,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    gap: 6,
-    marginBottom: 16,
-  },
-  walletBadgeLargeText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.onPrimaryFixedVariant,
-  },
-  heroMeta: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  metaBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surfaceContainer,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 4,
-  },
-  metaBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.onSurfaceVariant,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.onSurface,
-    marginBottom: 12,
-    paddingHorizontal: 4,
-  },
-  paidByCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceContainer,
-  },
-  paidByAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.surfaceContainerHigh,
-    marginRight: 16,
-  },
-  paidByInfo: {
-    flex: 1,
-  },
-  paidByName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.onSurface,
-    marginBottom: 4,
-  },
-  paidBySub: {
-    fontSize: 14,
-    color: COLORS.outline,
-    fontWeight: '500',
-  },
-  notesCard: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceContainer,
-    gap: 12,
-  },
-  notesText: {
-    flex: 1,
-    fontSize: 15,
-    color: COLORS.onSurfaceVariant,
-    lineHeight: 22,
-  },
-  splitsCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceContainer,
-    overflow: 'hidden',
-  },
-  splitRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-  },
-  splitAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.surfaceContainerHigh,
-    marginRight: 12,
-  },
-  splitInfo: {
-    flex: 1,
-  },
-  splitName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.onSurface,
-    marginBottom: 4,
-  },
-  statusBadgeSettled: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(46, 125, 50, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  statusBadgeSettledText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#2e7d32',
-  },
-  statusBadgePending: {
-    alignSelf: 'flex-start',
-    backgroundColor: COLORS.errorContainer,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  statusBadgePendingText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: COLORS.onErrorContainer,
-  },
-  splitAmount: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.onSurface,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.surfaceContainer,
-    marginLeft: 68,
-  },
-  actionButtonsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
-  },
-  actionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 48,
-    borderRadius: 14,
-    borderWidth: 1.5,
-  },
-  editBtn: {
-    borderColor: COLORS.primaryFixed,
-    backgroundColor: 'transparent',
-  },
-  editBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.primary,
-  },
-  deleteBtn: {
-    borderColor: COLORS.errorContainer,
-    backgroundColor: 'transparent',
-  },
-  deleteBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.error,
-  },
-});

@@ -11,6 +11,8 @@ interface TopAppBarProps {
   showBack?: boolean;
   onBack?: () => void;
   unreadCount?: number;
+  rightActionIcon?: keyof typeof Ionicons.glyphMap;
+  onRightActionPress?: () => void;
 }
 
 export function TopAppBar({
@@ -20,6 +22,8 @@ export function TopAppBar({
   showBack,
   onBack,
   unreadCount,
+  rightActionIcon,
+  onRightActionPress,
 }: TopAppBarProps) {
   const insets = useSafeAreaInsets();
 
@@ -49,6 +53,19 @@ export function TopAppBar({
             {title}
           </Text>
         )}
+
+        {showBack &&
+          (rightActionIcon && onRightActionPress ? (
+            <TouchableOpacity
+              onPress={onRightActionPress}
+              style={styles.iconButton}
+              activeOpacity={0.7}
+            >
+              <Ionicons name={rightActionIcon} size={24} color={COLORS.onSurface} />
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: 40 }} />
+          ))}
 
         {!showBack && (
           <View style={styles.rightActions}>

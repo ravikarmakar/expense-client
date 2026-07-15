@@ -328,10 +328,10 @@ export default function SettleUpScreen() {
       >
         <View style={styles.modalOverlay}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={styles.modalContainer}
           >
-            <View style={styles.modalContent}>
+            <View style={[styles.modalContent, { maxHeight: '90%' }]}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Settle Up</Text>
                 <TouchableOpacity
@@ -342,7 +342,12 @@ export default function SettleUpScreen() {
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.modalBody}>
+              <ScrollView
+                style={{ flexShrink: 1 }}
+                contentContainerStyle={styles.modalBody}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
                 {/* Group & User Context */}
                 <View style={styles.modalContextRow}>
                   <View style={styles.modalContextIcon}>
@@ -417,7 +422,7 @@ export default function SettleUpScreen() {
                     </Text>
                   </TouchableOpacity>
                 </View>
-              </View>
+              </ScrollView>
             </View>
           </KeyboardAvoidingView>
         </View>

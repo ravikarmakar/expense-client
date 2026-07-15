@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { globalStyles } from '../../../styles/globalStyles';
-import { SkeletonLoader } from '../../dashboard/components/SkeletonLoader';
-import { detailStyles as styles } from '../styles/group.styles';
+import { globalStyles } from '../../../../styles/globalStyles';
+import { detailStyles as styles } from '../../styles/group.styles';
+import { SkeletonLoader } from '@/components/SkeletonLoader';
 
 interface GroupDetailSkeletonProps {
   hideHeader?: boolean;

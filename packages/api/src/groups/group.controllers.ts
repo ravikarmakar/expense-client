@@ -38,7 +38,7 @@ interface GroupDetailControllerConfig {
  */
 export function useGroupDetailQuery(groupId: string) {
   const { data: user } = useMe();
-  const { data: detailData, isLoading, isError, refetch } = useGroupDetail(groupId);
+  const { data: detailData, isLoading, isError, refetch, isFetching } = useGroupDetail(groupId);
 
   const group = detailData?.group;
   const expenses = detailData?.expenses ?? [];
@@ -50,12 +50,12 @@ export function useGroupDetailQuery(groupId: string) {
     user,
     group,
     expenses,
-    settlements: [],
     myBalance,
     isAdmin,
     isFullySettled,
     isLoading,
     isError,
+    isFetching,
     refetch,
   };
 }

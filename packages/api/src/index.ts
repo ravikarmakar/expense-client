@@ -83,6 +83,7 @@ export {
   searchUsersPaginatedApi,
   leaveGroupApi,
   getGroupDetailApi,
+  getGroupActivityApi,
 } from './groups/group.api';
 
 export {
@@ -100,7 +101,11 @@ export {
   useLeaveGroup,
   useGroupDetail,
   useSendReminder,
+  useGroupActivity,
 } from './groups/group.hooks';
+
+export type { ActivityItem, ActivityFeed } from './groups/activity.types';
+export { activityFeedSchema, activityItemSchema } from './groups/activity.types';
 
 export {
   useGroupDetailController,

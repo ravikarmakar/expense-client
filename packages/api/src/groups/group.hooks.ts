@@ -13,6 +13,7 @@ import {
   leaveGroupApi,
   getGroupDetailApi,
   sendReminderApi,
+  getGroupActivityApi,
 } from './group.api';
 import type { Group, CreateGroupInput, UpdateGroupInput, AddMemberInput } from './group.types';
 
@@ -207,3 +208,17 @@ export const useSendReminder = (groupId: string) => {
     mutationFn: (userId) => sendReminderApi(groupId, userId),
   });
 };
+
+export const useGroupActivity = (
+  groupId: string,
+  type?: 'all' | 'expenses' | 'settlements',
+  options?: { enabled?: boolean }
+) =>
+  useInfiniteQuery({
+    queryKey: [...groupKeys.detail(groupId), 'activity', type] as const,
+    queryFn: ({ pageParam }) => getGroupActivityApi(groupId, pageParam as string | undefined, type),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    enabled: !!groupId && (options?.enabled ?? true),
+    staleTime: 30 * 1000,
+  });

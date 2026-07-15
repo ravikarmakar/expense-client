@@ -10,6 +10,7 @@ import {
   Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../constants/theme';
 
 interface BottomSheetModalProps {
@@ -29,6 +30,8 @@ export const BottomSheetModal = React.memo(function BottomSheetModal({
   behavior = Platform.OS === 'ios' ? 'padding' : 'height',
   keyboardVerticalOffset = 0,
 }: BottomSheetModalProps) {
+  const insets = useSafeAreaInsets();
+
   return (
     <Modal
       animationType="slide"
@@ -46,7 +49,15 @@ export const BottomSheetModal = React.memo(function BottomSheetModal({
         style={styles.overlay}
         pointerEvents="box-none"
       >
-        <View style={styles.sheet}>
+        <View
+          style={[
+            styles.sheet,
+            {
+              paddingBottom:
+                Platform.OS === 'ios' ? Math.max(insets.bottom, 24) : Math.max(insets.bottom, 16),
+            },
+          ]}
+        >
           {/* Handle */}
           <View style={styles.handle} />
 
@@ -78,7 +89,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
     maxHeight: '92%',
     flexShrink: 1,
     shadowColor: '#000',

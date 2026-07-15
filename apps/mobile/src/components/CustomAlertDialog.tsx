@@ -11,6 +11,9 @@ interface CustomAlertDialogProps {
   confirmText?: string;
   icon?: keyof typeof Ionicons.glyphMap;
   iconColor?: string;
+  showCancel?: boolean;
+  onCancel?: () => void;
+  cancelText?: string;
 }
 
 export function CustomAlertDialog({
@@ -21,13 +24,16 @@ export function CustomAlertDialog({
   confirmText = 'OK',
   icon = 'alert-circle',
   iconColor = COLORS.primary,
+  showCancel = false,
+  onCancel,
+  cancelText = 'Cancel',
 }: CustomAlertDialogProps) {
   return (
     <Modal
       animationType="fade"
       transparent
       visible={visible}
-      onRequestClose={onConfirm}
+      onRequestClose={showCancel ? onCancel : onConfirm}
       statusBarTranslucent
     >
       <View style={styles.overlay}>
@@ -44,14 +50,33 @@ export function CustomAlertDialog({
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
 
-          {/* Action Button */}
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: iconColor }]}
-            onPress={onConfirm}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.buttonText}>{confirmText}</Text>
-          </TouchableOpacity>
+          {/* Action Buttons */}
+          {showCancel ? (
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[styles.button, styles.cancelButton]}
+                onPress={onCancel}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.cancelButtonText}>{cancelText}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.confirmButton, { backgroundColor: iconColor }]}
+                onPress={onConfirm}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.buttonText}>{confirmText}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: iconColor }]}
+              onPress={onConfirm}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.buttonText}>{confirmText}</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </Modal>
@@ -128,5 +153,24 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 15,
     fontWeight: '700',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#f1f3f4',
+    borderWidth: 1,
+    borderColor: '#e8ece9',
+  },
+  cancelButtonText: {
+    color: '#5f6368',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  confirmButton: {
+    flex: 1,
   },
 });

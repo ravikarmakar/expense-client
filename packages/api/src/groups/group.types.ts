@@ -33,7 +33,7 @@ export type GroupType = (typeof GROUP_TYPES)[number];
 export const groupMemberSchema = z.object({
   userId: z.string(),
   name: z.string(),
-  email: z.string().email(),
+  email: z.string(),
   image: z.string().nullable().optional(),
   role: z
     .preprocess((val) => {
@@ -92,7 +92,7 @@ export const groupDetailSchema = z.object({
 export const userSearchResultSchema = z.object({
   id: z.string(),
   name: z.string(),
-  email: z.string().email(),
+  email: z.string(),
   image: z.string().nullable().optional(),
 });
 

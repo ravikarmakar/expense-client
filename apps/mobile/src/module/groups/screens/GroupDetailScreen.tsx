@@ -6,28 +6,27 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
-  Modal,
-  Pressable,
+  StyleSheet,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
+import { COLORS } from '../../../constants/theme';
 import { globalStyles } from '../../../styles/globalStyles';
-import { SplitSummaryCard } from '../components/SplitSummaryCard';
-import { TransactionItem } from '../../../components/TransactionItem';
-import { SettlementItem } from '../components/SettlementItem';
+import { SplitSummaryCard } from '../components/group-details/SplitSummaryCard';
 import { AddExpenseModal } from '../../../components/AddExpenseModal';
 import { EditGroupModal } from '../components/EditGroupModal';
 import { ErrorView } from '../../../components/ErrorView';
-import { EmptyState } from '../../../components/EmptyState';
 import { z } from 'zod';
 import { useRouteParams } from '../../../hooks/useRouteParams';
-import { useGroupDetailController, useGroupSettlements, Settlement } from '@workspace/api';
 import { detailStyles as styles } from '../styles/group.styles';
-import { SkeletonLoader } from '../../dashboard/components/SkeletonLoader';
-import { getDateHeading } from '../../../utils/date';
-import SettleUpModal from '../components/SettleUpModal';
+import { MemberBalanceItemSkeleton } from '../components/group-details/MemberBalanceItemSkeleton';
+import SettleUpModal from '../../settlements/components/SettleUpModal';
+
+import { GroupDetailHeader } from '../components/group-details/GroupDetailHeader';
+import { GroupBalanceCard } from '../components/group-details/GroupBalanceCard';
+import { GroupRecentActivity } from '../components/group-details/GroupRecentActivity';
+import { GroupOverflowMenuModal } from '../components/group-details/GroupOverflowMenuModal';
+import { GroupDetailProvider, useGroupDetail } from '../contexts/GroupDetailContext';
 
 const groupRouteSchema = z.object({
   id: z.string(),
@@ -35,18 +34,12 @@ const groupRouteSchema = z.object({
   emoji: z.string().optional(),
 });
 
-export default function GroupDetailScreen() {
-  const insets = useSafeAreaInsets();
-  const { id, name: routeName, emoji: routeEmoji } = useRouteParams(groupRouteSchema);
-
-  // Business logic hook
+function GroupDetailContent() {
   const {
+    id,
     user,
     group,
-    expenses,
-    myBalance,
     isAdmin,
-    isFullySettled,
     isLoading,
     isError,
     refetch,
@@ -54,11 +47,6 @@ export default function GroupDetailScreen() {
     handleRefresh,
     addExpenseVisible,
     setAddExpenseVisible,
-    editGroupVisible,
-    setEditGroupVisible,
-    menuVisible,
-    setMenuVisible,
-    settlingUserId,
     settleModalVisible,
     setSettleModalVisible,
     settleMember,
@@ -67,85 +55,15 @@ export default function GroupDetailScreen() {
     handleSendReminder,
     handleSettleUp,
     submitSettleUp,
-    executeLeaveGroup,
-    executeDeactivateGroup,
+    settlingUserId,
     sendReminder,
     settleUp,
-  } = useGroupDetailController({
-    groupId: id,
-    onSettleUpSuccess: () => {
-      Alert.alert('Done! 🎉', 'Settlement recorded successfully.');
-      refetch();
-    },
-    onSettleUpError: (err) => {
-      Alert.alert('Error', err);
-    },
-    onLeaveGroupSuccess: () => {
-      router.replace('/(tabs)/groups');
-    },
-    onLeaveGroupError: (err) => {
-      Alert.alert('Error', err);
-    },
-    onDeactivateGroupSuccess: () => {
-      Alert.alert('Success 🎉', 'Group deactivated successfully.');
-      router.replace('/(tabs)/groups');
-    },
-    onDeactivateGroupError: (err) => {
-      Alert.alert('Error', err);
-    },
-    onSendReminderSuccess: (name) => {
-      Alert.alert('Reminder Sent! 🔔', `We've sent a settle up reminder notification to ${name}.`);
-    },
-    onSendReminderError: (err) => {
-      Alert.alert('Failed to send reminder', err);
-    },
-  });
-
-  const { data: settlementsData, isLoading: isLoadingSettlements } = useGroupSettlements(id);
-  const settlements = (settlementsData?.pages.flatMap((page) => page.settlements) ||
-    []) as Settlement[];
-
-  const recentExpenses = React.useMemo(() => expenses.slice(0, 10), [expenses]);
-  const recentSettlements = React.useMemo(() => settlements.slice(0, 10), [settlements]);
-
-  const confirmLeaveGroup = () => {
-    Alert.alert(
-      'Leave Group',
-      'Are you sure you want to leave this group? You will no longer see its expenses.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Leave',
-          style: 'destructive',
-          onPress: executeLeaveGroup,
-        },
-      ]
-    );
-  };
-
-  const confirmDeactivateGroup = () => {
-    if (!isFullySettled) {
-      Alert.alert(
-        'Cannot Deactivate Group',
-        'All member balances must be fully settled (₹0.00) before deactivating the group.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
-    Alert.alert(
-      'Deactivate Group',
-      'Are you sure you want to deactivate this group? This will hide the group and prevent new expenses, but keep records intact.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Deactivate',
-          style: 'destructive',
-          onPress: executeDeactivateGroup,
-        },
-      ]
-    );
-  };
+    editGroupVisible,
+    setEditGroupVisible,
+    refetchActivity,
+    routeName,
+    insets,
+  } = useGroupDetail();
 
   if (isError || (!group && !isLoading)) {
     return <ErrorView message="Failed to load group" onRetry={refetch} />;
@@ -154,29 +72,7 @@ export default function GroupDetailScreen() {
   return (
     <View style={styles.container}>
       {/* ── Header ── */}
-      <View style={[styles.header, { paddingTop: insets.top, height: 56 + insets.top }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.onSurface} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {group?.emoji ?? routeEmoji ?? '👥'} {group?.name ?? routeName ?? 'Group Detail'}
-        </Text>
-        <TouchableOpacity
-          onPress={() => router.push(`/groups/${id}/analytics`)}
-          style={styles.walletBtn}
-        >
-          <Ionicons name="bar-chart" size={24} color={COLORS.primary} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => router.push(`/groups/${id}/wallet`)}
-          style={styles.walletBtn}
-        >
-          <Ionicons name="wallet" size={28} color={COLORS.primary} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => setMenuVisible(true)} style={styles.moreBtn}>
-          <Ionicons name="ellipsis-vertical" size={25} color={COLORS.onSurface} />
-        </TouchableOpacity>
-      </View>
+      <GroupDetailHeader />
 
       <ScrollView
         contentContainerStyle={[globalStyles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
@@ -184,72 +80,7 @@ export default function GroupDetailScreen() {
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
       >
         {/* ── Balance Card ── */}
-        <View
-          style={[
-            styles.balanceCard,
-            {
-              backgroundColor: COLORS.primary,
-            },
-          ]}
-        >
-          <View style={[styles.abstractCircle, styles.circleTopRight]} />
-          <View style={[styles.abstractCircle, styles.circleBottomLeft]} />
-
-          <View style={styles.balanceHeader}>
-            <Text style={[styles.balanceCardLabel, { color: 'rgba(255,255,255,0.8)' }]}>
-              {isLoading || !group
-                ? 'Calculating balances...'
-                : Math.abs(myBalance) < 0.01
-                  ? "You're all settled up!"
-                  : myBalance > 0
-                    ? 'You are owed'
-                    : 'You owe'}
-            </Text>
-            <View
-              style={[
-                styles.statusDot,
-                {
-                  backgroundColor: '#ffffff',
-                },
-              ]}
-            />
-          </View>
-
-          {isLoading || !group ? (
-            <SkeletonLoader
-              width={120}
-              height={32}
-              borderRadius={6}
-              style={{ marginVertical: 4 }}
-            />
-          ) : (
-            <Text style={[styles.balanceCardAmount, { color: '#ffffff' }]}>
-              {Math.abs(myBalance) >= 0.01
-                ? `${myBalance < 0 ? '-' : ''}${CURRENCY_SYMBOL}${Math.abs(myBalance).toFixed(2)}`
-                : `${CURRENCY_SYMBOL}0.00`}
-            </Text>
-          )}
-
-          <View style={styles.balanceCardDivider} />
-
-          <View style={styles.balanceCardFooter}>
-            <View style={styles.metaItem}>
-              <Ionicons name="people" size={16} color="rgba(255,255,255,0.8)" />
-              <Text style={[styles.balanceCardMeta, { color: 'rgba(255,255,255,0.9)' }]}>
-                {isLoading || !group ? '... ' : `${group.memberCount} `}members
-              </Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Ionicons name="receipt" size={16} color="rgba(255,255,255,0.8)" />
-              <Text style={[styles.balanceCardMeta, { color: 'rgba(255,255,255,0.9)' }]}>
-                {isLoading || !group
-                  ? '₹--.-- '
-                  : `${CURRENCY_SYMBOL}${group.totalExpenses.toFixed(2)} `}
-                spent
-              </Text>
-            </View>
-          </View>
-        </View>
+        <GroupBalanceCard />
 
         {/* ── Member Balances ── */}
         <View style={globalStyles.sectionContainer}>
@@ -282,9 +113,10 @@ export default function GroupDetailScreen() {
             )}
           </View>
           {isLoading || !group ? (
-            <View style={{ gap: 8 }}>
-              <SkeletonLoader height={64} borderRadius={16} />
-              <SkeletonLoader height={64} borderRadius={16} />
+            <View style={localStyles.membersSkeletonContainer}>
+              <MemberBalanceItemSkeleton />
+              <MemberBalanceItemSkeleton />
+              <MemberBalanceItemSkeleton isLast />
             </View>
           ) : (
             <SplitSummaryCard
@@ -298,168 +130,8 @@ export default function GroupDetailScreen() {
           )}
         </View>
 
-        {/* ── Recent Activity (Expenses) ── */}
-        <View style={[globalStyles.sectionContainer]}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 16,
-            }}
-          >
-            <Text
-              style={[
-                globalStyles.sectionTitle,
-                {
-                  fontSize: 16,
-                  color: COLORS.onSurface,
-                  textTransform: 'none',
-                  letterSpacing: 0,
-                  fontWeight: '700',
-                  marginBottom: 0,
-                },
-              ]}
-            >
-              Recent Activity
-            </Text>
-          </View>
-
-          {isLoading || !group ? (
-            <View style={{ gap: 12, paddingVertical: 8 }}>
-              <SkeletonLoader height={64} borderRadius={16} />
-              <SkeletonLoader height={64} borderRadius={16} />
-              <SkeletonLoader height={64} borderRadius={16} />
-            </View>
-          ) : recentExpenses.length === 0 ? (
-            <EmptyState
-              icon="receipt-outline"
-              title="No expenses yet"
-              description="Add the first expense to start splitting!"
-            />
-          ) : (
-            <View style={styles.expensesList}>
-              {(() => {
-                let lastDateHeading = '';
-                return recentExpenses.map((expense) => {
-                  const currentHeading = getDateHeading(expense.date);
-                  const showHeading = currentHeading !== lastDateHeading;
-                  lastDateHeading = currentHeading;
-
-                  return (
-                    <React.Fragment key={expense.id}>
-                      {showHeading && (
-                        <View style={[styles.dateHeaderContainer, { marginHorizontal: -20 }]}>
-                          <Text style={styles.dateHeaderText}>{currentHeading}</Text>
-                        </View>
-                      )}
-                      <View style={{ marginHorizontal: -20 }}>
-                        <TransactionItem expense={expense} currentUserId={user?.id} />
-                      </View>
-                    </React.Fragment>
-                  );
-                });
-              })()}
-              <TouchableOpacity
-                onPress={() =>
-                  router.push({
-                    pathname: `/groups/${id}/expenses`,
-                    params: { name: group?.name },
-                  })
-                }
-                style={[
-                  styles.viewHistoryBtn,
-                  {
-                    marginHorizontal: -20,
-                    borderRadius: 0,
-                    borderWidth: 0,
-                    borderBottomWidth: 1,
-                    borderBottomColor: '#f1f3f4',
-                    marginTop: 0,
-                    paddingVertical: 18,
-                  },
-                ]}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.viewHistoryBtnText}>View Full History</Text>
-                <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-
-        {/* ── Recent Settlements ── */}
-        <View style={[globalStyles.sectionContainer, styles.historySection]}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 16,
-            }}
-          >
-            <Text
-              style={[
-                globalStyles.sectionTitle,
-                {
-                  fontSize: 16,
-                  color: COLORS.onSurface,
-                  textTransform: 'none',
-                  letterSpacing: 0,
-                  fontWeight: '700',
-                  marginBottom: 0,
-                },
-              ]}
-            >
-              Recent Settlements
-            </Text>
-          </View>
-
-          {isLoadingSettlements ? (
-            <View style={{ gap: 12, paddingVertical: 8 }}>
-              <SkeletonLoader height={64} borderRadius={16} />
-              <SkeletonLoader height={64} borderRadius={16} />
-            </View>
-          ) : recentSettlements.length === 0 ? (
-            <EmptyState
-              icon="checkmark-circle-outline"
-              title="No settlements yet"
-              description="Payments between members will show up here."
-            />
-          ) : (
-            <View style={styles.expensesList}>
-              {recentSettlements.map((s) => (
-                <View key={s.id} style={{ marginHorizontal: -20 }}>
-                  <SettlementItem settlement={s} currentUserId={user?.id} />
-                </View>
-              ))}
-              <TouchableOpacity
-                onPress={() =>
-                  router.push({
-                    pathname: `/groups/${id}/expenses`,
-                    params: { name: group?.name, type: 'settlements' },
-                  })
-                }
-                style={[
-                  styles.viewHistoryBtn,
-                  {
-                    marginHorizontal: -20,
-                    borderRadius: 0,
-                    borderWidth: 0,
-                    borderBottomWidth: 1,
-                    borderBottomColor: '#f1f3f4',
-                    marginTop: 0,
-                    paddingVertical: 18,
-                  },
-                ]}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.viewHistoryBtnText}>View Full History</Text>
-                <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
+        {/* ── Recent Activity ── */}
+        <GroupRecentActivity />
       </ScrollView>
 
       {/* ── FAB: Add Expense ── */}
@@ -500,6 +172,7 @@ export default function GroupDetailScreen() {
         groupName={group?.name ?? routeName ?? 'Group'}
         onSuccess={() => {
           refetch();
+          refetchActivity();
         }}
       />
 
@@ -526,63 +199,27 @@ export default function GroupDetailScreen() {
       )}
 
       {/* ── Overflow Menu Modal ── */}
-      <Modal
-        visible={menuVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setMenuVisible(false)}
-      >
-        <Pressable style={styles.menuOverlay} onPress={() => setMenuVisible(false)}>
-          <View style={[styles.menuContainer, { top: insets.top + 50 }]}>
-            {isAdmin && (
-              <>
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => {
-                    setMenuVisible(false);
-                    setEditGroupVisible(true);
-                  }}
-                >
-                  <Ionicons name="pencil-outline" size={20} color={COLORS.onSurface} />
-                  <Text style={styles.menuItemText}>Edit Group</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.menuItem, styles.menuItemBorder]}
-                  onPress={() => {
-                    setMenuVisible(false);
-                    confirmDeactivateGroup();
-                  }}
-                >
-                  <Ionicons
-                    name="power-outline"
-                    size={20}
-                    color={isFullySettled ? COLORS.error : COLORS.outline}
-                  />
-                  <Text
-                    style={[
-                      styles.menuItemText,
-                      { color: isFullySettled ? COLORS.error : COLORS.outline },
-                    ]}
-                  >
-                    Deactivate Group
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
-            <TouchableOpacity
-              style={[styles.menuItem, isAdmin && styles.menuItemBorder]}
-              onPress={() => {
-                setMenuVisible(false);
-                confirmLeaveGroup();
-              }}
-            >
-              <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
-              <Text style={[styles.menuItemText, { color: COLORS.error }]}>Leave Group</Text>
-            </TouchableOpacity>
-          </View>
-        </Pressable>
-      </Modal>
+      <GroupOverflowMenuModal />
     </View>
   );
 }
+
+export default function GroupDetailScreen() {
+  const { id, name, emoji } = useRouteParams(groupRouteSchema);
+
+  return (
+    <GroupDetailProvider id={id} routeName={name} routeEmoji={emoji}>
+      <GroupDetailContent />
+    </GroupDetailProvider>
+  );
+}
+
+const localStyles = StyleSheet.create({
+  membersSkeletonContainer: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
+    overflow: 'hidden',
+  },
+});

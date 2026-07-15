@@ -10,8 +10,9 @@ interface GroupCardProps {
   activity: string;
   memberAvatars: string[];
   totalMembersCount?: number;
-  balanceText: string;
-  balanceType: 'owed' | 'owe' | 'settled';
+  balance?: number;
+  balanceText?: string;
+  balanceType?: 'owed' | 'owe' | 'settled';
   isLoadingBalance?: boolean;
   onPress?: () => void;
 }
@@ -22,13 +23,35 @@ export const GroupCard = React.memo(function GroupCard({
   activity,
   memberAvatars,
   totalMembersCount = memberAvatars.length,
+  balance,
   balanceText,
   balanceType,
   isLoadingBalance,
   onPress,
 }: GroupCardProps) {
-  const isOwe = balanceType === 'owe';
-  const isOwed = balanceType === 'owed';
+  // Derive balance state
+  let isOwe = false;
+  let isOwed = false;
+  let isSettled = true;
+  let displayBalanceText = 'Settled ✓';
+
+  if (balance !== undefined) {
+    isOwe = balance < -0.01;
+    isOwed = balance > 0.01;
+    isSettled = !isOwe && !isOwed;
+    if (isOwed) {
+      displayBalanceText = `You are owed ₹${balance.toFixed(2)}`;
+    } else if (isOwe) {
+      displayBalanceText = `You owe ₹${Math.abs(balance).toFixed(2)}`;
+    } else {
+      displayBalanceText = 'Settled ✓';
+    }
+  } else {
+    isOwe = balanceType === 'owe';
+    isOwed = balanceType === 'owed';
+    isSettled = !isOwe && !isOwed;
+    displayBalanceText = balanceText || (isSettled ? 'Settled ✓' : '');
+  }
 
   const getBadgeStyle = () => {
     if (isOwed) return styles.groupOweBadge;
@@ -109,7 +132,7 @@ export const GroupCard = React.memo(function GroupCard({
           <View style={[styles.badgeBase, getBadgeStyle()]}>
             {getBadgeIcon()}
             <Text style={getBadgeTextStyle()} numberOfLines={1}>
-              {balanceText}
+              {displayBalanceText}
             </Text>
           </View>
         )}

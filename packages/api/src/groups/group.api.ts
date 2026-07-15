@@ -14,14 +14,18 @@ import {
   type GroupDetailConsolidated,
   type GroupBalances,
 } from './group.types';
+import { activityFeedSchema, type ActivityFeed } from './activity.types';
 
-/**
- * Get consolidated group details (includes group metadata, members list, expenses, and settlements).
- */
 export const getGroupDetailApi = async (id: string): Promise<GroupDetailConsolidated['data']> => {
   const { data } = await getApiClient().get<unknown>(`/groups/${id}/detail`);
-  const parsed = groupDetailConsolidatedSchema.parse(data);
-  return parsed.data;
+  try {
+    const parsed = groupDetailConsolidatedSchema.parse(data);
+    return parsed.data;
+  } catch (err) {
+    console.error('[getGroupDetailApi] Zod parsing failed. Received payload:', data);
+    console.error('[getGroupDetailApi] Zod Error details:', err);
+    throw err;
+  }
 };
 
 // ─────────────────────────────────────────────────────
@@ -154,4 +158,19 @@ export const leaveGroupApi = async (groupId: string): Promise<void> => {
 export const sendReminderApi = async (groupId: string, userId: string): Promise<void> => {
   const { data } = await getApiClient().post<unknown>(`/groups/${groupId}/remind`, { userId });
   messageResponseSchema.parse(data);
+};
+
+export const getGroupActivityApi = async (
+  groupId: string,
+  cursor?: string,
+  type?: 'all' | 'expenses' | 'settlements'
+): Promise<{ activity: ActivityFeed['data']['activity']; nextCursor: string | null }> => {
+  const { data } = await getApiClient().get<unknown>(`/groups/${groupId}/activity`, {
+    params: { cursor, type },
+  });
+  const parsed = activityFeedSchema.parse(data);
+  return {
+    activity: parsed.data.activity,
+    nextCursor: parsed.data.nextCursor ?? null,
+  };
 };

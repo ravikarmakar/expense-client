@@ -8,6 +8,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   NativeScrollEvent,
+  Modal,
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,6 +16,7 @@ import { router } from 'expo-router';
 import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../../constants/theme';
 import { AddExpenseModal } from '../../components/AddExpenseModal';
 import { TransactionItem } from '../../components/TransactionItem';
+import { TransactionItemSkeleton } from '../../components/TransactionItemSkeleton';
 import { SkeletonLoader } from '../../components/SkeletonLoader';
 import { ErrorView } from '../../components/ErrorView';
 import { EmptyState } from '../../components/EmptyState';
@@ -34,6 +36,7 @@ const PERSONAL_CATEGORIES = [
 
 export default function PersonalTabScreen() {
   const [addExpenseVisible, setAddExpenseVisible] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { data: user } = useMe();
@@ -108,13 +111,18 @@ export default function PersonalTabScreen() {
             <Text style={styles.headerTitle}>My Expenses</Text>
             <Text style={styles.headerSubtitle}>Personal Budget</Text>
           </View>
-          <TouchableOpacity
-            style={styles.personalWalletBtn}
-            activeOpacity={0.7}
-            onPress={() => router.push('/personal-wallet')}
-          >
-            <Ionicons name="wallet-sharp" size={30} color={COLORS.secondary} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <TouchableOpacity
+              style={styles.personalWalletBtn}
+              activeOpacity={0.7}
+              onPress={() => router.push('/personal-wallet')}
+            >
+              <Ionicons name="wallet-sharp" size={30} color={COLORS.secondary} />
+            </TouchableOpacity>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => setMenuVisible(true)}>
+              <Ionicons name="ellipsis-vertical" size={26} color={COLORS.onSurface} />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -134,13 +142,22 @@ export default function PersonalTabScreen() {
           <View style={styles.cardCircle1} />
           <View style={styles.cardCircle2} />
           <Text style={styles.cardLabel}>Total Personal Expenses</Text>
-          <Text style={styles.cardValue}>
-            {CURRENCY_SYMBOL}
-            {totalSpent.toLocaleString('en-IN', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
-          </Text>
+          {isLoading ? (
+            <SkeletonLoader
+              width={140}
+              height={32}
+              borderRadius={6}
+              style={{ marginVertical: 4, backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+            />
+          ) : (
+            <Text style={styles.cardValue}>
+              {CURRENCY_SYMBOL}
+              {totalSpent.toLocaleString('en-IN', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </Text>
+          )}
           <View style={styles.cardFooter}>
             <Ionicons name="shield-checkmark-sharp" size={14} color="rgba(255, 255, 255, 0.7)" />
             <Text style={styles.cardFooterText}>Tracking strictly offline/personal items</Text>
@@ -228,50 +245,12 @@ export default function PersonalTabScreen() {
         {/* Loading State */}
         {isLoading && (
           <View>
-            <SkeletonLoader
-              height={80}
-              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-            />
-            <SkeletonLoader
-              height={80}
-              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-            />
-            <SkeletonLoader
-              height={80}
-              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-            />
-            <SkeletonLoader
-              height={80}
-              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-            />
-            <SkeletonLoader
-              height={80}
-              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-            />
-            <SkeletonLoader
-              height={80}
-              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-            />
-            <SkeletonLoader
-              height={80}
-              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-            />
-            <SkeletonLoader
-              height={80}
-              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-            />
-            <SkeletonLoader
-              height={80}
-              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-            />
-            <SkeletonLoader
-              height={80}
-              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-            />
-            <SkeletonLoader
-              height={80}
-              style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-            />
+            <TransactionItemSkeleton />
+            <TransactionItemSkeleton />
+            <TransactionItemSkeleton />
+            <TransactionItemSkeleton />
+            <TransactionItemSkeleton />
+            <TransactionItemSkeleton />
           </View>
         )}
 
@@ -340,6 +319,34 @@ export default function PersonalTabScreen() {
         onClose={() => setAddExpenseVisible(false)}
         onSuccess={refetch}
       />
+
+      {/* 3-Dot Dropdown Menu Modal */}
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setMenuVisible(false)}
+        >
+          <View style={[styles.dropdownMenu, { top: insets.top + 56 }]}>
+            <TouchableOpacity
+              style={styles.dropdownItem}
+              activeOpacity={0.7}
+              onPress={() => {
+                setMenuVisible(false);
+                router.push('/total-spent');
+              }}
+            >
+              <Ionicons name="bar-chart-outline" size={20} color={COLORS.secondary} />
+              <Text style={styles.dropdownItemText}>Analytics</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -555,5 +562,37 @@ const styles = StyleSheet.create({
     color: COLORS.outline,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    right: 16,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 6,
+    minWidth: 145,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e8ece9',
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 10,
+    borderRadius: 8,
+  },
+  dropdownItemText: {
+    fontSize: 14.5,
+    fontWeight: '600',
+    color: COLORS.onSurface,
   },
 });

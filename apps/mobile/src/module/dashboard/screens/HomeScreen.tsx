@@ -7,6 +7,8 @@ import { QuickActionsCard } from '../components/QuickActionsCard';
 import { ActiveGroupsCard } from '../components/ActiveGroupsCard';
 import { AddExpenseModal } from '../../../components/AddExpenseModal';
 import { CreateGroupModal } from '../../groups/components/CreateGroupModal';
+import { GroupCardSkeleton } from '../../groups/components/GroupCardSkeleton';
+import { TransactionItemSkeleton } from '../../../components/TransactionItemSkeleton';
 import { EmptyState } from '../../../components/EmptyState';
 import { SkeletonLoader } from '../components/SkeletonLoader';
 import { useDashboardController } from '@workspace/api';
@@ -217,7 +219,6 @@ export default function HomeScreen() {
         <QuickActionsCard
           onAddExpensePress={() => setAddExpenseVisible(true)}
           onCreateGroupPress={() => setCreateGroupVisible(true)}
-          disabled={groupsLoading}
         />
 
         {/* Active Groups */}
@@ -244,22 +245,9 @@ export default function HomeScreen() {
               </Text>
             </View>
             <View>
-              <SkeletonLoader
-                height={80}
-                style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-              />
-              <SkeletonLoader
-                height={80}
-                style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-              />
-              <SkeletonLoader
-                height={80}
-                style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-              />
-              <SkeletonLoader
-                height={80}
-                style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-              />
+              <GroupCardSkeleton />
+              <GroupCardSkeleton />
+              <GroupCardSkeleton />
             </View>
           </View>
         ) : (
@@ -290,18 +278,9 @@ export default function HomeScreen() {
               </Text>
             </View>
             <View>
-              <SkeletonLoader
-                height={80}
-                style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-              />
-              <SkeletonLoader
-                height={80}
-                style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-              />
-              <SkeletonLoader
-                height={80}
-                style={{ borderBottomWidth: 1, borderBottomColor: '#f1f3f4', borderRadius: 0 }}
-              />
+              <TransactionItemSkeleton />
+              <TransactionItemSkeleton />
+              <TransactionItemSkeleton />
             </View>
           </View>
         ) : (

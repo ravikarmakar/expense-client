@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../../../constants/theme';
+import { COLORS } from '../../../../constants/theme';
 import type { GroupMember } from '@workspace/api';
 import { MemberBalanceItem } from './MemberBalanceItem';
 

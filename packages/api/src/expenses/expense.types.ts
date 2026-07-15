@@ -27,7 +27,7 @@ export type SplitMode = (typeof SPLIT_MODES)[number];
 export const expenseSplitSchema = z.object({
   userId: z.string(),
   name: z.string(),
-  email: z.string().email(),
+  email: z.string(),
   image: z.string().nullable().optional(),
   amount: z.number(),
   paid: z.boolean().default(false),
@@ -73,6 +73,7 @@ export const expenseSchema = z.object({
     .optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  isSettled: z.boolean().optional(),
 });
 
 export const expenseListSchema = z.object({
