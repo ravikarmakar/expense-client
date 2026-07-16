@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
 import { FeatureUnavailableModal } from '../../../components/FeatureUnavailableModal';
 
@@ -145,7 +146,12 @@ export default function PersonalWalletScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Balance Card */}
-        <View style={styles.balanceCard}>
+        <LinearGradient
+          colors={['#4b41e1', '#6f66ec']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.balanceCard}
+        >
           <View style={[styles.abstractCircle, styles.circleTopRight]} />
           <View style={[styles.abstractCircle, styles.circleBottomLeft]} />
           <Text style={styles.balanceLabel}>ACTIVE BALANCE</Text>
@@ -157,7 +163,7 @@ export default function PersonalWalletScreen() {
             <Ionicons name="card-outline" size={14} color="rgba(255,255,255,0.8)" />
             <Text style={styles.balanceMeta}>Personal Wallet Account</Text>
           </View>
-        </View>
+        </LinearGradient>
 
         {/* Money management actions */}
         <Text style={styles.sectionHeader}>Manage Money</Text>
@@ -182,32 +188,35 @@ export default function PersonalWalletScreen() {
         {/* Transaction log history */}
         <Text style={styles.sectionHeader}>Transaction Log</Text>
         <View style={styles.logsList}>
-          {logs.map((log) => {
+          {logs.map((log, index) => {
             const isAdd = log.type === 'DEPOSIT';
             return (
-              <View key={log.id} style={styles.logCard}>
-                <View
-                  style={[
-                    styles.logIconBadge,
-                    { backgroundColor: isAdd ? COLORS.secondaryFixed : '#fce8e6' },
-                  ]}
-                >
-                  <Ionicons
-                    name={isAdd ? 'add' : 'arrow-up'}
-                    size={16}
-                    color={isAdd ? COLORS.secondary : '#c5221f'}
-                  />
+              <React.Fragment key={log.id}>
+                <View style={styles.logCard}>
+                  <View
+                    style={[
+                      styles.logIconBadge,
+                      { backgroundColor: isAdd ? COLORS.secondaryFixed : '#fce8e6' },
+                    ]}
+                  >
+                    <Ionicons
+                      name={isAdd ? 'add' : 'arrow-up'}
+                      size={16}
+                      color={isAdd ? COLORS.secondary : '#c5221f'}
+                    />
+                  </View>
+                  <View style={styles.logInfo}>
+                    <Text style={styles.logDescription}>{log.description}</Text>
+                    <Text style={styles.logTime}>{log.time}</Text>
+                  </View>
+                  <Text style={[styles.logAmount, { color: isAdd ? COLORS.secondary : '#c5221f' }]}>
+                    {isAdd ? '+' : '-'}
+                    {CURRENCY_SYMBOL}
+                    {log.amount.toFixed(2)}
+                  </Text>
                 </View>
-                <View style={styles.logInfo}>
-                  <Text style={styles.logDescription}>{log.description}</Text>
-                  <Text style={styles.logTime}>{log.time}</Text>
-                </View>
-                <Text style={[styles.logAmount, { color: isAdd ? COLORS.secondary : '#c5221f' }]}>
-                  {isAdd ? '+' : '-'}
-                  {CURRENCY_SYMBOL}
-                  {log.amount.toFixed(2)}
-                </Text>
-              </View>
+                {index < logs.length - 1 && <View style={styles.divider} />}
+              </React.Fragment>
             );
           })}
         </View>
@@ -320,13 +329,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   scrollContent: {
-    padding: 20,
+    paddingHorizontal: 0,
+    paddingTop: 16,
+    paddingBottom: 20,
   },
   balanceCard: {
     backgroundColor: COLORS.secondary,
     borderRadius: 24,
     padding: 28,
-    marginBottom: 28,
+    marginBottom: 20,
+    marginHorizontal: 16,
     overflow: 'hidden',
     position: 'relative',
     elevation: 8,
@@ -383,19 +395,20 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 12,
-    paddingLeft: 4,
+    marginHorizontal: 16,
   },
   actionsGrid: {
     flexDirection: 'row',
     gap: 12,
     marginBottom: 28,
+    marginHorizontal: 16,
   },
   actionCard: {
     flex: 1,
     backgroundColor: COLORS.surface,
     borderRadius: 20,
     padding: 14,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: COLORS.surfaceContainer,
     alignItems: 'center',
     justifyContent: 'center',
@@ -427,16 +440,22 @@ const styles = StyleSheet.create({
   },
   logsList: {
     backgroundColor: COLORS.surface,
-    borderRadius: 24,
-    borderWidth: 1.5,
+    borderRadius: 20,
+    borderWidth: 1,
     borderColor: COLORS.surfaceContainer,
-    padding: 16,
-    gap: 14,
+    overflow: 'hidden',
+    marginHorizontal: 16,
   },
   logCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.surfaceContainer,
+    marginHorizontal: 16,
   },
   logIconBadge: {
     width: 36,

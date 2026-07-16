@@ -100,7 +100,7 @@ function GroupDetailContent() {
             >
               Balances
             </Text>
-            {isAdmin && (
+            {isAdmin && group?.isActive !== false && (
               <TouchableOpacity
                 onPress={() => router.push(`/groups/${id}/add-member`)}
                 activeOpacity={0.7}
@@ -135,7 +135,7 @@ function GroupDetailContent() {
       </ScrollView>
 
       {/* ── FAB: Add Expense ── */}
-      {!isLoading && group && (
+      {!isLoading && group && group.isActive !== false && (
         <TouchableOpacity
           style={[
             styles.fab,

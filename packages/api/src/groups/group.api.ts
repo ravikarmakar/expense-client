@@ -93,6 +93,13 @@ export const deactivateGroupApi = async (id: string): Promise<void> => {
 };
 
 /**
+ * Activate a group (only admin can do this).
+ */
+export const activateGroupApi = async (id: string): Promise<void> => {
+  await getApiClient().patch(`/groups/${id}/activate`);
+};
+
+/**
  * Add a member to a group by email.
  */
 export const addMemberApi = async (groupId: string, input: AddMemberInput): Promise<Group> => {

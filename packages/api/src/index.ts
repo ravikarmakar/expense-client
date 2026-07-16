@@ -84,6 +84,7 @@ export {
   leaveGroupApi,
   getGroupDetailApi,
   getGroupActivityApi,
+  activateGroupApi,
 } from './groups/group.api';
 
 export {
@@ -102,6 +103,7 @@ export {
   useGroupDetail,
   useSendReminder,
   useGroupActivity,
+  useActivateGroup,
 } from './groups/group.hooks';
 
 export type { ActivityItem, ActivityFeed } from './groups/activity.types';
@@ -301,6 +303,7 @@ export {
 } from './analytics/analytics.api';
 export {
   useExpenseAnalytics,
+  useExpenseAnalyticsInfinite,
   useDebtBalances,
   useGroupAnalytics,
   useGroupDetailAnalytics,

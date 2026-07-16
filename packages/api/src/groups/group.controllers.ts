@@ -15,6 +15,7 @@ import {
   useCreateGroup,
   useGroups,
   useGroupBalances,
+  useActivateGroup,
 } from './group.hooks';
 import { useSettleUp } from '../settlements/settlements.hooks';
 import { getErrorMessage } from '../auth/auth.api';
@@ -29,6 +30,8 @@ interface GroupDetailControllerConfig {
   onLeaveGroupError?: (error: string) => void;
   onDeactivateGroupSuccess?: () => void;
   onDeactivateGroupError?: (error: string) => void;
+  onActivateGroupSuccess?: () => void;
+  onActivateGroupError?: (error: string) => void;
   onSendReminderSuccess?: (memberName: string) => void;
   onSendReminderError?: (error: string) => void;
 }
@@ -154,6 +157,8 @@ export function useGroupDetailActions({
   onLeaveGroupError,
   onDeactivateGroupSuccess,
   onDeactivateGroupError,
+  onActivateGroupSuccess,
+  onActivateGroupError,
   onSendReminderSuccess,
   onSendReminderError,
   setSettleMember,
@@ -166,6 +171,7 @@ export function useGroupDetailActions({
   const settleUp = useSettleUp(groupId);
   const leaveGroup = useLeaveGroup();
   const deactivateGroup = useDeactivateGroup();
+  const activateGroup = useActivateGroup();
   const sendReminder = useSendReminder(groupId);
 
   const handleSendReminder = (member: GroupMember) => {
@@ -235,16 +241,29 @@ export function useGroupDetailActions({
     });
   };
 
+  const executeActivateGroup = () => {
+    activateGroup.mutate(groupId, {
+      onSuccess: () => {
+        onActivateGroupSuccess?.();
+      },
+      onError: (err) => {
+        onActivateGroupError?.(getErrorMessage(err, 'Failed to activate group.'));
+      },
+    });
+  };
+
   return {
     settleUp,
     leaveGroup,
     deactivateGroup,
+    activateGroup,
     sendReminder,
     handleSendReminder,
     handleSettleUp,
     submitSettleUp,
     executeLeaveGroup,
     executeDeactivateGroup,
+    executeActivateGroup,
   };
 }
 

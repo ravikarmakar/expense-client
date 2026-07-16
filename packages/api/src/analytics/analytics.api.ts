@@ -15,10 +15,13 @@ import {
  */
 export const getExpenseAnalyticsApi = async (
   timeframe: 'today' | 'week' | 'month' | 'year',
-  date?: string
+  date?: string,
+  cursor?: string,
+  limit?: number,
+  type?: 'all' | 'personal' | 'group'
 ): Promise<ExpenseAnalytics> => {
   const { data } = await getApiClient().get<unknown>('/analytics', {
-    params: { timeframe, date },
+    params: { timeframe, date, cursor, limit, type },
   });
   const parsed = expenseAnalyticsResponseSchema.parse(data);
   return parsed.data;

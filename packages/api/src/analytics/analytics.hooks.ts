@@ -29,6 +29,23 @@ export const useExpenseAnalytics = (
     staleTime: 30 * 1000,
   });
 
+import { useInfiniteQuery } from '@tanstack/react-query';
+
+export const useExpenseAnalyticsInfinite = (
+  timeframe: 'today' | 'week' | 'month' | 'year',
+  date?: string,
+  limit = 15,
+  type?: 'all' | 'personal' | 'group'
+) =>
+  useInfiniteQuery({
+    queryKey: [...analyticsKeys.detail(timeframe, date), { limit, type }] as const,
+    queryFn: ({ pageParam }) =>
+      getExpenseAnalyticsApi(timeframe, date, pageParam as string | undefined, limit, type),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    staleTime: 30 * 1000,
+  });
+
 /**
  * Fetch consolidated debt balances.
  */

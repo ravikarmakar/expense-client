@@ -15,6 +15,7 @@ type GroupDetailContextType = ReturnType<typeof useGroupDetailController> & {
   refetchActivity: () => void;
   confirmLeaveGroup: () => void;
   confirmDeactivateGroup: () => void;
+  confirmActivateGroup: () => void;
 };
 
 const GroupDetailContext = createContext<GroupDetailContextType | undefined>(undefined);
@@ -55,6 +56,14 @@ export function GroupDetailProvider({
       router.replace('/(tabs)/groups');
     },
     onDeactivateGroupError: (err) => {
+      Alert.alert('Error', err);
+    },
+    onActivateGroupSuccess: () => {
+      Alert.alert('Success 🎉', 'Group reactivated successfully.');
+      controller.refetch();
+      refetchActivity();
+    },
+    onActivateGroupError: (err) => {
       Alert.alert('Error', err);
     },
     onSendReminderSuccess: (name) => {
@@ -116,6 +125,20 @@ export function GroupDetailProvider({
     );
   };
 
+  const confirmActivateGroup = () => {
+    Alert.alert(
+      'Activate Group',
+      'Are you sure you want to reactivate this group? This will allow adding new expenses and members.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Activate',
+          onPress: controller.executeActivateGroup,
+        },
+      ]
+    );
+  };
+
   const value: GroupDetailContextType = {
     ...controller,
     id,
@@ -127,6 +150,7 @@ export function GroupDetailProvider({
     refetchActivity,
     confirmLeaveGroup,
     confirmDeactivateGroup,
+    confirmActivateGroup,
   };
 
   return <GroupDetailContext.Provider value={value}>{children}</GroupDetailContext.Provider>;

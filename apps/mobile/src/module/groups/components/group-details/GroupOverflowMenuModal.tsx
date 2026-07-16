@@ -17,6 +17,8 @@ export function GroupOverflowMenuModal() {
     setEditGroupVisible,
     confirmDeactivateGroup,
     confirmLeaveGroup,
+    confirmActivateGroup,
+    group,
   } = useGroupDetail();
 
   const handleClose = () => setMenuVisible(false);
@@ -43,38 +45,55 @@ export function GroupOverflowMenuModal() {
 
           {isAdmin && (
             <>
-              <TouchableOpacity
-                style={[styles.menuItem, styles.menuItemBorder]}
-                onPress={() => {
-                  handleClose();
-                  setEditGroupVisible(true);
-                }}
-              >
-                <Ionicons name="pencil-outline" size={20} color={COLORS.onSurface} />
-                <Text style={styles.menuItemText}>Edit Group</Text>
-              </TouchableOpacity>
+              {group?.isActive !== false ? (
+                <>
+                  <TouchableOpacity
+                    style={[styles.menuItem, styles.menuItemBorder]}
+                    onPress={() => {
+                      handleClose();
+                      setEditGroupVisible(true);
+                    }}
+                  >
+                    <Ionicons name="pencil-outline" size={20} color={COLORS.onSurface} />
+                    <Text style={styles.menuItemText}>Edit Group</Text>
+                  </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.menuItem, styles.menuItemBorder]}
-                onPress={() => {
-                  handleClose();
-                  confirmDeactivateGroup();
-                }}
-              >
-                <Ionicons
-                  name="power-outline"
-                  size={20}
-                  color={isFullySettled ? COLORS.error : COLORS.outline}
-                />
-                <Text
-                  style={[
-                    styles.menuItemText,
-                    { color: isFullySettled ? COLORS.error : COLORS.outline },
-                  ]}
+                  <TouchableOpacity
+                    style={[styles.menuItem, styles.menuItemBorder]}
+                    onPress={() => {
+                      handleClose();
+                      confirmDeactivateGroup();
+                    }}
+                  >
+                    <Ionicons
+                      name="power-outline"
+                      size={20}
+                      color={isFullySettled ? COLORS.error : COLORS.outline}
+                    />
+                    <Text
+                      style={[
+                        styles.menuItemText,
+                        { color: isFullySettled ? COLORS.error : COLORS.outline },
+                      ]}
+                    >
+                      Deactivate Group
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.menuItem, styles.menuItemBorder]}
+                  onPress={() => {
+                    handleClose();
+                    confirmActivateGroup();
+                  }}
                 >
-                  Deactivate Group
-                </Text>
-              </TouchableOpacity>
+                  <Ionicons name="power-outline" size={20} color={COLORS.primary} />
+                  <Text style={[styles.menuItemText, { color: COLORS.primary }]}>
+                    Activate Group
+                  </Text>
+                </TouchableOpacity>
+              )}
             </>
           )}
           <TouchableOpacity

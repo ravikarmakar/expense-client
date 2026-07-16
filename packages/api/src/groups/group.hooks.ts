@@ -14,6 +14,7 @@ import {
   getGroupDetailApi,
   sendReminderApi,
   getGroupActivityApi,
+  activateGroupApi,
 } from './group.api';
 import type { Group, CreateGroupInput, UpdateGroupInput, AddMemberInput } from './group.types';
 
@@ -149,6 +150,22 @@ export const useDeactivateGroup = () => {
     onSuccess: (_, id) => {
       queryClient.removeQueries({ queryKey: groupKeys.detail(id) });
       queryClient.removeQueries({ queryKey: groupKeys.detailConsolidated(id) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+};
+
+/**
+ * Activate a group.
+ */
+export const useActivateGroup = () => {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: activateGroupApi,
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: groupKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.detailConsolidated(id) });
       queryClient.invalidateQueries({ queryKey: groupKeys.lists() });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },

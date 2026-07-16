@@ -14,6 +14,7 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
 import {
   useWallet,
@@ -26,8 +27,8 @@ import {
   type WalletContribution,
   type WalletTransaction,
 } from '@workspace/api';
-import { LoadingView } from '../../../components/LoadingView';
 import { ErrorView } from '../../../components/ErrorView';
+import { GroupWalletSkeleton } from '../components/GroupWalletSkeleton';
 import { EmptyState } from '../../../components/EmptyState';
 import { useRouteParams, idParamSchema } from '../../../hooks/useRouteParams';
 import { walletStyles as styles } from '../../groups/styles/group.styles';
@@ -53,6 +54,7 @@ export default function GroupWalletScreen() {
   const updateTarget = useUpdateWalletTarget(groupId);
 
   const isOwner = group?.createdBy === user?.id;
+  const isManager = wallet?.walletManagerId === user?.id;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -115,7 +117,7 @@ export default function GroupWalletScreen() {
 
   // ── Loading ──
   if (isLoading) {
-    return <LoadingView />;
+    return <GroupWalletSkeleton />;
   }
 
   // ── Error ──
@@ -206,7 +208,7 @@ export default function GroupWalletScreen() {
           <Ionicons name="arrow-back" size={24} color={COLORS.onSurface} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Group Wallet</Text>
-        {isOwner && (
+        {(isOwner || isManager) && (
           <TouchableOpacity onPress={openSettings} style={styles.settingsBtn}>
             <Ionicons name="settings-outline" size={22} color={COLORS.onSurface} />
           </TouchableOpacity>
@@ -219,7 +221,12 @@ export default function GroupWalletScreen() {
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
       >
         {/* ── Balance Card ── */}
-        <View style={styles.balanceCard}>
+        <LinearGradient
+          colors={['#4b41e1', '#6f66ec']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.balanceCard}
+        >
           <View style={[styles.abstractCircle, styles.circleTopRight]} />
           <View style={[styles.abstractCircle, styles.circleBottomLeft]} />
           <Text style={styles.balanceLabel}>WALLET BALANCE</Text>
@@ -231,7 +238,7 @@ export default function GroupWalletScreen() {
             <Ionicons name="person" size={14} color="rgba(255,255,255,0.8)" />
             <Text style={styles.balanceMeta}>Managed by {wallet.manager?.name || 'Unknown'}</Text>
           </View>
-        </View>
+        </LinearGradient>
 
         {/* ── Your Contribution Quick Action ── */}
         <View style={styles.yourContribCard}>
@@ -308,8 +315,8 @@ export default function GroupWalletScreen() {
           Member Contributions (Target: {CURRENCY_SYMBOL}
           {wallet.targetContribution})
         </Text>
-        <View style={styles.membersList}>
-          {sortedMembers.map((member) => {
+        <View style={styles.membersListContainer}>
+          {sortedMembers.map((member, index) => {
             const contrib = wallet.contributions.find(
               (c: WalletContribution) => c.userId === member.userId
             );
@@ -318,109 +325,117 @@ export default function GroupWalletScreen() {
             const isMe = member.userId === user?.id;
 
             return (
-              <View key={member.userId} style={styles.memberItem}>
-                <View style={styles.memberLeft}>
-                  <View style={styles.memberNameRow}>
-                    <Text style={styles.memberName}>
-                      {member.name}
-                      {isMe ? ' (You)' : ''}
-                    </Text>
-                    {wallet.walletManagerId === member.userId && (
-                      <View style={styles.managerBadge}>
-                        <Text style={styles.managerBadgeText}>Manager</Text>
-                      </View>
+              <React.Fragment key={member.userId}>
+                <View style={styles.memberItem}>
+                  <View style={styles.memberLeft}>
+                    <View style={styles.memberNameRow}>
+                      <Text style={styles.memberName}>
+                        {member.name}
+                        {isMe ? ' (You)' : ''}
+                      </Text>
+                      {wallet.walletManagerId === member.userId && (
+                        <View style={styles.managerBadge}>
+                          <Text style={styles.managerBadgeText}>Manager</Text>
+                        </View>
+                      )}
+                    </View>
+                    {pending > 0 ? (
+                      <Text style={styles.owingText}>
+                        Owes: {CURRENCY_SYMBOL}
+                        {pending.toFixed(2)}
+                      </Text>
+                    ) : (
+                      <Text style={styles.paidText}>Fully Paid ✓</Text>
                     )}
                   </View>
-                  {pending > 0 ? (
-                    <Text style={styles.owingText}>
-                      Owes: {CURRENCY_SYMBOL}
-                      {pending.toFixed(2)}
-                    </Text>
-                  ) : (
-                    <Text style={styles.paidText}>Fully Paid ✓</Text>
-                  )}
+                  <Text style={styles.memberPaidAmount}>
+                    {CURRENCY_SYMBOL}
+                    {totalPaid.toFixed(2)}
+                  </Text>
                 </View>
-                <Text style={styles.memberPaidAmount}>
-                  {CURRENCY_SYMBOL}
-                  {totalPaid.toFixed(2)}
-                </Text>
-              </View>
+                {index < sortedMembers.length - 1 && <View style={styles.divider} />}
+              </React.Fragment>
             );
           })}
         </View>
 
         {/* ── Transaction History ── */}
         <Text style={[styles.sectionTitle, { marginTop: 28 }]}>Transaction History</Text>
-        <View style={styles.historyList}>
-          {wallet.transactions.length === 0 ? (
+        {wallet.transactions.length === 0 ? (
+          <View style={{ marginHorizontal: 16 }}>
             <EmptyState
               icon="receipt-outline"
               title="No transactions yet"
               description="Contributions and payments will show up here."
             />
-          ) : (
-            wallet.transactions.map((tx: WalletTransaction) => (
-              <View key={tx.id} style={styles.txItem}>
-                <View
-                  style={[
-                    styles.txIcon,
-                    {
-                      backgroundColor:
-                        tx.type === 'DEPOSIT'
-                          ? COLORS.secondaryFixed
-                          : tx.type === 'EXPENSE'
-                            ? COLORS.errorContainer
-                            : COLORS.surfaceContainer,
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name={
-                      tx.type === 'DEPOSIT'
-                        ? 'arrow-down'
-                        : tx.type === 'EXPENSE'
-                          ? 'arrow-up'
-                          : 'swap-horizontal'
-                    }
-                    size={16}
-                    color={
-                      tx.type === 'DEPOSIT'
-                        ? COLORS.secondary
-                        : tx.type === 'EXPENSE'
-                          ? COLORS.error
-                          : COLORS.outline
-                    }
-                  />
-                </View>
-                <View style={styles.txInfo}>
-                  <Text style={styles.txDesc}>
-                    {tx.description}
-                    {tx.user?.name ? ` (by ${tx.user.name})` : ''}
-                  </Text>
-                  <Text style={styles.txDate}>
-                    {new Date(tx.createdAt).toLocaleDateString('en-IN', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </Text>
-                </View>
-                {tx.amount !== null && (
-                  <Text
+          </View>
+        ) : (
+          <View style={styles.historyListContainer}>
+            {wallet.transactions.map((tx: WalletTransaction, index: number) => (
+              <React.Fragment key={tx.id}>
+                <View style={styles.txItem}>
+                  <View
                     style={[
-                      styles.txAmount,
-                      { color: tx.amount > 0 ? COLORS.primary : COLORS.error },
+                      styles.txIcon,
+                      {
+                        backgroundColor:
+                          tx.type === 'DEPOSIT'
+                            ? COLORS.secondaryFixed
+                            : tx.type === 'EXPENSE'
+                              ? COLORS.errorContainer
+                              : COLORS.surfaceContainer,
+                      },
                     ]}
                   >
-                    {tx.amount > 0 ? '+' : ''}
-                    {CURRENCY_SYMBOL}
-                    {Math.abs(tx.amount).toFixed(2)}
-                  </Text>
-                )}
-              </View>
-            ))
-          )}
-        </View>
+                    <Ionicons
+                      name={
+                        tx.type === 'DEPOSIT'
+                          ? 'arrow-down'
+                          : tx.type === 'EXPENSE'
+                            ? 'arrow-up'
+                            : 'swap-horizontal'
+                      }
+                      size={16}
+                      color={
+                        tx.type === 'DEPOSIT'
+                          ? COLORS.secondary
+                          : tx.type === 'EXPENSE'
+                            ? COLORS.error
+                            : COLORS.outline
+                      }
+                    />
+                  </View>
+                  <View style={styles.txInfo}>
+                    <Text style={styles.txDesc}>
+                      {tx.description}
+                      {tx.user?.name ? ` (by ${tx.user.name})` : ''}
+                    </Text>
+                    <Text style={styles.txDate}>
+                      {new Date(tx.createdAt).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </Text>
+                  </View>
+                  {tx.amount !== null && (
+                    <Text
+                      style={[
+                        styles.txAmount,
+                        { color: tx.amount > 0 ? COLORS.primary : COLORS.error },
+                      ]}
+                    >
+                      {tx.amount > 0 ? '+' : ''}
+                      {CURRENCY_SYMBOL}
+                      {Math.abs(tx.amount).toFixed(2)}
+                    </Text>
+                  )}
+                </View>
+                {index < wallet.transactions.length - 1 && <View style={styles.divider} />}
+              </React.Fragment>
+            ))}
+          </View>
+        )}
       </ScrollView>
 
       {/* ── Settings Modal ── */}
