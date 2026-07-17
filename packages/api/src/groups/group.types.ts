@@ -72,6 +72,13 @@ export const groupSchema = z.object({
   createdBy: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  wallet: z
+    .object({
+      id: z.string(),
+      balance: z.number(),
+    })
+    .nullable()
+    .optional(),
 });
 
 export const groupListSchema = z.object({

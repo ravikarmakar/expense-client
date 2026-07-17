@@ -29,31 +29,20 @@ export default function AddMemberScreen() {
     searchQuery,
     setSearchQuery,
     isSubmitting,
+    submittingEmail,
+    addedEmails,
     searchResults,
     isSearching,
     handleAddMember,
   } = useGroupAddMemberController({
     groupId: id,
-    onAddMemberSuccess: (email) => {
-      Alert.alert('Success! 🎉', `${email} has been added to the group.`, [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+    onAddMemberSuccess: () => {
+      // Success is handled inline (green tick); no alert needed
     },
     onAddMemberError: (err) => {
       Alert.alert('Failed to Add', err);
     },
   });
-
-  const confirmAddMember = (email: string) => {
-    Alert.alert('Add Member', `Are you sure you want to add ${email} to the group?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Add',
-        style: 'default',
-        onPress: () => handleAddMember(email),
-      },
-    ]);
-  };
 
   const isEmail = (str: string) => {
     return /\S+@\S+\.\S+/.test(str);
@@ -116,7 +105,7 @@ export default function AddMemberScreen() {
                 {isEmail(searchQuery) && (
                   <TouchableOpacity
                     style={styles.directAddBtn}
-                    onPress={() => confirmAddMember(searchQuery.trim())}
+                    onPress={() => handleAddMember(searchQuery.trim())}
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
@@ -139,7 +128,7 @@ export default function AddMemberScreen() {
                 {isEmail(searchQuery.trim()) && (
                   <TouchableOpacity
                     style={styles.directAddBtn}
-                    onPress={() => confirmAddMember(searchQuery.trim())}
+                    onPress={() => handleAddMember(searchQuery.trim())}
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
@@ -158,13 +147,16 @@ export default function AddMemberScreen() {
             ) : null
           }
           renderItem={({ item }) => {
+            const emailLower = item.email.toLowerCase();
             const isAlreadyMember = group?.members.some(
-              (m) => m.email.toLowerCase() === item.email.toLowerCase()
+              (m) => m.email.toLowerCase() === emailLower
             );
             const isAlreadyInvited = group?.invitedEmails?.some(
-              (email) => email.toLowerCase() === item.email.toLowerCase()
+              (email) => email.toLowerCase() === emailLower
             );
-            const isDisabled = isSubmitting || isAlreadyMember || isAlreadyInvited;
+            const isThisRowLoading = submittingEmail?.toLowerCase() === emailLower;
+            const isJustAdded = addedEmails.has(emailLower);
+            const isDisabled = isSubmitting || isAlreadyMember || isAlreadyInvited || isJustAdded;
 
             return (
               <TouchableOpacity
@@ -172,7 +164,7 @@ export default function AddMemberScreen() {
                   styles.memberItem,
                   (isAlreadyMember || isAlreadyInvited) && { opacity: 0.6 },
                 ]}
-                onPress={() => confirmAddMember(item.email)}
+                onPress={() => handleAddMember(item.email)}
                 activeOpacity={0.7}
                 disabled={isDisabled}
               >
@@ -187,6 +179,8 @@ export default function AddMemberScreen() {
                   <Text style={styles.name}>{item.name}</Text>
                   <Text style={styles.email}>{item.email}</Text>
                 </View>
+
+                {/* Right-side state indicator */}
                 {isAlreadyMember ? (
                   <View style={[styles.statusBadge, { backgroundColor: '#e6f4ea' }]}>
                     <Text style={[styles.statusText, { color: '#137333' }]}>Member</Text>
@@ -195,7 +189,18 @@ export default function AddMemberScreen() {
                   <View style={[styles.statusBadge, { backgroundColor: '#feefe3' }]}>
                     <Text style={[styles.statusText, { color: '#b06000' }]}>Invited</Text>
                   </View>
+                ) : isThisRowLoading ? (
+                  /* Loading spinner for this specific row */
+                  <View style={styles.addIconBtn}>
+                    <ActivityIndicator size="small" color={COLORS.secondary} />
+                  </View>
+                ) : isJustAdded ? (
+                  /* Green success tick after add completes */
+                  <View style={[styles.addIconBtn, { backgroundColor: '#e6f4ea' }]}>
+                    <Ionicons name="checkmark" size={18} color="#137333" />
+                  </View>
                 ) : (
+                  /* Default plus icon */
                   <View style={styles.addIconBtn}>
                     <Ionicons name="person-add" size={18} color={COLORS.secondary} />
                   </View>

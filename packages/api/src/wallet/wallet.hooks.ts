@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { getApiClient } from '../client';
 import {
@@ -91,5 +91,26 @@ export const useContribute = (groupId: string) => {
       queryClient.invalidateQueries({ queryKey: ['wallet', groupId] });
       queryClient.invalidateQueries({ queryKey: ['groups'] });
     },
+  });
+};
+
+export const useWalletTransactions = (groupId: string, limit = 15) => {
+  return useInfiniteQuery({
+    queryKey: ['wallet', groupId, 'transactions'],
+    queryFn: async ({ pageParam }) => {
+      const { data } = await getApiClient().get<{
+        transactions: any[];
+        nextCursor: string | null;
+      }>(`/groups/${groupId}/wallet/transactions`, {
+        params: {
+          cursor: pageParam,
+          limit,
+        },
+      });
+      return data;
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    enabled: !!groupId,
   });
 };

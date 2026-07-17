@@ -149,7 +149,12 @@ export default function ExpenseDetailScreen() {
           {expense.isWalletPayment && (
             <View style={styles.walletBadgeLarge}>
               <Ionicons name="wallet" size={14} color={COLORS.onPrimaryFixedVariant} />
-              <Text style={styles.walletBadgeLargeText}>Paid via Group Wallet</Text>
+              <Text style={styles.walletBadgeLargeText}>
+                Paid via Group Wallet
+                {expense.walletAmount !== undefined && expense.walletAmount !== null
+                  ? ` (${CURRENCY_SYMBOL}${expense.walletAmount.toFixed(2)})`
+                  : ''}
+              </Text>
             </View>
           )}
 
@@ -185,23 +190,73 @@ export default function ExpenseDetailScreen() {
         {/* Paid By Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Paid By</Text>
-          <View style={styles.paidByCard}>
-            <Image
-              source={{
-                uri:
-                  expense.paidBy.image ||
-                  'https://lh3.googleusercontent.com/aida-public/AB6AXuD5T5AJUovvhA_WnRPgEHHUebHGXF5_1EiHG95y-QfKq2nOO07Mu6O3nzSp4AjHOG8hjAGd0Le9T3VMsQ554EcRvn-FBqlSpjy3oLYsJUgXfzsRNskrMk9B58aBpvnyrr9dunlwrQ3t-uLtHtQ5AeVKOCn-64fTFblLeVHlXrsHWRLrpvOIYhhnMeriv4c4aLSPUpLcih10KZ6yXzN32ixRZd3TUiAozHsESLzxhXawBgffwZTpUF4UXguT6m8ijF1N9kQL0fwVx9xM',
-              }}
-              style={styles.paidByAvatar}
-            />
-            <View style={styles.paidByInfo}>
-              <Text style={styles.paidByName}>{expense.paidBy.name}</Text>
-              <Text style={styles.paidBySub}>
-                {CURRENCY_SYMBOL}
-                {expense.amount.toFixed(2)}
-              </Text>
+          {expense.isWalletPayment ? (
+            <View style={styles.walletPaidCard}>
+              {/* Row 1: Wallet contribution if there is any */}
+              {(() => {
+                const walletAmt = expense.walletAmount ?? 0;
+                const userAmt = expense.amount - walletAmt;
+                return (
+                  <>
+                    {(walletAmt > 0 || walletAmt === 0) && (
+                      <View style={styles.walletPaidRow}>
+                        <View style={styles.walletAvatarBg}>
+                          <Ionicons name="wallet" size={22} color={COLORS.primary} />
+                        </View>
+                        <View style={styles.paidByInfo}>
+                          <Text style={styles.paidByName}>Group Wallet</Text>
+                          <Text style={styles.paidBySub}>
+                            {CURRENCY_SYMBOL}
+                            {(walletAmt > 0 ? walletAmt : expense.amount).toFixed(2)}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {walletAmt > 0 && userAmt > 0 && <View style={styles.walletPaidDivider} />}
+
+                    {walletAmt > 0 && userAmt > 0 && (
+                      <View style={styles.walletPaidRow}>
+                        <Image
+                          source={{
+                            uri:
+                              expense.paidBy.image ||
+                              'https://lh3.googleusercontent.com/aida-public/AB6AXuD5T5AJUovvhA_WnRPgEHHUebHGXF5_1EiHG95y-QfKq2nOO07Mu6O3nzSp4AjHOG8hjAGd0Le9T3VMsQ554EcRvn-FBqlSpjy3oLYsJUgXfzsRNskrMk9B58aBpvnyrr9dunlwrQ3t-uLtHtQ5AeVKOCn-64fTFblLeVHlXrsHWRLrpvOIYhhnMeriv4c4aLSPUpLcih10KZ6yXzN32ixRZd3TUiAozHsESLzxhXawBgffwZTpUF4UXguT6m8ijF1N9kQL0fwVx9xM',
+                          }}
+                          style={styles.paidByAvatar}
+                        />
+                        <View style={styles.paidByInfo}>
+                          <Text style={styles.paidByName}>{expense.paidBy.name}</Text>
+                          <Text style={styles.paidBySub}>
+                            {CURRENCY_SYMBOL}
+                            {userAmt.toFixed(2)} (Personal contribution)
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+                  </>
+                );
+              })()}
             </View>
-          </View>
+          ) : (
+            <View style={styles.paidByCard}>
+              <Image
+                source={{
+                  uri:
+                    expense.paidBy.image ||
+                    'https://lh3.googleusercontent.com/aida-public/AB6AXuD5T5AJUovvhA_WnRPgEHHUebHGXF5_1EiHG95y-QfKq2nOO07Mu6O3nzSp4AjHOG8hjAGd0Le9T3VMsQ554EcRvn-FBqlSpjy3oLYsJUgXfzsRNskrMk9B58aBpvnyrr9dunlwrQ3t-uLtHtQ5AeVKOCn-64fTFblLeVHlXrsHWRLrpvOIYhhnMeriv4c4aLSPUpLcih10KZ6yXzN32ixRZd3TUiAozHsESLzxhXawBgffwZTpUF4UXguT6m8ijF1N9kQL0fwVx9xM',
+                }}
+                style={styles.paidByAvatar}
+              />
+              <View style={styles.paidByInfo}>
+                <Text style={styles.paidByName}>{expense.paidBy.name}</Text>
+                <Text style={styles.paidBySub}>
+                  {CURRENCY_SYMBOL}
+                  {expense.amount.toFixed(2)}
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Notes Section */}
@@ -233,7 +288,7 @@ export default function ExpenseDetailScreen() {
                     />
                     <View style={styles.splitInfo}>
                       <Text style={styles.splitName}>{split.name}</Text>
-                      {split.paid ? (
+                      {split.paid || (expense.isWalletPayment && split.amount === 0) ? (
                         <View style={styles.statusBadgeSettled}>
                           <Text style={styles.statusBadgeSettledText}>Settled</Text>
                         </View>

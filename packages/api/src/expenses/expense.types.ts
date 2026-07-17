@@ -64,6 +64,7 @@ export const expenseSchema = z.object({
   myShare: z.number().nullable().optional(),
   youOwe: z.number().nullable().optional(), // positive = you owe, negative = owed to you
   isWalletPayment: z.boolean().optional(),
+  walletAmount: z.number().nullable().optional(),
   group: z
     .object({
       name: z.string(),

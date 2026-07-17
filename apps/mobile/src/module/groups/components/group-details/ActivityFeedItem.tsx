@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { TransactionItem } from '../../../../components/TransactionItem';
+import { ExpenseItem } from '../../../../components/ExpenseItem';
 import { SettlementItem } from '../../../settlements/components/SettlementItem';
 import type { ActivityItem } from '@workspace/api';
 
@@ -20,7 +20,7 @@ export const ActivityFeedItem: React.FC<ActivityFeedItemProps> = ({
   if (item.type === 'expense') {
     return (
       <View style={styles.itemWrapper}>
-        <TransactionItem
+        <ExpenseItem
           expense={item.data}
           currentUserId={currentUserId}
           onPress={onPress}

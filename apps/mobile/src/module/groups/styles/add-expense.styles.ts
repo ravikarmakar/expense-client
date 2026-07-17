@@ -408,4 +408,17 @@ export const styles = StyleSheet.create({
   categoryScroll: {
     maxHeight: 280,
   },
+  walletErrorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: -16,
+    marginBottom: 20,
+    paddingHorizontal: 8,
+  },
+  walletErrorText: {
+    fontSize: 12,
+    color: COLORS.error,
+    fontWeight: '600',
+  },
 });

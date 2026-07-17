@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SkeletonLoader } from './SkeletonLoader';
 
-export function TransactionItemSkeleton() {
+export function ExpenseItemSkeleton() {
   return (
     <View style={styles.container}>
       {/* Left: Category Icon Avatar Skeleton */}

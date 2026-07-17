@@ -8,7 +8,7 @@ import { ActiveGroupsCard } from '../components/ActiveGroupsCard';
 import { AddExpenseModal } from '../../../components/AddExpenseModal';
 import { CreateGroupModal } from '../../groups/components/CreateGroupModal';
 import { GroupCardSkeleton } from '../../groups/components/GroupCardSkeleton';
-import { TransactionItemSkeleton } from '../../../components/TransactionItemSkeleton';
+import { ExpenseItemSkeleton } from '../../../components/ExpenseItemSkeleton';
 import { EmptyState } from '../../../components/EmptyState';
 import { SkeletonLoader } from '../components/SkeletonLoader';
 import { useDashboardController } from '@workspace/api';
@@ -278,9 +278,12 @@ export default function HomeScreen() {
               </Text>
             </View>
             <View>
-              <TransactionItemSkeleton />
-              <TransactionItemSkeleton />
-              <TransactionItemSkeleton />
+              <ExpenseItemSkeleton />
+              <ExpenseItemSkeleton />
+              <ExpenseItemSkeleton />
+              <ExpenseItemSkeleton />
+              <ExpenseItemSkeleton />
+              <ExpenseItemSkeleton />
             </View>
           </View>
         ) : (

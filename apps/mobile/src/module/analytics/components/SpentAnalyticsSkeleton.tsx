@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
 import { SkeletonLoader } from '../../../components/SkeletonLoader';
-import { TransactionItemSkeleton } from '../../../components/TransactionItemSkeleton';
+import { ExpenseItemSkeleton } from '../../../components/ExpenseItemSkeleton';
 import { COLORS } from '../../../constants/theme';
 
 const screenWidth = Dimensions.get('window').width;
@@ -90,9 +90,12 @@ export const SpentAnalyticsSkeleton = () => {
           style={{ marginBottom: 16, marginLeft: 20 }}
         />
         <View style={{ marginHorizontal: -20 }}>
-          <TransactionItemSkeleton />
-          <TransactionItemSkeleton />
-          <TransactionItemSkeleton />
+          <ExpenseItemSkeleton />
+          <ExpenseItemSkeleton />
+          <ExpenseItemSkeleton />
+          <ExpenseItemSkeleton />
+          <ExpenseItemSkeleton />
+          <ExpenseItemSkeleton />
         </View>
       </View>
     </View>

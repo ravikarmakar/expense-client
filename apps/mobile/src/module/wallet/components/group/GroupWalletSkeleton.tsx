@@ -3,9 +3,9 @@ import { View, ScrollView, TouchableOpacity, Text } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS } from '../../../constants/theme';
-import { SkeletonLoader } from '../../../components/SkeletonLoader';
-import { walletStyles as styles } from '../../groups/styles/group.styles';
+import { COLORS } from '../../../../constants/theme';
+import { SkeletonLoader } from '../../../../components/SkeletonLoader';
+import { walletStyles as styles } from '../../../groups/styles/group.styles';
 
 export function GroupWalletSkeleton() {
   const insets = useSafeAreaInsets();

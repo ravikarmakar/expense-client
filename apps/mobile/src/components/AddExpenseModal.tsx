@@ -39,7 +39,7 @@ interface AddExpenseModalProps {
   groupId?: string;
   groupName?: string;
   initialExpenseType?: 'PERSONAL' | 'GROUP';
-  onSuccess?: () => void;
+  onSuccess?: (isWallet?: boolean) => void;
 }
 
 const CategoryDropdown = React.memo(function CategoryDropdown({
@@ -245,7 +245,7 @@ export function AddExpenseModal({
           category: category as string,
         });
         setIsSuccess(true);
-        onSuccess?.();
+        onSuccess?.(false);
       },
       onError: (err) => {
         setErrorMessage(getErrorMessage(err, 'Failed to add expense. Please try again.'));

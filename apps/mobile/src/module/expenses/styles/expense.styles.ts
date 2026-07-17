@@ -95,6 +95,32 @@ export const detailStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.surfaceContainer,
   },
+  walletPaidCard: {
+    flexDirection: 'column',
+    backgroundColor: COLORS.surface,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
+    gap: 12,
+  },
+  walletPaidRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  walletAvatarBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.primaryFixed,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  walletPaidDivider: {
+    height: 1,
+    backgroundColor: COLORS.surfaceContainer,
+  },
   paidByAvatar: {
     width: 48,
     height: 48,

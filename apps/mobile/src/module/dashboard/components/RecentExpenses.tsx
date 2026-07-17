@@ -4,9 +4,9 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../../constants/theme';
 import { globalStyles } from '../../../styles/globalStyles';
-import { TransactionItem } from '../../../components/TransactionItem';
 import type { Expense } from '@workspace/api';
 import { getDateHeading } from '../../../utils/date';
+import { ExpenseItem } from '@/components/ExpenseItem';
 
 interface RecentExpensesProps {
   expenses: Expense[];
@@ -54,7 +54,7 @@ export const RecentExpenses = React.memo(function RecentExpenses({
                     <Text style={styles.dateHeaderText}>{currentHeading}</Text>
                   </View>
                 )}
-                <TransactionItem expense={expense} currentUserId={currentUserId} />
+                <ExpenseItem expense={expense} currentUserId={currentUserId} />
               </React.Fragment>
             );
           });

@@ -57,8 +57,8 @@ export function computeSettledTransactions(activityItems: ActivityItem[]) {
       let allSplitsSettled = true;
 
       for (const s of e.splits) {
-        if (s.userId === payerId) {
-          // Payer's own split is always settled
+        if (s.userId === payerId || Math.abs(s.amount) < 0.01) {
+          // Payer's own split or zero-debt split is always settled
           settledSplitKeys.add(`${e.id}-${s.userId}`);
           continue;
         }

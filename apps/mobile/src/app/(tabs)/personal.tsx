@@ -15,8 +15,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../../constants/theme';
 import { AddExpenseModal } from '../../components/AddExpenseModal';
-import { TransactionItem } from '../../components/TransactionItem';
-import { TransactionItemSkeleton } from '../../components/TransactionItemSkeleton';
+import { ExpenseItem } from '../../components/ExpenseItem';
+import { ExpenseItemSkeleton } from '../../components/ExpenseItemSkeleton';
 import { SkeletonLoader } from '../../components/SkeletonLoader';
 import { ErrorView } from '../../components/ErrorView';
 import { EmptyState } from '../../components/EmptyState';
@@ -245,12 +245,12 @@ export default function PersonalTabScreen() {
         {/* Loading State */}
         {isLoading && (
           <View>
-            <TransactionItemSkeleton />
-            <TransactionItemSkeleton />
-            <TransactionItemSkeleton />
-            <TransactionItemSkeleton />
-            <TransactionItemSkeleton />
-            <TransactionItemSkeleton />
+            <ExpenseItemSkeleton />
+            <ExpenseItemSkeleton />
+            <ExpenseItemSkeleton />
+            <ExpenseItemSkeleton />
+            <ExpenseItemSkeleton />
+            <ExpenseItemSkeleton />
           </View>
         )}
 
@@ -287,7 +287,7 @@ export default function PersonalTabScreen() {
                         <Text style={styles.dateHeaderText}>{currentHeading}</Text>
                       </View>
                     )}
-                    <TransactionItem expense={expense} currentUserId={user?.id} />
+                    <ExpenseItem expense={expense} currentUserId={user?.id} />
                   </React.Fragment>
                 );
               });

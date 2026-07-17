@@ -7,7 +7,8 @@ import { detailStyles as styles } from '../../styles/group.styles';
 import { useGroupDetail } from '../../contexts/GroupDetailContext';
 
 export function GroupBalanceCard() {
-  const { isLoading, group, myBalance } = useGroupDetail();
+  const { isLoading, isFetching, isRefreshing, group, myBalance } = useGroupDetail();
+  const showSkeleton = isLoading || (isFetching && !isRefreshing);
 
   return (
     <View
@@ -23,7 +24,7 @@ export function GroupBalanceCard() {
 
       <View style={styles.balanceHeader}>
         <Text style={[styles.balanceCardLabel, { color: 'rgba(255,255,255,0.8)' }]}>
-          {isLoading || !group
+          {showSkeleton || !group
             ? 'Calculating balances...'
             : Math.abs(myBalance) < 0.01
               ? "You're all settled up!"
@@ -41,7 +42,7 @@ export function GroupBalanceCard() {
         />
       </View>
 
-      {isLoading || !group ? (
+      {showSkeleton || !group ? (
         <SkeletonLoader
           width={120}
           height={32}
@@ -61,7 +62,7 @@ export function GroupBalanceCard() {
       <View style={styles.balanceCardFooter}>
         <View style={styles.metaItem}>
           <Ionicons name="people" size={16} color="rgba(255,255,255,0.8)" />
-          {isLoading || !group ? (
+          {showSkeleton || !group ? (
             <SkeletonLoader
               width={24}
               height={14}
@@ -77,7 +78,7 @@ export function GroupBalanceCard() {
         </View>
         <View style={styles.metaItem}>
           <Ionicons name="receipt" size={16} color="rgba(255,255,255,0.8)" />
-          {isLoading || !group ? (
+          {showSkeleton || !group ? (
             <SkeletonLoader
               width={50}
               height={14}

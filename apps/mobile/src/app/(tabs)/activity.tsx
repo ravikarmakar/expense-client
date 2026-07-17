@@ -15,8 +15,8 @@ import {
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../../constants/theme';
-import { TransactionItem } from '../../components/TransactionItem';
-import { TransactionItemSkeleton } from '../../components/TransactionItemSkeleton';
+import { ExpenseItem } from '../../components/ExpenseItem';
+import { ExpenseItemSkeleton } from '../../components/ExpenseItemSkeleton';
 import { SkeletonLoader } from '../../components/SkeletonLoader';
 import { AddExpenseModal } from '../../components/AddExpenseModal';
 import { ErrorView } from '../../components/ErrorView';
@@ -331,12 +331,12 @@ export default function ActivityTabScreen() {
         {/* Loading */}
         {isLoading && (
           <View>
-            <TransactionItemSkeleton />
-            <TransactionItemSkeleton />
-            <TransactionItemSkeleton />
-            <TransactionItemSkeleton />
-            <TransactionItemSkeleton />
-            <TransactionItemSkeleton />
+            <ExpenseItemSkeleton />
+            <ExpenseItemSkeleton />
+            <ExpenseItemSkeleton />
+            <ExpenseItemSkeleton />
+            <ExpenseItemSkeleton />
+            <ExpenseItemSkeleton />
           </View>
         )}
 
@@ -377,7 +377,7 @@ export default function ActivityTabScreen() {
                         <Text style={styles.dateHeaderText}>{currentHeading}</Text>
                       </View>
                     )}
-                    <TransactionItem expense={expense} currentUserId={user?.id} />
+                    <ExpenseItem expense={expense} currentUserId={user?.id} />
                   </React.Fragment>
                 );
               });

@@ -57,6 +57,8 @@ export default function GroupsScreen() {
     refetch,
     balancesData,
     isBalancesLoading,
+    isFetchingGroups,
+    isFetchingBalances,
     groupList,
     activeGroupList,
     totalOwedToMe,
@@ -65,6 +67,9 @@ export default function GroupsScreen() {
     isRefreshing,
     handleRefresh,
   } = useGroupsController();
+
+  const showSkeleton = isLoading || (isFetchingGroups && !isRefreshing);
+  const showBalancesSkeleton = isBalancesLoading || (isFetchingBalances && !isRefreshing);
 
   return (
     <View style={styles.container}>
@@ -118,7 +123,7 @@ export default function GroupsScreen() {
                 activity={`${group.type ?? 'Other'} · Active ${formatLastActive(group.updatedAt)}`}
                 memberAvatars={group.members.slice(0, 3).map((m) => m.image ?? '')}
                 totalMembersCount={group.memberCount}
-                isLoadingBalance={isBalancesLoading}
+                isLoadingBalance={showBalancesSkeleton}
                 balance={bal}
                 onPress={() =>
                   router.push(
@@ -141,12 +146,16 @@ export default function GroupsScreen() {
         ListHeaderComponent={
           <>
             {/* Premium Net Balance Card */}
-            {!isLoading && !isError && !isBalancesLoading && groupList.length > 0 && (
+            {!showSkeleton && !isError && !showBalancesSkeleton && groupList.length > 0 && (
               <NetBalanceCard totalOwedToMe={totalOwedToMe} totalIOwe={totalIOwe} />
             )}
 
+            {showBalancesSkeleton && !showSkeleton && groupList.length > 0 && (
+              <NetBalanceCardSkeleton />
+            )}
+
             {/* Loading state */}
-            {isLoading && (
+            {showSkeleton && (
               <>
                 <NetBalanceCardSkeleton />
                 <View style={{ marginHorizontal: -20, marginBottom: 12 }}>

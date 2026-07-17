@@ -1,70 +1,95 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
-import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../constants/theme';
-import type { Expense } from '@workspace/api';
+import { type Expense } from '@workspace/api';
 
-interface ExpenseItemProps {
+interface TransactionItemProps {
   expense: Expense;
   currentUserId?: string;
   onPress?: () => void;
+  isSettled?: boolean;
 }
 
-export const ExpenseItem = React.memo(function ExpenseItem({
+export const ExpenseItem = React.memo(function TransactionItem({
   expense,
   currentUserId,
   onPress,
-}: ExpenseItemProps) {
+  isSettled,
+}: TransactionItemProps) {
   const defaultOnPress = () => router.push(`/expense/${expense.id}`);
 
+  const finalIsSettled = isSettled !== undefined ? isSettled : expense.isSettled || false;
+
+  // Format payer name display
+  const isMyExpense = expense.paidBy.userId === currentUserId;
+  const payerDisplayName = isMyExpense ? 'You' : expense.paidBy.name.split(' ')[0] || 'User';
+
+  // Format payment source subtitle
+  const sourceSubtitle = expense.group
+    ? `${expense.group.emoji} ${expense.group.name} • ${expense.isWalletPayment ? 'Paid via Wallet' : `Paid by ${payerDisplayName}`}`
+    : `Personal • ${expense.category} • Paid by You`;
+
+  // Look up category icon configuration
   const cfg = CATEGORY_ICONS[expense.category] ?? CATEGORY_ICONS.Other;
 
-  // Calculate balance display
-  const isMyExpense = expense.paidBy.userId === currentUserId;
-  const youOwe = expense.youOwe ?? 0;
-  const myShare = expense.myShare;
-
-  let balanceLabel = '';
-  let balanceColor = COLORS.outline;
-  let balanceBg = COLORS.surfaceContainerLow;
-
-  if (isMyExpense && expense.splits && expense.splits.length > 1) {
-    const othersOwe = expense.splits
-      .filter((s) => s.userId !== currentUserId && !s.paid)
-      .reduce((sum, s) => sum + s.amount, 0);
-    if (othersOwe > 0) {
-      balanceLabel = `Owed ${CURRENCY_SYMBOL}${othersOwe.toFixed(2)}`;
-      balanceColor = '#1b5e20'; // Darker green for text
-      balanceBg = '#e8f5e9'; // Soft green pill background
-    }
-  } else if (youOwe > 0) {
-    balanceLabel = `Owe ${CURRENCY_SYMBOL}${youOwe.toFixed(2)}`;
-    balanceColor = '#c62828'; // Darker red for text
-    balanceBg = '#ffebee'; // Soft red pill background
-  } else if (youOwe < 0) {
-    balanceLabel = `Owed ${CURRENCY_SYMBOL}${Math.abs(youOwe).toFixed(2)}`;
-    balanceColor = '#1b5e20';
-    balanceBg = '#e8f5e9';
-  } else if (myShare !== undefined && myShare !== null) {
-    balanceLabel = `${CURRENCY_SYMBOL}${myShare.toFixed(2)}`;
-    balanceColor = COLORS.onSurfaceVariant;
-    balanceBg = COLORS.surfaceContainerHigh;
-  }
-
-  const dateStr = new Date(expense.date).toLocaleDateString('en-IN', {
+  // Format timestamp (e.g. "13 Jul 2026, 08:29 AM")
+  const dateObj = new Date(expense.date);
+  const dateStr = dateObj.toLocaleDateString('en-IN', {
     day: 'numeric',
     month: 'short',
+    year: 'numeric',
   });
+
+  const createdObj = new Date(expense.createdAt || expense.date);
+  let hours = createdObj.getHours();
+  const minutes = createdObj.getMinutes().toString().padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  const timeStr = `${hours.toString().padStart(2, '0')}:${minutes} ${ampm}`;
+  const fullDateTimeStr = `${dateStr}, ${timeStr}`;
+
+  // Calculate balance display
+  let balanceLabel = '';
+  let balanceColor = '#70757a';
+
+  if (expense.groupId) {
+    if (isMyExpense) {
+      const othersOwe = expense.splits
+        ? expense.splits
+            .filter((s) => s.userId !== currentUserId && !s.paid)
+            .reduce((sum, s) => sum + s.amount, 0)
+        : 0;
+      if (othersOwe > 0) {
+        balanceLabel = `Owed ${CURRENCY_SYMBOL}${othersOwe.toFixed(2)}`;
+        balanceColor = finalIsSettled ? '#70757a' : '#1b5e20';
+      } else {
+        balanceLabel = 'Settled';
+        balanceColor = '#137333';
+      }
+    } else {
+      const mySplit = expense.splits?.find((s) => s.userId === currentUserId);
+      if (mySplit) {
+        if (mySplit.paid) {
+          balanceLabel = 'Settled';
+          balanceColor = '#137333';
+        } else {
+          balanceLabel = `Owe ${CURRENCY_SYMBOL}${mySplit.amount.toFixed(2)}`;
+          balanceColor = finalIsSettled ? '#70757a' : '#c62828';
+        }
+      }
+    }
+  }
 
   return (
     <TouchableOpacity
       style={styles.container}
       onPress={onPress ?? defaultOnPress}
-      activeOpacity={0.75}
+      activeOpacity={0.6}
     >
-      {/* Category icon with modern rounded corners */}
-      <View style={[styles.iconBg, { backgroundColor: cfg.bg }]}>
+      {/* Left: Category Icon Avatar */}
+      <View style={[styles.avatarCircle, { backgroundColor: cfg.bg }]}>
         {cfg.lib === 'Ionicons' ? (
           <Ionicons name={cfg.icon as never} size={22} color={cfg.color} />
         ) : (
@@ -72,45 +97,45 @@ export const ExpenseItem = React.memo(function ExpenseItem({
         )}
       </View>
 
-      {/* Main content */}
-      <View style={styles.info}>
-        {expense.group && (
-          <Text style={styles.groupHeader} numberOfLines={1}>
-            {expense.group.emoji} {expense.group.name}
-          </Text>
-        )}
-        <View style={styles.titleRow}>
-          <Text style={styles.title} numberOfLines={1}>
-            {expense.title}
-          </Text>
-          {expense.isWalletPayment && (
-            <View style={styles.walletBadge}>
-              <Ionicons name="wallet" size={9} color={COLORS.primary} />
-              <Text style={styles.walletBadgeText}>Wallet</Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.metaRow}>
-          <Text style={styles.paidBy} numberOfLines={1}>
-            {isMyExpense ? 'You paid' : `${expense.paidBy.name.split(' ')[0]} paid`}
-          </Text>
-          <View style={styles.dot} />
-          <Text style={styles.date}>{dateStr}</Text>
-        </View>
+      {/* Middle: Title, Payment Subtitle, Date */}
+      <View style={styles.middleSection}>
+        <Text style={styles.sourceText} numberOfLines={1}>
+          {sourceSubtitle}
+        </Text>
+        <Text style={styles.titleText} numberOfLines={1}>
+          {expense.title}
+        </Text>
+        <Text style={styles.dateText}>{fullDateTimeStr}</Text>
       </View>
 
-      {/* Right side: total amount + status pill */}
-      <View style={styles.right}>
-        <Text style={styles.totalAmount}>
-          {CURRENCY_SYMBOL}
-          {expense.amount.toFixed(2)}
-        </Text>
-        {balanceLabel ? (
-          <View style={[styles.statusPill, { backgroundColor: balanceBg }]}>
-            <Text style={[styles.statusPillText, { color: balanceColor }]}>{balanceLabel}</Text>
-          </View>
-        ) : null}
+      {/* Right: Amount & Chevron */}
+      <View style={styles.rightSection}>
+        <View style={styles.amountContainer}>
+          <Text style={[styles.amountText, styles.amountDebit]}>
+            {CURRENCY_SYMBOL}
+            {expense.amount.toFixed(2)}
+          </Text>
+          {expense.isWalletPayment ? (
+            <View style={styles.walletPaidBadge}>
+              <Ionicons name="wallet" size={9} color={COLORS.primary} />
+              <Text style={styles.walletPaidBadgeText}>Wallet</Text>
+            </View>
+          ) : (
+            <>
+              {balanceLabel ? (
+                <Text style={[styles.balanceText, { color: balanceColor }]} numberOfLines={1}>
+                  {balanceLabel}
+                </Text>
+              ) : null}
+              {finalIsSettled ? (
+                <View style={styles.settledBadgeContainer}>
+                  <Text style={styles.settledBadgeText}>Covered by settlement</Text>
+                </View>
+              ) : null}
+            </>
+          )}
+        </View>
+        <Ionicons name="chevron-forward" size={16} color="#000000" style={styles.chevron} />
       </View>
     </TouchableOpacity>
   );
@@ -120,113 +145,135 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderRadius: 20, // More rounded modern container
-    padding: 16, // Spacious padding
-    gap: 14,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceContainer,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
+    backgroundColor: '#ffffff',
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f3f4',
   },
-  iconBg: {
-    width: 48, // Larger icon container
+  avatarCircle: {
+    width: 48,
     height: 48,
-    borderRadius: 14, // Modern rounded rectangle
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
+    marginRight: 14,
   },
-  info: {
+  avatarText: {
+    color: '#ffffff',
+    fontSize: 22,
+    fontWeight: '500',
+  },
+  doubleCircleContainer: {
+    marginRight: 14,
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  outerRupeeCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#bdc1c6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+  },
+  innerRupeeCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: '#4285f4', // Blue border
+    backgroundColor: '#fdd835', // Yellow/Gold background
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rupeeSymbol: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#3c4043',
+  },
+  middleSection: {
     flex: 1,
     justifyContent: 'center',
-    gap: 4,
   },
-  title: {
-    fontSize: 16, // Larger title text
-    fontWeight: '700',
-    color: COLORS.onSurface,
-    flexShrink: 1,
+  sourceText: {
+    fontSize: 11.5,
+    color: '#70757a',
+    marginBottom: 2,
+    fontWeight: '400',
   },
-  titleRow: {
+  titleText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#202124',
+    marginBottom: 3,
+    letterSpacing: 0.3,
+  },
+  dateText: {
+    fontSize: 11.5,
+    color: '#70757a',
+    fontWeight: '400',
+  },
+  rightSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'flex-end',
+    minWidth: 90,
   },
-  walletBadge: {
+  amountContainer: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  amountText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  amountCredit: {
+    color: '#137333', // Amazon Pay green for credits
+  },
+  amountDebit: {
+    color: '#202124', // Amazon Pay dark for debits
+  },
+  balanceText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  chevron: {
+    marginLeft: 10,
+    opacity: 0.8,
+  },
+  settledBadgeContainer: {
+    backgroundColor: '#e6f4ea',
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    marginTop: 3,
+  },
+  settledBadgeText: {
+    fontSize: 9.5,
+    color: '#137333',
+    fontWeight: '700',
+  },
+  walletPaidBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.primaryFixed,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 6,
-    gap: 3,
+    borderRadius: 4,
+    gap: 2.5,
+    marginTop: 3,
   },
-  walletBadgeText: {
-    fontSize: 9,
+  walletPaidBadgeText: {
+    fontSize: 8.5,
     fontWeight: '800',
     color: COLORS.onPrimaryFixedVariant,
-    lineHeight: 12,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    flexShrink: 1, // Allow row to shrink
-  },
-  paidBy: {
-    fontSize: 12, // Increased from 11
-    color: COLORS.outline,
-    fontWeight: '500',
-    flexShrink: 1, // Shrink text if needed
-  },
-  dot: {
-    width: 4, // Slightly larger separator dot
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.outlineVariant,
-    marginHorizontal: 3,
-  },
-  date: {
-    fontSize: 12, // Increased from 11
-    color: COLORS.outline,
-    fontWeight: '500',
-  },
-  groupHeader: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: COLORS.secondary,
+    lineHeight: 11,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  right: {
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    gap: 4,
-    flexShrink: 0,
-    minWidth: 80,
-  },
-  totalAmount: {
-    fontSize: 16, // Increased from 14
-    fontWeight: '700', // Bold amount display
-    color: COLORS.onSurface,
-  },
-  statusPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusPillText: {
-    fontSize: 10.5, // Legible status text
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    lineHeight: 14,
   },
 });

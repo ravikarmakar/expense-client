@@ -1,6 +1,5 @@
 import { useState, useCallback, useReducer, useMemo, useEffect } from 'react';
 import { useCreateExpense } from '../expenses/expense.hooks';
-import { useWallet } from '../wallet/wallet.hooks';
 import { clientCreateExpenseSchema } from '../expenses/expense.validation';
 import { type ExpenseCategory } from '../expenses/expense.types';
 import { useMe } from '../auth/auth.hooks';
@@ -314,7 +313,8 @@ export function useGroupAddMemberController({
 }: GroupAddMemberControllerConfig) {
   const { data: group } = useGroup(groupId);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittingEmail, setSubmittingEmail] = useState<string | null>(null);
+  const [addedEmails, setAddedEmails] = useState<Set<string>>(new Set());
 
   const { data: searchResults, isLoading: isSearching } = useSearchUsers(searchQuery);
   const addMember = useAddMember(groupId);
@@ -329,16 +329,17 @@ export function useGroupAddMemberController({
       return;
     }
 
-    setIsSubmitting(true);
+    setSubmittingEmail(email);
     addMember.mutate(
       { email },
       {
         onSuccess: () => {
-          setIsSubmitting(false);
+          setSubmittingEmail(null);
+          setAddedEmails((prev) => new Set(prev).add(email.toLowerCase()));
           onAddMemberSuccess?.(email);
         },
         onError: (err) => {
-          setIsSubmitting(false);
+          setSubmittingEmail(null);
           onAddMemberError?.(getErrorMessage(err, 'Failed to add member.'));
         },
       }
@@ -349,7 +350,10 @@ export function useGroupAddMemberController({
     group,
     searchQuery,
     setSearchQuery,
-    isSubmitting,
+    // Legacy boolean for direct-add button compatibility
+    isSubmitting: submittingEmail !== null,
+    submittingEmail,
+    addedEmails,
     searchResults,
     isSearching,
     handleAddMember,
@@ -494,13 +498,22 @@ export function useGroupsController() {
   }, [searchQuery]);
 
   // Fetch paginated groups from the server, filtered by search query
-  const { data, isLoading, isError, hasNextPage, fetchNextPage, isFetchingNextPage, refetch } =
-    useGroups(debouncedSearchQuery);
+  const {
+    data,
+    isLoading,
+    isError,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    refetch,
+    isFetching: isFetchingGroups,
+  } = useGroups(debouncedSearchQuery);
 
   // Fetch dynamic group balances in background
   const {
     data: balancesData,
     isLoading: isBalancesLoading,
+    isFetching: isFetchingBalances,
     refetch: refetchBalances,
   } = useGroupBalances();
 
@@ -583,6 +596,8 @@ export function useGroupsController() {
     refetch,
     balancesData,
     isBalancesLoading,
+    isFetchingGroups,
+    isFetchingBalances,
     refetchBalances,
     groupList,
     activeGroupList,
@@ -599,7 +614,7 @@ export interface UseAddGroupExpenseControllerProps {
   onClose: () => void;
   groupId?: string;
   groupName?: string;
-  onSuccess?: () => void;
+  onSuccess?: (isWallet?: boolean) => void;
 }
 
 /**
@@ -674,7 +689,8 @@ export function useAddGroupExpenseController({
     return (groupData?.members ?? []).filter((m) => m.role !== 'invited');
   }, [groupData]);
 
-  const { data: walletData, isLoading: isLoadingWallet } = useWallet(visible ? activeGroupId : '');
+  const walletData = groupData?.wallet;
+  const isLoadingWallet = isLoadingMembers;
   const [useWalletBalance, setUseWalletBalance] = useState(false);
 
   const sortedGroupMembers = useMemo(() => {
@@ -788,6 +804,13 @@ export function useAddGroupExpenseController({
       return;
     }
 
+    if (useWalletBalance && walletData && parsed > walletData.balance) {
+      setErrorMessage(
+        `Expense amount (₹${parsed.toFixed(2)}) exceeds group wallet balance (₹${walletData.balance.toFixed(2)})`
+      );
+      return;
+    }
+
     if (splitMemberIds.length === 0) {
       setErrorMessage('Please select at least one member to split with');
       return;
@@ -853,7 +876,7 @@ export function useAddGroupExpenseController({
           groupName: groupData?.name || groupName || 'Group',
         });
         setIsSuccess(true);
-        onSuccess?.();
+        onSuccess?.(useWalletBalance);
       },
       onError: (err) => {
         setErrorMessage(getErrorMessage(err, 'Failed to add expense. Please try again.'));

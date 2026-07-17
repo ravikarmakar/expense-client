@@ -93,11 +93,15 @@ export const useCreateExpense = () => {
   const queryClient = useQueryClient();
   return useMutation<Expense, Error, CreateExpenseInput>({
     mutationFn: createExpenseApi,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['groups'] });
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      if (data.isWalletPayment) {
+        queryClient.invalidateQueries({ queryKey: ['groups', 'list'] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['groups'] });
+      }
     },
   });
 };
@@ -109,11 +113,15 @@ export const useCreateGroupExpense = (groupId: string) => {
   const queryClient = useQueryClient();
   return useMutation<Expense, Error, Omit<CreateExpenseInput, 'groupId'>>({
     mutationFn: (input) => createGroupExpenseApi(groupId, input),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['groups'] });
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      if (data.isWalletPayment) {
+        queryClient.invalidateQueries({ queryKey: ['groups', 'list'] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['groups'] });
+      }
     },
   });
 };

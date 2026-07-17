@@ -6,7 +6,7 @@ import { COLORS } from '../../../../constants/theme';
 import { globalStyles } from '../../../../styles/globalStyles';
 import { EmptyState } from '../../../../components/EmptyState';
 import { ActivityFeedItem } from './ActivityFeedItem';
-import { TransactionItemSkeleton } from '../../../../components/TransactionItemSkeleton';
+import { ExpenseItemSkeleton } from '../../../../components/ExpenseItemSkeleton';
 import { getDateHeading } from '../../../../utils/date';
 import { detailStyles as styles } from '../../styles/group.styles';
 import { useGroupDetail } from '../../contexts/GroupDetailContext';
@@ -14,14 +14,22 @@ import { useGroupDetail } from '../../contexts/GroupDetailContext';
 export function GroupRecentActivity() {
   const {
     isLoading,
+    isFetching,
+    isRefreshing,
     group,
     isLoadingActivity,
+    isFetchingActivity,
     recentActivity,
     user,
     id: groupId,
   } = useGroupDetail();
 
   const currentUserId = user?.id;
+  const showSkeleton =
+    isLoadingActivity ||
+    isLoading ||
+    (isFetching && !isRefreshing) ||
+    (isFetchingActivity && !isRefreshing);
 
   return (
     <View style={globalStyles.sectionContainer}>
@@ -31,13 +39,15 @@ export function GroupRecentActivity() {
           alignItems: 'center',
           justifyContent: 'space-between',
           marginBottom: 16,
+          marginHorizontal: -20,
+          paddingHorizontal: 20,
         }}
       >
         <Text
           style={[
             globalStyles.sectionTitle,
             {
-              fontSize: 16,
+              fontSize: 20,
               color: COLORS.onSurface,
               textTransform: 'none',
               letterSpacing: 0,
@@ -48,13 +58,26 @@ export function GroupRecentActivity() {
         >
           Recent Activity
         </Text>
+        {group && recentActivity.length > 0 && (
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: `/groups/${groupId}/expenses`,
+                params: { name: group?.name, type: 'activity' },
+              })
+            }
+          >
+            <Text style={{ fontSize: 13, fontWeight: '700', color: COLORS.primary }}>See All</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      {isLoadingActivity || isLoading || !group ? (
+      {showSkeleton || !group ? (
         <View style={{ marginHorizontal: -20 }}>
-          <TransactionItemSkeleton />
-          <TransactionItemSkeleton />
-          <TransactionItemSkeleton />
+          <ExpenseItemSkeleton />
+          <ExpenseItemSkeleton />
+          <ExpenseItemSkeleton />
+          <ExpenseItemSkeleton />
         </View>
       ) : recentActivity.length === 0 ? (
         <EmptyState

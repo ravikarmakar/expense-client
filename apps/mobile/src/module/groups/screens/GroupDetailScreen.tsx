@@ -41,6 +41,7 @@ function GroupDetailContent() {
     group,
     isAdmin,
     isLoading,
+    isFetching,
     isError,
     refetch,
     isRefreshing,
@@ -64,6 +65,8 @@ function GroupDetailContent() {
     routeName,
     insets,
   } = useGroupDetail();
+
+  const showSkeleton = isLoading || (isFetching && !isRefreshing);
 
   if (isError || (!group && !isLoading)) {
     return <ErrorView message="Failed to load group" onRetry={refetch} />;
@@ -112,7 +115,7 @@ function GroupDetailContent() {
               </TouchableOpacity>
             )}
           </View>
-          {isLoading || !group ? (
+          {showSkeleton || !group ? (
             <View style={localStyles.membersSkeletonContainer}>
               <MemberBalanceItemSkeleton />
               <MemberBalanceItemSkeleton />
@@ -170,8 +173,10 @@ function GroupDetailContent() {
         onClose={() => setAddExpenseVisible(false)}
         groupId={id}
         groupName={group?.name ?? routeName ?? 'Group'}
-        onSuccess={() => {
-          refetch();
+        onSuccess={(isWallet) => {
+          if (!isWallet) {
+            refetch();
+          }
           refetchActivity();
         }}
       />

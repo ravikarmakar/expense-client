@@ -242,7 +242,9 @@ export {
   useUpdateWalletManager,
   useUpdateWalletTarget,
   useContribute,
+  useWalletTransactions,
 } from './wallet/wallet.hooks';
+export { useGroupWalletController } from './wallet/wallet.controllers';
 
 // ── Dashboard module ──────────────────────────────────
 export type {

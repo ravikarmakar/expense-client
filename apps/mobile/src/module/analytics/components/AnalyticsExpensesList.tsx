@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { TransactionItem } from '../../../components/TransactionItem';
+import { ExpenseItem } from '../../../components/ExpenseItem';
 import { getDateHeading } from '../../../utils/date';
 import { COLORS } from '../../../constants/theme';
 import { globalStyles } from '../../../styles/globalStyles';
@@ -46,7 +46,7 @@ export const AnalyticsExpensesList: React.FC<AnalyticsExpensesListProps> = ({
                       <Text style={styles.dateHeaderText}>{currentHeading}</Text>
                     </View>
                   )}
-                  <TransactionItem expense={expense} currentUserId={currentUserId} />
+                  <ExpenseItem expense={expense} currentUserId={currentUserId} />
                 </React.Fragment>
               );
             });

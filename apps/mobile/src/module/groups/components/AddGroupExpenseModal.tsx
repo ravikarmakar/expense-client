@@ -24,7 +24,7 @@ interface AddGroupExpenseModalProps {
   onClose: () => void;
   groupId?: string;
   groupName?: string;
-  onSuccess?: () => void;
+  onSuccess?: (isWallet?: boolean) => void;
 }
 
 export function AddGroupExpenseModal({
@@ -251,6 +251,15 @@ export function AddGroupExpenseModal({
                   </TouchableOpacity>
                 ) : null)}
 
+              {useWalletBalance && walletData && (parseFloat(amount) || 0) > walletData.balance && (
+                <View style={styles.walletErrorRow}>
+                  <Ionicons name="alert-circle" size={14} color={COLORS.error} />
+                  <Text style={styles.walletErrorText}>
+                    Amount exceeds wallet balance (₹{walletData.balance.toFixed(2)})
+                  </Text>
+                </View>
+              )}
+
               <SplitSelector
                 groupMembers={groupMembers}
                 sortedGroupMembers={sortedGroupMembers}
@@ -315,7 +324,10 @@ export function AddGroupExpenseModal({
                     !category ||
                     !amount ||
                     createExpense.isPending ||
-                    groupMembers.length <= 1) &&
+                    groupMembers.length <= 1 ||
+                    (useWalletBalance &&
+                      walletData &&
+                      (parseFloat(amount) || 0) > walletData.balance)) &&
                     styles.primaryBtnDisabled,
                 ]}
                 onPress={handleSubmit}
@@ -324,7 +336,8 @@ export function AddGroupExpenseModal({
                   !category ||
                   !amount ||
                   createExpense.isPending ||
-                  groupMembers.length <= 1
+                  groupMembers.length <= 1 ||
+                  (useWalletBalance && walletData && (parseFloat(amount) || 0) > walletData.balance)
                 }
                 activeOpacity={0.85}
               >

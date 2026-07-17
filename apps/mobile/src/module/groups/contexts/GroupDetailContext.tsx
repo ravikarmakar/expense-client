@@ -12,6 +12,7 @@ type GroupDetailContextType = ReturnType<typeof useGroupDetailController> & {
   insets: ReturnType<typeof useSafeAreaInsets>;
   recentActivity: ActivityItem[];
   isLoadingActivity: boolean;
+  isFetchingActivity: boolean;
   refetchActivity: () => void;
   confirmLeaveGroup: () => void;
   confirmDeactivateGroup: () => void;
@@ -77,6 +78,7 @@ export function GroupDetailProvider({
   const {
     data: activityData,
     isLoading: isLoadingActivity,
+    isFetching: isFetchingActivity,
     refetch: refetchActivity,
   } = useGroupActivity(id);
 
@@ -147,6 +149,7 @@ export function GroupDetailProvider({
     insets,
     recentActivity,
     isLoadingActivity,
+    isFetchingActivity,
     refetchActivity,
     confirmLeaveGroup,
     confirmDeactivateGroup,
