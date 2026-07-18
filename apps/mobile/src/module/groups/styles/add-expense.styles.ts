@@ -421,4 +421,19 @@ export const styles = StyleSheet.create({
     color: COLORS.error,
     fontWeight: '600',
   },
+  dropdownManageBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.surfaceContainer,
+    backgroundColor: COLORS.surfaceContainerLow,
+  },
+  dropdownManageBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
 });

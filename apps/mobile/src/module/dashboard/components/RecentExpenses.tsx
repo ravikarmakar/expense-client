@@ -7,17 +7,20 @@ import { globalStyles } from '../../../styles/globalStyles';
 import type { Expense } from '@workspace/api';
 import { getDateHeading } from '../../../utils/date';
 import { ExpenseItem } from '@/components/ExpenseItem';
+import { ExpenseItemSkeleton } from '@/components/ExpenseItemSkeleton';
 
 interface RecentExpensesProps {
   expenses: Expense[];
   currentUserId?: string;
+  isRefetching?: boolean;
 }
 
 export const RecentExpenses = React.memo(function RecentExpenses({
   expenses,
   currentUserId,
+  isRefetching,
 }: RecentExpensesProps) {
-  if (expenses.length === 0) {
+  if (expenses.length === 0 && !isRefetching) {
     return null;
   }
 
@@ -39,37 +42,48 @@ export const RecentExpenses = React.memo(function RecentExpenses({
           />
         </TouchableOpacity>
       </View>
-      <View style={styles.highlightsContainer}>
-        {(() => {
-          let lastDateHeading = '';
-          return expenses.map((expense) => {
-            const currentHeading = getDateHeading(expense.date);
-            const showHeading = currentHeading !== lastDateHeading;
-            lastDateHeading = currentHeading;
+      {isRefetching ? (
+        <View>
+          <ExpenseItemSkeleton />
+          <ExpenseItemSkeleton />
+          <ExpenseItemSkeleton />
+          <ExpenseItemSkeleton />
+          <ExpenseItemSkeleton />
+          <ExpenseItemSkeleton />
+        </View>
+      ) : (
+        <View style={styles.highlightsContainer}>
+          {(() => {
+            let lastDateHeading = '';
+            return expenses.map((expense) => {
+              const currentHeading = getDateHeading(expense.date);
+              const showHeading = currentHeading !== lastDateHeading;
+              lastDateHeading = currentHeading;
 
-            return (
-              <React.Fragment key={expense.id}>
-                {showHeading && (
-                  <View style={styles.dateHeaderContainer}>
-                    <Text style={styles.dateHeaderText}>{currentHeading}</Text>
-                  </View>
-                )}
-                <ExpenseItem expense={expense} currentUserId={currentUserId} />
-              </React.Fragment>
-            );
-          });
-        })()}
-        {expenses.length > 0 && (
-          <TouchableOpacity
-            onPress={() => router.push('/(tabs)/activity')}
-            style={styles.viewAllBtn}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.viewAllBtnText}>See All Expenses</Text>
-            <Ionicons name="chevron-forward" size={15} color={COLORS.primary} />
-          </TouchableOpacity>
-        )}
-      </View>
+              return (
+                <React.Fragment key={expense.id}>
+                  {showHeading && (
+                    <View style={styles.dateHeaderContainer}>
+                      <Text style={styles.dateHeaderText}>{currentHeading}</Text>
+                    </View>
+                  )}
+                  <ExpenseItem expense={expense} currentUserId={currentUserId} />
+                </React.Fragment>
+              );
+            });
+          })()}
+          {expenses.length > 0 && (
+            <TouchableOpacity
+              onPress={() => router.push('/(tabs)/activity')}
+              style={styles.viewAllBtn}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.viewAllBtnText}>See All Expenses</Text>
+              <Ionicons name="chevron-forward" size={15} color={COLORS.primary} />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </View>
   );
 });

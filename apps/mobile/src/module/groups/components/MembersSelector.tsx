@@ -38,6 +38,7 @@ export const MembersSelector = React.memo(function MembersSelector({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.membersRow}
+        keyboardShouldPersistTaps="handled"
       >
         {sortedGroupMembers.map((member) => {
           const isSelected = splitMemberIds.includes(member.userId);

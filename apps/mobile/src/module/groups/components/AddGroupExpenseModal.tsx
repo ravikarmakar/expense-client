@@ -16,7 +16,8 @@ import { BottomSheetModal } from '../../../components/BottomSheetModal';
 import { FormInput } from '../../../components/FormInput';
 import { SplitSelector } from './SplitSelector';
 import { GroupDropdown } from './GroupDropdown';
-import { CategoryDropdown, CATEGORY_CONFIG } from './CategoryDropdown';
+import { CategoryDropdown } from './CategoryDropdown';
+import { CATEGORY_CONFIG } from '../../../constants/categories';
 import { SkeletonLoader } from '../../../components/SkeletonLoader';
 
 interface AddGroupExpenseModalProps {
@@ -325,9 +326,11 @@ export function AddGroupExpenseModal({
                     !amount ||
                     createExpense.isPending ||
                     groupMembers.length <= 1 ||
-                    (useWalletBalance &&
+                    !!(
+                      useWalletBalance &&
                       walletData &&
-                      (parseFloat(amount) || 0) > walletData.balance)) &&
+                      (parseFloat(amount) || 0) > walletData.balance
+                    )) &&
                     styles.primaryBtnDisabled,
                 ]}
                 onPress={handleSubmit}
@@ -337,7 +340,11 @@ export function AddGroupExpenseModal({
                   !amount ||
                   createExpense.isPending ||
                   groupMembers.length <= 1 ||
-                  (useWalletBalance && walletData && (parseFloat(amount) || 0) > walletData.balance)
+                  !!(
+                    useWalletBalance &&
+                    walletData &&
+                    (parseFloat(amount) || 0) > walletData.balance
+                  )
                 }
                 activeOpacity={0.85}
               >

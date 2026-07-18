@@ -185,7 +185,9 @@ export const useUpdateProfile = () => {
     mutationFn: updateProfileApi,
     onSuccess: (data) => {
       queryClient.setQueryData(authKeys.me, data);
-      queryClient.invalidateQueries();
+      // Invalidate dashboard and groups since they display user info (name/avatar)
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
     },
   });
 };

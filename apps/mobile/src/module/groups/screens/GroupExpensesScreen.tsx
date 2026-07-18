@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../../../constants/theme';
 import { ExpenseItem } from '../../../components/ExpenseItem';
-import { SettlementItem } from '../../settlements/components/SettlementItem';
+import { SettlementItem } from '../components/SettlementItem';
 import { ExpenseItemSkeleton } from '../../../components/ExpenseItemSkeleton';
 import { z } from 'zod';
 import { useRouteParams } from '../../../hooks/useRouteParams';

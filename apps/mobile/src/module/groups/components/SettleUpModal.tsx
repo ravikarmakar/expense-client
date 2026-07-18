@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
-import { detailStyles as styles } from '../../groups/styles/group.styles';
+import { detailStyles as styles } from '../styles/group.styles';
 import type { GroupMember } from '@workspace/api';
 
 interface SettleUpModalProps {

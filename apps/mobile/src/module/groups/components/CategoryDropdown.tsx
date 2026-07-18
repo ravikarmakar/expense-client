@@ -2,20 +2,10 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { COLORS } from '../../../constants/theme';
+import { getCategoryVisuals } from '../../../constants/categories';
 import { styles } from '../styles/add-expense.styles';
-import { EXPENSE_CATEGORIES, type ExpenseCategory } from '@workspace/api';
-
-export const CATEGORY_CONFIG: Record<ExpenseCategory, { icon: string; bg: string; color: string }> =
-  {
-    Food: { icon: 'restaurant', bg: '#fff3e0', color: '#e65100' },
-    Transport: { icon: 'directions-car', bg: '#e3f2fd', color: '#1565c0' },
-    Shopping: { icon: 'shopping-bag', bg: '#fce4ec', color: '#c62828' },
-    Entertainment: { icon: 'movie', bg: '#f3e5f5', color: '#6a1b9a' },
-    Bills: { icon: 'receipt-long', bg: '#e8f5e9', color: '#2e7d32' },
-    Health: { icon: 'favorite', bg: '#ffebee', color: '#b71c1c' },
-    Travel: { icon: 'flight', bg: '#e0f7fa', color: '#00695c' },
-    Other: { icon: 'more-horiz', bg: '#f5f5f5', color: '#424242' },
-  };
+import { useCategories, type ExpenseCategory } from '@workspace/api';
+import { useRouter } from 'expo-router';
 
 interface CategoryDropdownProps {
   isOpen: boolean;
@@ -24,30 +14,62 @@ interface CategoryDropdownProps {
   onSelect: (cat: ExpenseCategory) => void;
 }
 
+const CategoryIcon = ({
+  name,
+  color,
+  size = 16,
+}: {
+  name: string;
+  color: string;
+  size?: number;
+}) => {
+  const isCustom = name.endsWith('-outline');
+  if (isCustom) {
+    return <Ionicons name={name as never} size={size} color={color} />;
+  }
+  return <MaterialIcons name={name as never} size={size} color={color} />;
+};
+
 export const CategoryDropdown = React.memo(function CategoryDropdown({
   isOpen,
   onToggle,
   category,
   onSelect,
 }: CategoryDropdownProps) {
+  const router = useRouter();
+  const { data } = useCategories();
+
+  const customCategories = data?.custom || [];
+
+  const allCategories = React.useMemo(() => {
+    const standard = data?.standard || [
+      'Food',
+      'Transport',
+      'Shopping',
+      'Entertainment',
+      'Bills',
+      'Health',
+      'Travel',
+      'Other',
+    ];
+    return [...standard, ...customCategories.map((c) => c.name)];
+  }, [data, customCategories]);
+
+  const selectedVisuals = category ? getCategoryVisuals(category, customCategories) : null;
+
   return (
     <>
       <Text style={styles.inputLabel}>Category *</Text>
       <View style={styles.dropdownWrapper}>
         <TouchableOpacity style={styles.dropdownHeader} onPress={onToggle} activeOpacity={0.8}>
           <View style={styles.dropdownHeaderLeft}>
-            {category ? (
+            {category && selectedVisuals ? (
               <>
-                <View
-                  style={[
-                    styles.dropdownHeaderIcon,
-                    { backgroundColor: CATEGORY_CONFIG[category].bg },
-                  ]}
-                >
-                  <MaterialIcons
-                    name={CATEGORY_CONFIG[category].icon as never}
+                <View style={[styles.dropdownHeaderIcon, { backgroundColor: selectedVisuals.bg }]}>
+                  <CategoryIcon
+                    name={selectedVisuals.icon}
                     size={18}
-                    color={CATEGORY_CONFIG[category].color}
+                    color={selectedVisuals.color}
                   />
                 </View>
                 <Text style={styles.dropdownHeaderText}>{category}</Text>
@@ -80,20 +102,21 @@ export const CategoryDropdown = React.memo(function CategoryDropdown({
             style={[styles.dropdownList, styles.categoryScroll]}
             nestedScrollEnabled={true}
             showsVerticalScrollIndicator={true}
+            keyboardShouldPersistTaps="handled"
           >
-            {EXPENSE_CATEGORIES.map((cat) => {
-              const isSelected = category === cat;
-              const cfg = CATEGORY_CONFIG[cat];
+            {allCategories.map((catName) => {
+              const isSelected = category === catName;
+              const visuals = getCategoryVisuals(catName, customCategories);
               return (
                 <TouchableOpacity
-                  key={cat}
+                  key={catName}
                   style={[styles.dropdownItem, isSelected && styles.dropdownItemActive]}
-                  onPress={() => onSelect(cat)}
+                  onPress={() => onSelect(catName)}
                   activeOpacity={0.8}
                 >
                   <View style={styles.dropdownItemLeft}>
-                    <View style={[styles.dropdownItemIcon, { backgroundColor: cfg.bg }]}>
-                      <MaterialIcons name={cfg.icon as never} size={16} color={cfg.color} />
+                    <View style={[styles.dropdownItemIcon, { backgroundColor: visuals.bg }]}>
+                      <CategoryIcon name={visuals.icon} size={16} color={visuals.color} />
                     </View>
                     <Text
                       style={[
@@ -101,7 +124,7 @@ export const CategoryDropdown = React.memo(function CategoryDropdown({
                         isSelected && styles.dropdownItemLabelActive,
                       ]}
                     >
-                      {cat}
+                      {catName}
                     </Text>
                   </View>
                   {isSelected && (
@@ -110,6 +133,19 @@ export const CategoryDropdown = React.memo(function CategoryDropdown({
                 </TouchableOpacity>
               );
             })}
+
+            {/* Manage Categories Action Row */}
+            <TouchableOpacity
+              style={styles.dropdownManageBtn}
+              onPress={() => {
+                onToggle();
+                router.push('/categories');
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="settings-outline" size={14} color={COLORS.primary} />
+              <Text style={styles.dropdownManageBtnText}>Manage Custom Categories</Text>
+            </TouchableOpacity>
           </ScrollView>
         )}
       </View>

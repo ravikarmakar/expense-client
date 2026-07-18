@@ -1,19 +1,27 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { PieChart, BarChart } from 'react-native-gifted-charts';
+import { PieChart } from 'react-native-gifted-charts';
 import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
+import { getCategoryVisuals } from '../../../constants/categories';
 import { globalStyles } from '../../../styles/globalStyles';
+import { useCategories } from '@workspace/api';
 
-const CATEGORY_CONFIG = {
-  Food: { icon: 'restaurant', bg: '#fff3e0', color: '#e65100' },
-  Transport: { icon: 'directions-car', bg: '#e3f2fd', color: '#1565c0' },
-  Shopping: { icon: 'shopping-bag', bg: '#fce4ec', color: '#c62828' },
-  Entertainment: { icon: 'movie', bg: '#f3e5f5', color: '#6a1b9a' },
-  Bills: { icon: 'receipt-long', bg: '#e8f5e9', color: '#2e7d32' },
-  Health: { icon: 'favorite', bg: '#ffebee', color: '#b71c1c' },
-  Travel: { icon: 'flight', bg: '#e0f7fa', color: '#00695c' },
-  Other: { icon: 'more-horiz', bg: '#f5f5f5', color: '#424242' },
+const CategoryIcon = ({
+  name,
+  lib,
+  color,
+  size = 15,
+}: {
+  name: string;
+  lib: 'Ionicons' | 'MaterialIcons';
+  color: string;
+  size?: number;
+}) => {
+  if (lib === 'Ionicons') {
+    return <Ionicons name={name as never} size={size} color={color} />;
+  }
+  return <MaterialIcons name={name as never} size={size} color={color} />;
 };
 
 interface CategorySpentItem {
@@ -32,23 +40,19 @@ export const CategorySpendingCard = React.memo(function CategorySpendingCard({
   summary,
   totalSpent,
 }: CategorySpendingCardProps) {
-  const [spendingView, setSpendingView] = useState<'list' | 'pie' | 'bar'>('bar');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
-  const handleSetSpendingView = (view: 'list' | 'pie' | 'bar') => {
-    setSpendingView(view);
-    setSelectedCategory(null);
-  };
+  const { data: categoriesData } = useCategories();
+  const customCategories = categoriesData?.custom || [];
 
   if (!summary?.categorySpent || summary.categorySpent.length === 0) {
     return (
       <View style={[globalStyles.sectionContainer, styles.pbHighlight]}>
         <View style={styles.categoryCardHeader}>
-          <Text style={[globalStyles.sectionTitle, styles.sectionTitle]}>Spending by Category</Text>
+          <Text style={[globalStyles.sectionTitle, styles.sectionTitle]}>Spending Breakdown</Text>
         </View>
         <View style={styles.emptyCard}>
           <View style={styles.emptyIconBg}>
-            <Ionicons name="pie-chart-outline" size={28} color={COLORS.outline} />
+            <Ionicons name="analytics" size={28} color={COLORS.outline} />
           </View>
           <Text style={styles.emptyCardTitle}>No spending recorded</Text>
           <Text style={styles.emptyCardSubtitle}>
@@ -64,225 +68,130 @@ export const CategorySpendingCard = React.memo(function CategorySpendingCard({
     : null;
 
   const activeConfig = activeCategory
-    ? CATEGORY_CONFIG[activeCategory.category as keyof typeof CATEGORY_CONFIG] ||
-      CATEGORY_CONFIG.Other
+    ? getCategoryVisuals(activeCategory.category, customCategories)
     : null;
 
   const pieData = summary.categorySpent.map((item) => {
-    const config =
-      CATEGORY_CONFIG[item.category as keyof typeof CATEGORY_CONFIG] || CATEGORY_CONFIG.Other;
-    const percentage = totalSpent > 0 ? (item.amount / totalSpent) * 100 : 0;
+    const config = getCategoryVisuals(item.category, customCategories);
     const isSelected = selectedCategory === item.category;
 
     return {
       value: item.amount,
       color: config.color,
-      text: percentage > 8 ? `${percentage.toFixed(0)}%` : '',
-      textColor: '#ffffff',
-      shiftX: isSelected ? 10 : 0,
-      shiftY: isSelected ? 10 : 0,
+      shiftX: isSelected ? 8 : 0,
+      shiftY: isSelected ? 8 : 0,
       onPress: () => setSelectedCategory(isSelected ? null : item.category),
     };
   });
 
-  const barData = summary.categorySpent.map((item) => {
-    const config =
-      CATEGORY_CONFIG[item.category as keyof typeof CATEGORY_CONFIG] || CATEGORY_CONFIG.Other;
-    return {
-      value: item.amount,
-      label: item.category.substring(0, 4),
-      frontColor: config.color,
-    };
-  });
+  const renderCenterLabel = () => {
+    if (selectedCategory && activeCategory && activeConfig) {
+      const percentage = totalSpent > 0 ? (activeCategory.amount / totalSpent) * 100 : 0;
+      return (
+        <View style={styles.centerLabelContainer}>
+          <Text style={[styles.centerLabelTitle, { color: activeConfig.color }]} numberOfLines={1}>
+            {activeCategory.category}
+          </Text>
+          <Text style={styles.centerLabelAmount} numberOfLines={1}>
+            {CURRENCY_SYMBOL}
+            {activeCategory.amount.toFixed(0)}
+          </Text>
+          <Text style={styles.centerLabelSub}>{percentage.toFixed(0)}% of total</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.centerLabelContainer}>
+        <Text style={styles.centerLabelTitle}>Total Spent</Text>
+        <Text style={styles.centerLabelAmount} numberOfLines={1}>
+          {CURRENCY_SYMBOL}
+          {totalSpent.toFixed(0)}
+        </Text>
+        <Text style={styles.centerLabelSub}>This Month</Text>
+      </View>
+    );
+  };
 
   return (
     <View style={[globalStyles.sectionContainer, styles.pbHighlight]}>
       <View style={styles.categoryCardHeader}>
-        <Text style={[globalStyles.sectionTitle, styles.sectionTitle]}>Spending by Category</Text>
-        <View style={styles.viewSelector}>
+        <Text style={[globalStyles.sectionTitle, styles.sectionTitle]}>Spending Breakdown</Text>
+        {selectedCategory && (
           <TouchableOpacity
-            style={[styles.selectorBtn, spendingView === 'list' && styles.selectorBtnActive]}
-            onPress={() => handleSetSpendingView('list')}
-            activeOpacity={0.8}
+            style={styles.clearSelectionBtn}
+            onPress={() => setSelectedCategory(null)}
+            activeOpacity={0.7}
           >
-            <Ionicons
-              name="list"
-              size={14}
-              color={spendingView === 'list' ? '#fff' : COLORS.outline}
-            />
+            <Text style={styles.clearSelectionText}>Reset Zoom</Text>
+            <Ionicons name="refresh" size={12} color={COLORS.primary} />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.selectorBtn, spendingView === 'pie' && styles.selectorBtnActive]}
-            onPress={() => handleSetSpendingView('pie')}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name="pie-chart"
-              size={14}
-              color={spendingView === 'pie' ? '#fff' : COLORS.outline}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.selectorBtn, spendingView === 'bar' && styles.selectorBtnActive]}
-            onPress={() => handleSetSpendingView('bar')}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name="bar-chart"
-              size={14}
-              color={spendingView === 'bar' ? '#fff' : COLORS.outline}
-            />
-          </TouchableOpacity>
-        </View>
+        )}
       </View>
 
-      <View style={styles.categoryCard}>
-        {spendingView === 'list' && (
-          <View style={styles.listViewContainer}>
-            {summary.categorySpent.map((item) => {
-              const config =
-                CATEGORY_CONFIG[item.category as keyof typeof CATEGORY_CONFIG] ||
-                CATEGORY_CONFIG.Other;
-              const percentage = totalSpent > 0 ? (item.amount / totalSpent) * 100 : 0;
-              return (
-                <View key={item.category} style={styles.categoryRow}>
-                  <View style={styles.categoryHeader}>
-                    <View style={styles.categoryInfo}>
-                      <View style={[styles.categoryIconBg, { backgroundColor: config.bg }]}>
-                        <MaterialIcons name={config.icon as never} size={15} color={config.color} />
-                      </View>
-                      <Text style={styles.categoryName}>{item.category}</Text>
-                      <Text style={styles.categoryPercentage}>{percentage.toFixed(0)}%</Text>
+      <View style={styles.cardContainer}>
+        {/* Donut Chart Block */}
+        <View style={styles.chartWrapper}>
+          <PieChart
+            data={pieData}
+            donut
+            radius={85}
+            innerRadius={62}
+            innerCircleColor={COLORS.surface}
+            centerLabelComponent={renderCenterLabel}
+          />
+        </View>
+
+        {/* Categories Progress List */}
+        <View style={styles.listViewContainer}>
+          {summary.categorySpent.map((item) => {
+            const config = getCategoryVisuals(item.category, customCategories);
+            const percentage = totalSpent > 0 ? (item.amount / totalSpent) * 100 : 0;
+            const isSelected = selectedCategory === item.category;
+
+            return (
+              <TouchableOpacity
+                key={item.category}
+                style={[styles.categoryCardRow, isSelected && styles.categoryCardRowActive]}
+                onPress={() => setSelectedCategory(isSelected ? null : item.category)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.categoryHeader}>
+                  <View style={styles.categoryInfo}>
+                    <View style={[styles.categoryIconBg, { backgroundColor: config.bg }]}>
+                      <CategoryIcon
+                        name={config.icon}
+                        lib={config.lib}
+                        size={15}
+                        color={config.color}
+                      />
                     </View>
-                    <Text style={styles.categoryAmountText}>
-                      {CURRENCY_SYMBOL}
-                      {item.amount.toFixed(2)}
-                    </Text>
+                    <View style={styles.categoryTextWrapper}>
+                      <Text style={styles.categoryName}>{item.category}</Text>
+                      <Text style={styles.categorySubtext}>{percentage.toFixed(0)}% of total</Text>
+                    </View>
                   </View>
-                  <View style={styles.categoryProgressTrack}>
-                    <View
-                      style={[
-                        styles.categoryProgressFill,
-                        { width: `${percentage}%`, backgroundColor: config.color },
-                      ]}
-                    />
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-        )}
-
-        {spendingView === 'pie' && (
-          <View style={styles.pieContainer}>
-            {activeCategory && activeConfig && (
-              <View style={styles.pieFocusHeader}>
-                <View style={[styles.centerIconBg, { backgroundColor: activeConfig.bg }]}>
-                  <MaterialIcons
-                    name={activeConfig.icon as never}
-                    size={13}
-                    color={activeConfig.color}
-                  />
-                </View>
-                <Text style={styles.pieFocusText}>
-                  {activeCategory.category}:{' '}
-                  <Text style={{ fontWeight: '800' }}>
+                  <Text style={styles.categoryAmountText}>
                     {CURRENCY_SYMBOL}
-                    {activeCategory.amount.toFixed(0)}
-                  </Text>{' '}
-                  ({((activeCategory.amount / totalSpent) * 100).toFixed(0)}%)
-                </Text>
-                <TouchableOpacity onPress={() => setSelectedCategory(null)}>
-                  <Ionicons name="close-circle" size={16} color={COLORS.outline} />
-                </TouchableOpacity>
-              </View>
-            )}
+                    {item.amount.toFixed(2)}
+                  </Text>
+                </View>
 
-            <View style={styles.pieChartCenterWrapper}>
-              <PieChart
-                data={pieData}
-                radius={90}
-                textSize={11}
-                showText
-                textColor="#ffffff"
-                fontWeight="bold"
-                isThreeD={false}
-                donut={false}
-              />
-            </View>
-
-            <View style={styles.pieLegendHorizontalContainer}>
-              {summary.categorySpent.map((item) => {
-                const config =
-                  CATEGORY_CONFIG[item.category as keyof typeof CATEGORY_CONFIG] ||
-                  CATEGORY_CONFIG.Other;
-                const percentage = totalSpent > 0 ? (item.amount / totalSpent) * 100 : 0;
-                const isSelected = selectedCategory === item.category;
-
-                return (
-                  <TouchableOpacity
-                    key={item.category}
+                <View style={styles.progressTrack}>
+                  <View
                     style={[
-                      styles.legendHorizontalItem,
-                      isSelected && {
-                        backgroundColor: config.bg,
-                        borderColor: config.color,
-                        borderWidth: 1,
+                      styles.progressFill,
+                      {
+                        width: `${percentage}%`,
+                        backgroundColor: config.color,
                       },
                     ]}
-                    onPress={() => setSelectedCategory(isSelected ? null : item.category)}
-                    activeOpacity={0.85}
-                  >
-                    <View style={[styles.legendSquare, { backgroundColor: config.color }]} />
-                    <Text
-                      style={[
-                        styles.legendHorizontalText,
-                        isSelected && { fontWeight: '700', color: config.color },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {item.category} ({percentage.toFixed(0)}%)
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        )}
-
-        {spendingView === 'bar' && (
-          <View style={styles.barContainer}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={{ paddingRight: 20 }}>
-                <BarChart
-                  data={barData}
-                  barWidth={28}
-                  spacing={summary.categorySpent.length === 1 ? 120 : 30}
-                  roundedTop
-                  roundedBottom={false}
-                  hideRules
-                  xAxisThickness={1}
-                  xAxisColor={COLORS.surfaceContainer}
-                  yAxisThickness={0}
-                  yAxisTextStyle={{ color: COLORS.outline, fontSize: 10 }}
-                  noOfSections={3}
-                  height={150}
-                  xAxisLabelTextStyle={styles.barLabelText}
-                  renderTooltip={(item: { value: number }) => {
-                    return (
-                      <View style={styles.barTooltip}>
-                        <Text style={styles.barTooltipText}>
-                          {CURRENCY_SYMBOL}
-                          {item.value.toFixed(0)}
-                        </Text>
-                      </View>
-                    );
-                  }}
-                />
-              </View>
-            </ScrollView>
-          </View>
-        )}
+                  />
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
     </View>
   );
@@ -296,45 +205,94 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 16,
     paddingHorizontal: 16,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '800',
     color: COLORS.onSurface,
     textTransform: 'none',
-    letterSpacing: 0,
+    letterSpacing: -0.2,
     marginBottom: 0,
     marginLeft: 0,
   },
-  viewSelector: {
+  clearSelectionBtn: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surfaceContainer,
-    borderRadius: 8,
-    padding: 3,
-    gap: 2,
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.primaryContainer || '#e8f5e9',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
   },
-  selectorBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
+  clearSelectionText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  cardContainer: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
+    padding: 16,
+    marginHorizontal: 16,
+    elevation: 2,
+    shadowColor: COLORS.onSurface,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+  },
+  chartWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.surfaceContainerLow,
+    marginBottom: 12,
   },
-  selectorBtnActive: {
-    backgroundColor: COLORS.primary,
+  centerLabelContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 110,
   },
-  categoryCard: {
-    paddingVertical: 12,
-    gap: 16,
-    marginHorizontal: 16,
+  centerLabelTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.outline,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  centerLabelAmount: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: COLORS.onSurface,
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  centerLabelSub: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: COLORS.outlineVariant,
+    marginTop: 2,
+    textAlign: 'center',
   },
   listViewContainer: {
-    gap: 16,
-  },
-  categoryRow: {
     gap: 8,
+  },
+  categoryCardRow: {
+    borderRadius: 16,
+    padding: 10,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    backgroundColor: COLORS.surfaceContainerLow,
+    gap: 8,
+  },
+  categoryCardRowActive: {
+    backgroundColor: COLORS.surfaceContainer,
+    borderColor: COLORS.surfaceContainerHigh || '#e0e0e0',
   },
   categoryHeader: {
     flexDirection: 'row',
@@ -344,13 +302,16 @@ const styles = StyleSheet.create({
   categoryInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
   },
   categoryIconBg: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryTextWrapper: {
     justifyContent: 'center',
   },
   categoryName: {
@@ -358,114 +319,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.onSurface,
   },
-  categoryPercentage: {
+  categorySubtext: {
     fontSize: 11,
     fontWeight: '600',
     color: COLORS.outline,
-    backgroundColor: COLORS.surfaceContainerLow,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
+    marginTop: 1,
   },
   categoryAmountText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
     color: COLORS.onSurface,
   },
-  categoryProgressTrack: {
-    height: 6,
-    backgroundColor: COLORS.surfaceContainerLow,
-    borderRadius: 3,
+  progressTrack: {
+    height: 5,
+    backgroundColor: COLORS.surfaceContainer,
+    borderRadius: 2.5,
     overflow: 'hidden',
   },
-  categoryProgressFill: {
+  progressFill: {
     height: '100%',
-    borderRadius: 3,
-  },
-  pieContainer: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    gap: 16,
-    width: '100%',
-  },
-  pieFocusHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surfaceContainerLow,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    gap: 8,
-  },
-  pieFocusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.onSurface,
-  },
-  centerIconBg: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  pieChartCenterWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 220,
-    height: 220,
-  },
-  pieLegendHorizontalContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 8,
-    width: '100%',
-    marginTop: 8,
-  },
-  legendHorizontalItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surfaceContainerLow,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    gap: 6,
-  },
-  legendSquare: {
-    width: 10,
-    height: 10,
     borderRadius: 2.5,
-  },
-  legendHorizontalText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.outline,
-  },
-  barContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    width: '100%',
-  },
-  barLabelText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.outline,
-  },
-  barTooltip: {
-    backgroundColor: COLORS.onSurface,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  barTooltipText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: COLORS.surface,
   },
   emptyCard: {
     backgroundColor: COLORS.surface,

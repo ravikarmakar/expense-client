@@ -1,11 +1,17 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useCallback, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGroupDetailController, useGroupActivity } from '@workspace/api';
 import type { ActivityItem } from '@workspace/api';
 
-type GroupDetailContextType = ReturnType<typeof useGroupDetailController> & {
+// ─────────────────────────────────────────────────────────────────────────────
+// Types derived from the controller's actual return shape
+// ─────────────────────────────────────────────────────────────────────────────
+
+type ControllerReturn = ReturnType<typeof useGroupDetailController>;
+
+type GroupDetailDataContextType = {
   id: string;
   routeName?: string;
   routeEmoji?: string;
@@ -13,13 +19,45 @@ type GroupDetailContextType = ReturnType<typeof useGroupDetailController> & {
   recentActivity: ActivityItem[];
   isLoadingActivity: boolean;
   isFetchingActivity: boolean;
+} & Omit<
+  ControllerReturn,
+  | 'refetch'
+  | 'handleRefresh'
+  | 'executeLeaveGroup'
+  | 'executeDeactivateGroup'
+  | 'executeActivateGroup'
+  | 'handleSettleUp'
+  | 'submitSettleUp'
+  | 'handleSendReminder'
+>;
+
+type GroupDetailActionsContextType = {
+  refetch: ControllerReturn['refetch'];
+  handleRefresh: ControllerReturn['handleRefresh'];
+  executeLeaveGroup: ControllerReturn['executeLeaveGroup'];
+  executeDeactivateGroup: ControllerReturn['executeDeactivateGroup'];
+  executeActivateGroup: ControllerReturn['executeActivateGroup'];
+  handleSettleUp: ControllerReturn['handleSettleUp'];
+  submitSettleUp: ControllerReturn['submitSettleUp'];
+  handleSendReminder: ControllerReturn['handleSendReminder'];
   refetchActivity: () => void;
   confirmLeaveGroup: () => void;
   confirmDeactivateGroup: () => void;
   confirmActivateGroup: () => void;
 };
 
-const GroupDetailContext = createContext<GroupDetailContextType | undefined>(undefined);
+// ─────────────────────────────────────────────────────────────────────────────
+// Contexts
+// ─────────────────────────────────────────────────────────────────────────────
+
+const GroupDetailDataContext = createContext<GroupDetailDataContextType | undefined>(undefined);
+const GroupDetailActionsContext = createContext<GroupDetailActionsContextType | undefined>(
+  undefined
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Provider
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface GroupDetailProviderProps {
   id: string;
@@ -82,13 +120,25 @@ export function GroupDetailProvider({
     refetch: refetchActivity,
   } = useGroupActivity(id);
 
-  const activityItems = React.useMemo(() => {
+  const activityItems = useMemo(() => {
     return activityData?.pages.flatMap((page) => page.activity) || [];
   }, [activityData]);
 
-  const recentActivity = React.useMemo(() => activityItems.slice(0, 10), [activityItems]);
+  const recentActivity = useMemo(() => activityItems.slice(0, 10), [activityItems]);
 
-  const confirmLeaveGroup = () => {
+  // ── Stable action callbacks ────────────────────────────────────────────
+
+  const confirmLeaveGroup = useCallback(() => {
+    const walletBalance = controller.group?.wallet?.balance ?? 0;
+    if (walletBalance > 0) {
+      Alert.alert(
+        'Cannot Leave Group',
+        `This group has ₹${walletBalance.toFixed(2)} in the wallet. Please use or withdraw the wallet balance before leaving the group.`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     Alert.alert(
       'Leave Group',
       'Are you sure you want to leave this group? You will no longer see its expenses.',
@@ -101,9 +151,9 @@ export function GroupDetailProvider({
         },
       ]
     );
-  };
+  }, [controller.executeLeaveGroup, controller.group?.wallet?.balance]);
 
-  const confirmDeactivateGroup = () => {
+  const confirmDeactivateGroup = useCallback(() => {
     if (!controller.isFullySettled) {
       Alert.alert(
         'Cannot Deactivate Group',
@@ -125,9 +175,9 @@ export function GroupDetailProvider({
         },
       ]
     );
-  };
+  }, [controller.isFullySettled, controller.executeDeactivateGroup]);
 
-  const confirmActivateGroup = () => {
+  const confirmActivateGroup = useCallback(() => {
     Alert.alert(
       'Activate Group',
       'Are you sure you want to reactivate this group? This will allow adding new expenses and members.',
@@ -139,30 +189,134 @@ export function GroupDetailProvider({
         },
       ]
     );
-  };
+  }, [controller.executeActivateGroup]);
 
-  const value: GroupDetailContextType = {
-    ...controller,
-    id,
-    routeName,
-    routeEmoji,
-    insets,
-    recentActivity,
-    isLoadingActivity,
-    isFetchingActivity,
-    refetchActivity,
-    confirmLeaveGroup,
-    confirmDeactivateGroup,
-    confirmActivateGroup,
-  };
+  // ── Separate data from actions ─────────────────────────────────────────
 
-  return <GroupDetailContext.Provider value={value}>{children}</GroupDetailContext.Provider>;
+  // Destructure actions out, spread the rest as data
+  const {
+    refetch,
+    handleRefresh,
+    executeLeaveGroup,
+    executeDeactivateGroup,
+    executeActivateGroup,
+    handleSettleUp,
+    submitSettleUp,
+    handleSendReminder,
+    ...controllerData
+  } = controller;
+
+  const dataValue = useMemo(
+    () => ({
+      ...controllerData,
+      id,
+      routeName,
+      routeEmoji,
+      insets,
+      recentActivity,
+      isLoadingActivity,
+      isFetchingActivity,
+    }),
+
+    [
+      controllerData.group,
+      controllerData.isLoading,
+      controllerData.isFetching,
+      controllerData.isError,
+      controllerData.isFullySettled,
+      controllerData.addExpenseVisible,
+      controllerData.editGroupVisible,
+      controllerData.settleModalVisible,
+      controllerData.settleAmount,
+      controllerData.settleMember,
+      controllerData.settlingUserId,
+      controllerData.activeTab,
+      controllerData.isRefreshing,
+      controllerData.menuVisible,
+      id,
+      routeName,
+      routeEmoji,
+      insets,
+      recentActivity,
+      isLoadingActivity,
+      isFetchingActivity,
+    ]
+  );
+
+  const actionsValue = useMemo(
+    () => ({
+      refetch,
+      handleRefresh,
+      executeLeaveGroup,
+      executeDeactivateGroup,
+      executeActivateGroup,
+      handleSettleUp,
+      submitSettleUp,
+      handleSendReminder,
+      refetchActivity,
+      confirmLeaveGroup,
+      confirmDeactivateGroup,
+      confirmActivateGroup,
+    }),
+    [
+      refetch,
+      handleRefresh,
+      executeLeaveGroup,
+      executeDeactivateGroup,
+      executeActivateGroup,
+      handleSettleUp,
+      submitSettleUp,
+      handleSendReminder,
+      refetchActivity,
+      confirmLeaveGroup,
+      confirmDeactivateGroup,
+      confirmActivateGroup,
+    ]
+  );
+
+  return (
+    <GroupDetailActionsContext.Provider value={actionsValue}>
+      <GroupDetailDataContext.Provider value={dataValue}>
+        {children}
+      </GroupDetailDataContext.Provider>
+    </GroupDetailActionsContext.Provider>
+  );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Consumer hooks
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Access all group detail data and actions (backwards-compatible).
+ * For optimized usage, prefer `useGroupDetailData` or `useGroupDetailActions` separately.
+ */
 export function useGroupDetail() {
-  const context = useContext(GroupDetailContext);
+  const data = useGroupDetailData();
+  const actions = useGroupDetailActions();
+  return { ...data, ...actions };
+}
+
+/**
+ * Access only the group detail data (reactive values like balances, members, loading states).
+ * Components using only this hook won't re-render when action references change.
+ */
+export function useGroupDetailData() {
+  const context = useContext(GroupDetailDataContext);
   if (!context) {
-    throw new Error('useGroupDetail must be used within a GroupDetailProvider');
+    throw new Error('useGroupDetailData must be used within a GroupDetailProvider');
+  }
+  return context;
+}
+
+/**
+ * Access only group detail actions (stable function references).
+ * Components using only this hook won't re-render when data changes.
+ */
+export function useGroupDetailActions() {
+  const context = useContext(GroupDetailActionsContext);
+  if (!context) {
+    throw new Error('useGroupDetailActions must be used within a GroupDetailProvider');
   }
   return context;
 }

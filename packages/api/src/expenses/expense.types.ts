@@ -15,7 +15,7 @@ export const EXPENSE_CATEGORIES = [
   'Other',
 ] as const;
 
-export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
+export type ExpenseCategory = string;
 
 export const SPLIT_MODES = ['equal', 'exact', 'percentage'] as const;
 export type SplitMode = (typeof SPLIT_MODES)[number];
@@ -40,12 +40,9 @@ export const expenseSchema = z.object({
   title: z.string(),
   amount: z.number(),
   category: z.preprocess((val) => {
-    if (typeof val === 'string') {
-      const match = EXPENSE_CATEGORIES.find((c) => c.toLowerCase() === val.toLowerCase());
-      return match || 'Other';
-    }
+    if (typeof val === 'string' && val.trim() !== '') return val.trim();
     return 'Other';
-  }, z.enum(EXPENSE_CATEGORIES)),
+  }, z.string().default('Other')),
   date: z.string(), // ISO date string
   notes: z.string().nullable().optional(),
   paidBy: z.object({

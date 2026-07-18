@@ -21,7 +21,7 @@ import { useRouteParams } from '../../../hooks/useRouteParams';
 import { useReminderCooldown } from '../../../hooks/useReminderCooldown';
 import { detailStyles as styles } from '../styles/group.styles';
 import { MemberBalanceItemSkeleton } from '../components/group-details/MemberBalanceItemSkeleton';
-import SettleUpModal from '../../settlements/components/SettleUpModal';
+import SettleUpModal from '../components/SettleUpModal';
 
 import { GroupDetailHeader } from '../components/group-details/GroupDetailHeader';
 import { GroupBalanceCard } from '../components/group-details/GroupBalanceCard';

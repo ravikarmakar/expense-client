@@ -90,6 +90,7 @@ export const GroupDropdown = React.memo(function GroupDropdown({
             style={[styles.dropdownList, styles.categoryScroll]}
             nestedScrollEnabled={true}
             showsVerticalScrollIndicator={true}
+            keyboardShouldPersistTaps="handled"
             scrollEventThrottle={400}
             onScroll={({ nativeEvent }) => {
               if (isCloseToBottom(nativeEvent)) {

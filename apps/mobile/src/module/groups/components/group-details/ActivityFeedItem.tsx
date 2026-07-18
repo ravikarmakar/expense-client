@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { ExpenseItem } from '../../../../components/ExpenseItem';
-import { SettlementItem } from '../../../settlements/components/SettlementItem';
+import { SettlementItem } from '../SettlementItem';
 import type { ActivityItem } from '@workspace/api';
 
 interface ActivityFeedItemProps {

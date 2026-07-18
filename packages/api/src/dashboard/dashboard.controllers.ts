@@ -13,6 +13,7 @@ export function useDashboardController() {
   const {
     data: dashboardData,
     isLoading: dashboardLoading,
+    isFetching: dashboardFetching,
     refetch: refetchDashboardData,
   } = useDashboard();
   const { data: notificationsData, refetch: refetchNotifications } = useNotifications();
@@ -20,8 +21,14 @@ export function useDashboardController() {
 
   const stats = dashboardData?.stats;
   const statsLoading = dashboardLoading;
-  const expenses = dashboardData?.recentExpenses ?? [];
+  const expenses = useMemo(() => {
+    const list = dashboardData?.recentExpenses ?? [];
+    return [...list].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }, [dashboardData?.recentExpenses]);
   const expensesLoading = dashboardLoading;
+  const expensesRefetching = dashboardFetching && !dashboardLoading;
   const groups = dashboardData?.groups ?? [];
   const groupsLoading = dashboardLoading;
 
@@ -74,6 +81,7 @@ export function useDashboardController() {
     statsLoading,
     expenses,
     expensesLoading,
+    expensesRefetching,
     groups,
     groupsLoading,
     isRefreshing,

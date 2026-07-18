@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../../../constants/theme';
+import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
+import { getCategoryVisuals } from '../../../constants/categories';
 import { globalStyles } from '../../../styles/globalStyles';
+import { useCategories } from '@workspace/api';
 
 interface CategoryItem {
   category: string;
@@ -17,6 +19,9 @@ interface CategorySpendingBreakdownProps {
 export const CategorySpendingBreakdown: React.FC<CategorySpendingBreakdownProps> = ({
   activeCategorySpent,
 }) => {
+  const { data: categoriesData } = useCategories();
+  const customCategories = categoriesData?.custom || [];
+
   return (
     <View style={styles.sectionContainer}>
       <Text style={globalStyles.sectionTitle}>Spending by Category</Text>
@@ -26,7 +31,7 @@ export const CategorySpendingBreakdown: React.FC<CategorySpendingBreakdownProps>
         ) : (
           <View style={styles.listViewContainer}>
             {activeCategorySpent.map((item) => {
-              const config = CATEGORY_ICONS[item.category] || CATEGORY_ICONS.Other;
+              const config = getCategoryVisuals(item.category, customCategories);
               return (
                 <View key={item.category} style={styles.categoryRow}>
                   <View style={styles.categoryHeader}>

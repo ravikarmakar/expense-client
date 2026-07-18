@@ -2,8 +2,9 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../constants/theme';
-import { type Expense } from '@workspace/api';
+import { COLORS, CURRENCY_SYMBOL } from '../constants/theme';
+import { type Expense, useCategories } from '@workspace/api';
+import { getCategoryVisuals } from '../constants/categories';
 
 interface TransactionItemProps {
   expense: Expense;
@@ -32,7 +33,9 @@ export const ExpenseItem = React.memo(function TransactionItem({
     : `Personal • ${expense.category} • Paid by You`;
 
   // Look up category icon configuration
-  const cfg = CATEGORY_ICONS[expense.category] ?? CATEGORY_ICONS.Other;
+  const { data: categoriesData } = useCategories();
+  const customCategories = categoriesData?.custom || [];
+  const cfg = getCategoryVisuals(expense.category, customCategories);
 
   // Format timestamp (e.g. "13 Jul 2026, 08:29 AM")
   const dateObj = new Date(expense.date);

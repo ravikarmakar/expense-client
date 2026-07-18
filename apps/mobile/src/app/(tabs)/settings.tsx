@@ -7,55 +7,48 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
-  Modal,
   TextInput,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, PREDEFINED_AVATARS, resolveAvatar } from '../../constants/theme';
 import { globalStyles } from '../../styles/globalStyles';
-import { useMe, useLogout, useUpdateProfile, getErrorMessage } from '@workspace/api';
+import { useSettingsController } from '@workspace/api';
 import { ChangePasswordModal } from '../../module/auth/components/ChangePasswordModal';
+import { ModalContainer } from '../../components/ModalContainer';
+import { LoadingButton } from '../../components/LoadingButton';
+import { feedbackStyles } from '../../styles/feedbackStyles';
 
 export default function SettingsTabScreen() {
-  const { data: user } = useMe();
-  const logoutMutation = useLogout();
+  const {
+    user,
+    editName,
+    setEditName,
+    selectedAvatar,
+    setSelectedAvatar,
+    profileErrorMessage,
+    profileModalVisible,
+    setProfileModalVisible,
+    handleOpenProfileModal,
+    handleSaveProfile,
+    handleLogout,
+    isUpdatingProfile,
+    isLoggingOut,
+  } = useSettingsController({
+    onSaveSuccess: () => {
+      Alert.alert('Success', 'Profile updated successfully.');
+    },
+    onSaveError: (err) => {
+      Alert.alert('Error', err);
+    },
+    onLogoutError: (err) => {
+      Alert.alert('Error', err);
+    },
+  });
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [profileModalVisible, setProfileModalVisible] = useState(false);
-  const [editName, setEditName] = useState('');
-  const [selectedAvatar, setSelectedAvatar] = useState('');
-  const [profileErrorMessage, setProfileErrorMessage] = useState('');
-
-  const updateProfileMutation = useUpdateProfile();
-
-  const handleSaveProfile = () => {
-    setProfileErrorMessage('');
-    if (!editName.trim()) {
-      setProfileErrorMessage('Name cannot be empty.');
-      return;
-    }
-
-    updateProfileMutation.mutate(
-      {
-        name: editName.trim(),
-        image: selectedAvatar,
-      },
-      {
-        onSuccess: () => {
-          Alert.alert('Success', 'Profile updated successfully.');
-          setProfileModalVisible(false);
-        },
-        onError: (err) => {
-          setProfileErrorMessage(getErrorMessage(err, 'Failed to update profile.'));
-        },
-      }
-    );
-  };
 
   const insets = useSafeAreaInsets();
 
@@ -89,12 +82,7 @@ export default function SettingsTabScreen() {
             <TouchableOpacity
               style={styles.avatarEditOverlay}
               activeOpacity={0.85}
-              onPress={() => {
-                setEditName(user?.name ?? '');
-                setSelectedAvatar(resolveAvatar(user?.image));
-                setProfileErrorMessage('');
-                setProfileModalVisible(true);
-              }}
+              onPress={handleOpenProfileModal}
             >
               <Ionicons name="camera" size={14} color="#ffffff" />
             </TouchableOpacity>
@@ -108,12 +96,7 @@ export default function SettingsTabScreen() {
             <TouchableOpacity
               style={styles.editProfileButton}
               activeOpacity={0.7}
-              onPress={() => {
-                setEditName(user?.name ?? '');
-                setSelectedAvatar(resolveAvatar(user?.image));
-                setProfileErrorMessage('');
-                setProfileModalVisible(true);
-              }}
+              onPress={handleOpenProfileModal}
             >
               <Ionicons
                 name="pencil"
@@ -133,12 +116,7 @@ export default function SettingsTabScreen() {
           <TouchableOpacity
             style={styles.settingsItem}
             activeOpacity={0.7}
-            onPress={() => {
-              setEditName(user?.name ?? '');
-              setSelectedAvatar(resolveAvatar(user?.image));
-              setProfileErrorMessage('');
-              setProfileModalVisible(true);
-            }}
+            onPress={handleOpenProfileModal}
           >
             <View style={styles.settingsItemLeft}>
               <View style={[styles.iconBadge, { backgroundColor: '#e8f0fe' }]}>
@@ -199,6 +177,20 @@ export default function SettingsTabScreen() {
             <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={styles.settingsItem}
+            activeOpacity={0.7}
+            onPress={() => router.push('/categories')}
+          >
+            <View style={styles.settingsItemLeft}>
+              <View style={[styles.iconBadge, { backgroundColor: '#e2f2ff' }]}>
+                <Ionicons name="grid" size={18} color="#0066cc" />
+              </View>
+              <Text style={styles.settingsItemLabel}>Manage Categories</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7}>
             <View style={styles.settingsItemLeft}>
               <View style={[styles.iconBadge, { backgroundColor: '#f3e5f5' }]}>
@@ -246,12 +238,12 @@ export default function SettingsTabScreen() {
         </View>
 
         <TouchableOpacity
-          style={[styles.logoutButton, logoutMutation.isPending && { opacity: 0.5 }]}
+          style={[styles.logoutButton, isLoggingOut && { opacity: 0.5 }]}
           activeOpacity={0.85}
-          onPress={() => logoutMutation.mutate(undefined)}
-          disabled={logoutMutation.isPending}
+          onPress={handleLogout}
+          disabled={isLoggingOut}
         >
-          {logoutMutation.isPending ? (
+          {isLoggingOut ? (
             <ActivityIndicator size="small" color={COLORS.error} />
           ) : (
             <>
@@ -272,120 +264,88 @@ export default function SettingsTabScreen() {
       <ChangePasswordModal visible={modalVisible} onClose={() => setModalVisible(false)} />
 
       {/* ── Modal: Edit Profile ── */}
-      <Modal
-        animationType="slide"
-        transparent={true}
+      <ModalContainer
         visible={profileModalVisible}
-        onRequestClose={() => setProfileModalVisible(false)}
+        onClose={() => setProfileModalVisible(false)}
+        title="Edit Profile"
+        loading={isUpdatingProfile}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}
-        >
-          <View style={[styles.modalContent, { maxHeight: '85%' }]}>
-            {/* Modal Header */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Profile</Text>
-              <TouchableOpacity
-                onPress={() => setProfileModalVisible(false)}
-                style={styles.closeButton}
-                activeOpacity={0.7}
-                disabled={updateProfileMutation.isPending}
-              >
-                <Ionicons name="close" size={24} color={COLORS.onSurface} />
-              </TouchableOpacity>
-            </View>
+        {profileErrorMessage ? (
+          <View style={feedbackStyles.errorContainer}>
+            <Ionicons name="alert-circle" size={18} color={COLORS.error} />
+            <Text style={feedbackStyles.errorText}>{profileErrorMessage}</Text>
+          </View>
+        ) : null}
 
-            {profileErrorMessage ? (
-              <View style={styles.errorContainer}>
-                <Ionicons name="alert-circle" size={18} color={COLORS.error} />
-                <Text style={styles.errorText}>{profileErrorMessage}</Text>
-              </View>
-            ) : null}
+        <View style={styles.modalForm}>
+          {/* Current Avatar Preview */}
+          <View style={styles.avatarPreviewContainer}>
+            <Image
+              source={{ uri: resolveAvatar(selectedAvatar) }}
+              style={styles.largeAvatarPreview}
+            />
+            <Text style={styles.avatarPreviewLabel}>Selected Avatar</Text>
+          </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <View style={styles.modalForm}>
-                {/* Current Avatar Preview */}
-                <View style={styles.avatarPreviewContainer}>
-                  <Image source={{ uri: selectedAvatar }} style={styles.largeAvatarPreview} />
-                  <Text style={styles.avatarPreviewLabel}>Selected Avatar</Text>
-                </View>
+          {/* Name Input */}
+          <Text style={styles.inputLabel}>Full Name</Text>
+          <View style={[styles.inputContainer, isUpdatingProfile && { opacity: 0.6 }]}>
+            <Ionicons
+              name="person-outline"
+              size={20}
+              color={COLORS.outline}
+              style={styles.inputIcon}
+            />
+            <TextInput
+              value={editName}
+              onChangeText={setEditName}
+              placeholder="Enter your name"
+              placeholderTextColor={COLORS.outlineVariant}
+              style={styles.textInput}
+              editable={!isUpdatingProfile}
+              maxLength={40}
+            />
+          </View>
 
-                {/* Name Input */}
-                <Text style={styles.inputLabel}>Full Name</Text>
-                <View
-                  style={[
-                    styles.inputContainer,
-                    updateProfileMutation.isPending && { opacity: 0.6 },
-                  ]}
-                >
-                  <Ionicons
-                    name="person-outline"
-                    size={20}
-                    color={COLORS.outline}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    value={editName}
-                    onChangeText={setEditName}
-                    placeholder="Enter your name"
-                    placeholderTextColor={COLORS.outlineVariant}
-                    style={styles.textInput}
-                    editable={!updateProfileMutation.isPending}
-                    maxLength={40}
-                  />
-                </View>
-
-                {/* Avatar Grid Selection inside a Scrollable Box */}
-                <Text style={styles.inputLabel}>Choose Avatar</Text>
-                <View style={styles.avatarScrollContainer}>
-                  <ScrollView
-                    nestedScrollEnabled={true}
-                    showsVerticalScrollIndicator={true}
-                    contentContainerStyle={styles.avatarGrid}
+          {/* Avatar Grid Selection inside a Scrollable Box */}
+          <Text style={styles.inputLabel}>Choose Avatar</Text>
+          <View style={styles.avatarScrollContainer}>
+            <ScrollView
+              nestedScrollEnabled={true}
+              showsVerticalScrollIndicator={true}
+              contentContainerStyle={styles.avatarGrid}
+            >
+              {PREDEFINED_AVATARS.map((avatarUrl, idx) => {
+                const isSelected =
+                  selectedAvatar === avatarUrl || resolveAvatar(selectedAvatar) === avatarUrl;
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    style={[styles.avatarGridItem, isSelected && styles.avatarGridItemActive]}
+                    onPress={() => setSelectedAvatar(avatarUrl)}
+                    activeOpacity={0.7}
+                    disabled={isUpdatingProfile}
                   >
-                    {PREDEFINED_AVATARS.map((avatarUrl, idx) => {
-                      const isSelected = selectedAvatar === avatarUrl;
-                      return (
-                        <TouchableOpacity
-                          key={idx}
-                          style={[styles.avatarGridItem, isSelected && styles.avatarGridItemActive]}
-                          onPress={() => setSelectedAvatar(avatarUrl)}
-                          activeOpacity={0.7}
-                          disabled={updateProfileMutation.isPending}
-                        >
-                          <Image source={{ uri: avatarUrl }} style={styles.gridAvatarImage} />
-                          {isSelected && (
-                            <View style={styles.checkBadge}>
-                              <Ionicons name="checkmark" size={10} color="#fff" />
-                            </View>
-                          )}
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-
-                <TouchableOpacity
-                  onPress={handleSaveProfile}
-                  style={[
-                    styles.primaryButton,
-                    (!editName.trim() || updateProfileMutation.isPending) && styles.disabledButton,
-                  ]}
-                  activeOpacity={0.8}
-                  disabled={!editName.trim() || updateProfileMutation.isPending}
-                >
-                  {updateProfileMutation.isPending ? (
-                    <ActivityIndicator color="#ffffff" />
-                  ) : (
-                    <Text style={styles.primaryButtonText}>Save Changes</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
+                    <Image source={{ uri: avatarUrl }} style={styles.gridAvatarImage} />
+                    {isSelected && (
+                      <View style={styles.checkBadge}>
+                        <Ionicons name="checkmark" size={10} color="#fff" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
+
+          <LoadingButton
+            title="Save Changes"
+            onPress={handleSaveProfile}
+            loading={isUpdatingProfile}
+            disabled={!editName.trim()}
+          />
+        </View>
+      </ModalContainer>
     </View>
   );
 }
@@ -584,59 +544,8 @@ const styles = StyleSheet.create({
     color: COLORS.outlineVariant,
     marginTop: 4,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 24,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceContainer,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.onSurface,
-  },
-  closeButton: {
-    padding: 4,
-  },
-  modalDescription: {
-    fontSize: 13,
-    color: COLORS.outline,
-    marginBottom: 20,
-    lineHeight: 18,
-  },
   modalForm: {
     width: '100%',
-  },
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.errorContainer,
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(186, 26, 26, 0.1)',
-  },
-  errorText: {
-    fontSize: 12,
-    color: COLORS.error,
-    fontWeight: '600',
-    flex: 1,
   },
   inputLabel: {
     fontSize: 11,
@@ -667,27 +576,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     height: '100%',
-  },
-  primaryButton: {
-    backgroundColor: COLORS.primary,
-    height: 56,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    marginTop: 8,
-  },
-  disabledButton: {
-    opacity: 0.7,
-  },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
   },
   // Profile edit
   avatarPreviewContainer: {

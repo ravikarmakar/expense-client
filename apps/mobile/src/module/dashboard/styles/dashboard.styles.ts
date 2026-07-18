@@ -156,4 +156,21 @@ export const styles = StyleSheet.create({
     backgroundColor: COLORS.outlineVariant,
     shadowColor: COLORS.outlineVariant,
   },
+
+  // ─── Stat Content & Skeleton Helpers ─────────────────────
+  statContent: {
+    flex: 1,
+  },
+  skeletonOnDark: {
+    marginTop: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  skeletonBalanceOnDark: {
+    marginTop: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  sectionHeaderPadded: {
+    paddingHorizontal: 16,
+    marginBottom: 14,
+  },
 });

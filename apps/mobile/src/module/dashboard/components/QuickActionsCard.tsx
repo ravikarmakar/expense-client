@@ -8,11 +8,13 @@ import { globalStyles } from '../../../styles/globalStyles';
 interface QuickActionsCardProps {
   onAddExpensePress: () => void;
   onCreateGroupPress: () => void;
+  onCreateCategoryPress: () => void;
 }
 
 export const QuickActionsCard = React.memo(function QuickActionsCard({
   onAddExpensePress,
   onCreateGroupPress,
+  onCreateCategoryPress,
 }: QuickActionsCardProps) {
   return (
     <View style={[globalStyles.sectionContainer, styles.container]}>
@@ -91,6 +93,20 @@ export const QuickActionsCard = React.memo(function QuickActionsCard({
           </View>
           <Text style={styles.quickActionLabel} numberOfLines={2}>
             Ledger
+          </Text>
+        </TouchableOpacity>
+
+        {/* Categories */}
+        <TouchableOpacity
+          style={styles.quickActionItem}
+          activeOpacity={0.8}
+          onPress={onCreateCategoryPress}
+        >
+          <View style={[styles.quickActionIconContainer, { backgroundColor: '#e2f2ff' }]}>
+            <Ionicons name="grid" size={28} color="#0066cc" />
+          </View>
+          <Text style={styles.quickActionLabel} numberOfLines={2}>
+            Categories
           </Text>
         </TouchableOpacity>
       </ScrollView>

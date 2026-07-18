@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   StyleSheet,
   View,
@@ -21,7 +21,7 @@ import { SkeletonLoader } from '../../components/SkeletonLoader';
 import { AddExpenseModal } from '../../components/AddExpenseModal';
 import { ErrorView } from '../../components/ErrorView';
 import { EmptyState } from '../../components/EmptyState';
-import { useExpenses, useMe, type ExpenseCategory } from '@workspace/api';
+import { useActivityController, type ExpenseCategory } from '@workspace/api';
 import { getDateHeading } from '../../utils/date';
 
 const FILTER_TABS: Array<{ label: string; value: ExpenseCategory | 'All' }> = [
@@ -43,8 +43,6 @@ const DATE_RANGE_OPTIONS = [
   { label: 'Last 30 Days', value: 'last-30-days', icon: 'timer-outline' },
 ] as const;
 
-type DateRangeValue = (typeof DATE_RANGE_OPTIONS)[number]['value'];
-
 const SORT_OPTIONS = [
   { label: 'Date: Newest First', value: 'date-desc', icon: 'calendar-outline' },
   { label: 'Date: Oldest First', value: 'date-asc', icon: 'time-outline' },
@@ -52,99 +50,44 @@ const SORT_OPTIONS = [
   { label: 'Amount: High to Low', value: 'amount-desc', icon: 'trending-down-outline' },
 ] as const;
 
-type SortValue = (typeof SORT_OPTIONS)[number]['value'];
-
 export default function ActivityTabScreen() {
-  const [addExpenseVisible, setAddExpenseVisible] = useState(false);
-  const [filterModalVisible, setFilterModalVisible] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<ExpenseCategory | 'All'>('All');
-  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRangeValue>('all-time');
-  const [isDateRangeDropdownOpen, setIsDateRangeDropdownOpen] = useState(false);
-  const [paidByMe, setPaidByMe] = useState(false);
-  const [sortBy, setSortBy] = useState<SortValue>('date-desc');
-  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
-  const [useWalletOnly, setUseWalletOnly] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const { data: user } = useMe();
-
-  const [searchVisible, setSearchVisible] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 300);
-    return () => clearTimeout(handler);
-  }, [searchQuery]);
-
-  const dateFilter = React.useMemo(() => {
-    if (dateRange === 'all-time') return {};
-    const now = new Date();
-    let start = new Date();
-    let end = new Date();
-
-    if (dateRange === 'this-month') {
-      start = new Date(now.getFullYear(), now.getMonth(), 1);
-    } else if (dateRange === 'last-month') {
-      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-    } else if (dateRange === 'last-7-days') {
-      start.setDate(now.getDate() - 7);
-    } else if (dateRange === 'last-30-days') {
-      start.setDate(now.getDate() - 30);
-    }
-
-    return {
-      startDate: start.toISOString(),
-      endDate: end.toISOString(),
-    };
-  }, [dateRange]);
-
   const {
-    data: expensesData,
+    user,
+    addExpenseVisible,
+    setAddExpenseVisible,
+    filterModalVisible,
+    setFilterModalVisible,
+    activeFilter,
+    setActiveFilter,
+    isCategoryDropdownOpen,
+    setIsCategoryDropdownOpen,
+    dateRange,
+    setDateRange,
+    isDateRangeDropdownOpen,
+    setIsDateRangeDropdownOpen,
+    paidByMe,
+    setPaidByMe,
+    sortBy,
+    setSortBy,
+    isSortDropdownOpen,
+    setIsSortDropdownOpen,
+    useWalletOnly,
+    setUseWalletOnly,
+    isRefreshing,
+    searchVisible,
+    setSearchVisible,
+    searchQuery,
+    setSearchQuery,
+    sortedExpenses,
     isLoading,
     isError,
     refetch,
+    handleRefresh,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useExpenses({
-    ...(activeFilter !== 'All' && { category: activeFilter }),
-    ...(paidByMe && { paidByMe: true }),
-    ...(useWalletOnly && { useWallet: true }),
-    ...(debouncedSearchQuery.trim() !== '' && { search: debouncedSearchQuery.trim() }),
-    ...dateFilter,
-  });
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await refetch();
-    setIsRefreshing(false);
-  };
-
-  const expenses = React.useMemo(() => {
-    return expensesData?.pages.flatMap((page) => page.expenses) ?? [];
-  }, [expensesData]);
-
-  const sortedExpenses = React.useMemo(() => {
-    return [...expenses].sort((a, b) => {
-      if (sortBy === 'date-desc') {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-      }
-      if (sortBy === 'date-asc') {
-        return new Date(a.date).getTime() - new Date(b.date).getTime();
-      }
-      if (sortBy === 'amount-asc') {
-        return a.amount - b.amount;
-      }
-      if (sortBy === 'amount-desc') {
-        return b.amount - a.amount;
-      }
-      return 0;
-    });
-  }, [expenses, sortBy]);
+    handleResetAll,
+  } = useActivityController();
 
   const isCloseToBottom = ({
     layoutMeasurement,
@@ -396,7 +339,7 @@ export default function ActivityTabScreen() {
       <AddExpenseModal
         visible={addExpenseVisible}
         onClose={() => setAddExpenseVisible(false)}
-        onSuccess={refetch}
+        onSuccess={() => refetch()}
       />
 
       {/* Filter Modal */}
@@ -715,17 +658,7 @@ export default function ActivityTabScreen() {
               <View style={styles.modalActionsRow}>
                 <TouchableOpacity
                   style={styles.modalResetBtn}
-                  onPress={() => {
-                    setActiveFilter('All');
-                    setDateRange('all-time');
-                    setPaidByMe(false);
-                    setUseWalletOnly(false);
-                    setSortBy('date-desc');
-                    setIsCategoryDropdownOpen(false);
-                    setIsDateRangeDropdownOpen(false);
-                    setIsSortDropdownOpen(false);
-                    setFilterModalVisible(false);
-                  }}
+                  onPress={handleResetAll}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.modalResetBtnText}>Reset All</Text>

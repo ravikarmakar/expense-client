@@ -1,19 +1,21 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { Text, View, ScrollView, TouchableOpacity, RefreshControl, Image } from 'react-native';
 import { styles } from '../styles/dashboard.styles';
 import { Ionicons } from '@expo/vector-icons';
 import { CategorySpendingCard } from '../components/CategorySpendingCard';
 import { QuickActionsCard } from '../components/QuickActionsCard';
 import { ActiveGroupsCard } from '../components/ActiveGroupsCard';
+import { BalanceCard } from '../components/BalanceCard';
 import { AddExpenseModal } from '../../../components/AddExpenseModal';
 import { CreateGroupModal } from '../../groups/components/CreateGroupModal';
+import { CreateCategoryModal } from '../../../components/CreateCategoryModal';
 import { GroupCardSkeleton } from '../../groups/components/GroupCardSkeleton';
 import { ExpenseItemSkeleton } from '../../../components/ExpenseItemSkeleton';
 import { EmptyState } from '../../../components/EmptyState';
-import { SkeletonLoader } from '../components/SkeletonLoader';
+import { SkeletonLoader } from '../../../components/SkeletonLoader';
 import { useDashboardController } from '@workspace/api';
 import { router } from 'expo-router';
-import { COLORS, CURRENCY_SYMBOL, resolveAvatar } from '../../../constants/theme';
+import { resolveAvatar } from '../../../constants/theme';
 import { globalStyles } from '../../../styles/globalStyles';
 import { TopAppBar } from '../../../components/TopAppBar';
 import { RecentExpenses } from '../components/RecentExpenses';
@@ -30,6 +32,7 @@ export default function HomeScreen() {
     statsLoading,
     expenses,
     expensesLoading,
+    expensesRefetching,
     groups,
     groupsLoading,
     isRefreshing,
@@ -46,6 +49,49 @@ export default function HomeScreen() {
 
   const singlePress = useSinglePress();
 
+  // ─── Stable handlers (won't create new closures on each render) ───────
+  const handleNotificationPress = useCallback(() => router.push('/notifications'), []);
+  const handleAddFriendPress = useCallback(() => router.push('/add-friend'), []);
+  const handleSettingsPress = useCallback(() => router.push('/(tabs)/settings'), []);
+  const handleOpenAddExpense = useCallback(() => setAddExpenseVisible(true), []);
+  const handleCloseAddExpense = useCallback(() => setAddExpenseVisible(false), []);
+  const handleOpenCreateGroup = useCallback(() => setCreateGroupVisible(true), []);
+  const handleCloseCreateGroup = useCallback(() => setCreateGroupVisible(false), []);
+  const handleCreateGroupSuccess = useCallback(() => {
+    setCreateGroupVisible(false);
+    refetchDashboard();
+  }, [refetchDashboard]);
+
+  // Category modal
+  const [createCategoryVisible, setCreateCategoryVisible] = useState(false);
+  const handleOpenCreateCategory = useCallback(() => setCreateCategoryVisible(true), []);
+  const handleCloseCreateCategory = useCallback(() => setCreateCategoryVisible(false), []);
+
+  // Balance card navigation handlers (wrapped with singlePress for debounce)
+  const handleTotalSpentPress = useCallback(
+    () => singlePress(() => router.push('/total-spent'))(),
+    []
+  );
+  const handleOwedPress = useCallback(
+    () =>
+      singlePress(() => router.push({ pathname: '/groups/settle-up', params: { type: 'owed' } }))(),
+    []
+  );
+  const handleOwePress = useCallback(
+    () =>
+      singlePress(() => router.push({ pathname: '/groups/settle-up', params: { type: 'owe' } }))(),
+    []
+  );
+  const handleNetBalancePress = useCallback(
+    () => singlePress(() => router.push('/(tabs)/groups'))(),
+    []
+  );
+  const handleGroupSpentPress = useCallback(
+    () => singlePress(() => router.push('/groups/analytics'))(),
+    []
+  );
+
+  // ─── Derived values ───────────────────────────────────────────────────
   const greetingHour = new Date().getHours();
   const greeting =
     greetingHour < 12 ? 'Good Morning' : greetingHour < 17 ? 'Good Afternoon' : 'Good Evening';
@@ -53,8 +99,8 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <TopAppBar
-        onNotificationPress={() => router.push('/notifications')}
-        onAddFriendPress={() => router.push('/add-friend')}
+        onNotificationPress={handleNotificationPress}
+        onAddFriendPress={handleAddFriendPress}
         unreadCount={unreadCount}
       />
 
@@ -69,174 +115,40 @@ export default function HomeScreen() {
             <Text style={styles.greetingSub}>{greeting},</Text>
             <Text style={styles.greetingName}>{user?.name ?? 'Welcome'}</Text>
           </View>
-          <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/(tabs)/settings')}>
+          <TouchableOpacity activeOpacity={0.8} onPress={handleSettingsPress}>
             <Image source={{ uri: resolveAvatar(user?.image) }} style={styles.greetingAvatar} />
           </TouchableOpacity>
         </View>
 
         {/* Main Balance Card */}
-        <View style={styles.balanceCard}>
-          <View style={[styles.abstractCircle, styles.circleTopRight]} />
-          <View style={[styles.abstractCircle, styles.circleBottomLeft]} />
-
-          <TouchableOpacity
-            style={styles.mainBalanceWrapper}
-            activeOpacity={0.8}
-            onPress={singlePress(() => router.push('/total-spent'))}
-          >
-            <Text style={styles.balanceLabel}>All-Time Spending</Text>
-            {statsLoading && !stats ? (
-              <SkeletonLoader
-                width={140}
-                height={32}
-                style={{ marginTop: 6, backgroundColor: 'rgba(255,255,255,0.2)' }}
-              />
-            ) : (
-              <Text style={styles.balanceAmount}>
-                {CURRENCY_SYMBOL}
-                {totalSpent.toFixed(2)}
-              </Text>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.balanceDivider} />
-
-          {/* 2x2 Stats Grid */}
-          <View style={styles.statsGrid}>
-            <View style={styles.statsRow}>
-              <TouchableOpacity
-                style={styles.statBox}
-                activeOpacity={0.8}
-                onPress={singlePress(() =>
-                  router.push({ pathname: '/groups/settle-up', params: { type: 'owed' } })
-                )}
-              >
-                <View style={[styles.statIconBg, { backgroundColor: COLORS.primaryFixed }]}>
-                  <Ionicons name="arrow-down" size={16} color={COLORS.primary} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.statLabel}>Owed to you</Text>
-                  {groupsLoading && groups.length === 0 ? (
-                    <SkeletonLoader
-                      width={50}
-                      height={16}
-                      style={{ marginTop: 2, backgroundColor: 'rgba(255,255,255,0.15)' }}
-                    />
-                  ) : (
-                    <Text style={[styles.statValue, { color: COLORS.primaryFixed }]}>
-                      {CURRENCY_SYMBOL}
-                      {totalOwedToMe.toFixed(2)}
-                    </Text>
-                  )}
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.statBox}
-                activeOpacity={0.8}
-                onPress={singlePress(() =>
-                  router.push({ pathname: '/groups/settle-up', params: { type: 'owe' } })
-                )}
-              >
-                <View style={[styles.statIconBg, { backgroundColor: COLORS.errorContainer }]}>
-                  <Ionicons name="arrow-up" size={16} color={COLORS.error} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.statLabel}>You owe</Text>
-                  {groupsLoading && groups.length === 0 ? (
-                    <SkeletonLoader
-                      width={50}
-                      height={16}
-                      style={{ marginTop: 2, backgroundColor: 'rgba(255,255,255,0.15)' }}
-                    />
-                  ) : (
-                    <Text style={[styles.statValue, { color: COLORS.errorContainer }]}>
-                      {CURRENCY_SYMBOL}
-                      {totalIOwe.toFixed(2)}
-                    </Text>
-                  )}
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.statsRow}>
-              <TouchableOpacity
-                style={styles.statBox}
-                activeOpacity={0.8}
-                onPress={singlePress(() => router.push('/(tabs)/groups'))}
-              >
-                <View style={[styles.statIconBg, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
-                  <Ionicons name="scale-outline" size={16} color="#ffffff" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.statLabel}>Net Balance</Text>
-                  {groupsLoading && groups.length === 0 ? (
-                    <SkeletonLoader
-                      width={50}
-                      height={16}
-                      style={{ marginTop: 2, backgroundColor: 'rgba(255,255,255,0.15)' }}
-                    />
-                  ) : (
-                    <Text style={styles.statValue}>
-                      {CURRENCY_SYMBOL}
-                      {netBalance.toFixed(2)}
-                    </Text>
-                  )}
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.statBox}
-                activeOpacity={0.8}
-                onPress={singlePress(() => router.push('/groups/analytics'))}
-              >
-                <View style={[styles.statIconBg, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
-                  <Ionicons name="people-outline" size={16} color="#ffffff" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.statLabel}>Group Spent</Text>
-                  {statsLoading && !stats ? (
-                    <SkeletonLoader
-                      width={50}
-                      height={16}
-                      style={{ marginTop: 2, backgroundColor: 'rgba(255,255,255,0.15)' }}
-                    />
-                  ) : (
-                    <Text style={styles.statValue}>
-                      {CURRENCY_SYMBOL}
-                      {totalGroupSpent.toFixed(2)}
-                    </Text>
-                  )}
-                </View>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+        <BalanceCard
+          totalSpent={totalSpent}
+          totalOwedToMe={totalOwedToMe}
+          totalIOwe={totalIOwe}
+          netBalance={netBalance}
+          totalGroupSpent={totalGroupSpent}
+          statsLoading={statsLoading && !stats}
+          groupsLoading={groupsLoading}
+          groupsEmpty={groups.length === 0}
+          onTotalSpentPress={handleTotalSpentPress}
+          onOwedPress={handleOwedPress}
+          onOwePress={handleOwePress}
+          onNetBalancePress={handleNetBalancePress}
+          onGroupSpentPress={handleGroupSpentPress}
+        />
 
         {/* Quick Actions */}
         <QuickActionsCard
-          onAddExpensePress={() => setAddExpenseVisible(true)}
-          onCreateGroupPress={() => setCreateGroupVisible(true)}
+          onAddExpensePress={handleOpenAddExpense}
+          onCreateGroupPress={handleOpenCreateGroup}
+          onCreateCategoryPress={handleOpenCreateCategory}
         />
 
         {/* Active Groups */}
         {groupsLoading && groups.length === 0 ? (
           <View style={globalStyles.sectionContainer}>
-            <View
-              style={[globalStyles.sectionHeaderRow, { paddingHorizontal: 16, marginBottom: 14 }]}
-            >
-              <Text
-                style={[
-                  globalStyles.sectionTitle,
-                  {
-                    fontSize: 20,
-                    fontWeight: '700',
-                    color: COLORS.onSurface,
-                    textTransform: 'none',
-                    letterSpacing: 0,
-                    marginBottom: 0,
-                    marginLeft: 0,
-                  },
-                ]}
-              >
+            <View style={[globalStyles.sectionHeaderRow, styles.sectionHeaderPadded]}>
+              <Text style={[globalStyles.sectionTitle, globalStyles.sectionTitleLarge]}>
                 Active Groups
               </Text>
             </View>
@@ -252,24 +164,9 @@ export default function HomeScreen() {
 
         {/* Recent Expenses */}
         {expensesLoading && expenses.length === 0 ? (
-          <View style={[globalStyles.sectionContainer, { paddingBottom: 24 }]}>
-            <View
-              style={[globalStyles.sectionHeaderRow, { paddingHorizontal: 16, marginBottom: 14 }]}
-            >
-              <Text
-                style={[
-                  globalStyles.sectionTitle,
-                  {
-                    fontSize: 20,
-                    fontWeight: '700',
-                    color: COLORS.onSurface,
-                    textTransform: 'none',
-                    letterSpacing: 0,
-                    marginBottom: 0,
-                    marginLeft: 0,
-                  },
-                ]}
-              >
+          <View style={[globalStyles.sectionContainer, styles.pbHighlight]}>
+            <View style={[globalStyles.sectionHeaderRow, styles.sectionHeaderPadded]}>
+              <Text style={[globalStyles.sectionTitle, globalStyles.sectionTitleLarge]}>
                 Recent Expenses
               </Text>
             </View>
@@ -283,7 +180,11 @@ export default function HomeScreen() {
             </View>
           </View>
         ) : (
-          <RecentExpenses expenses={expenses} currentUserId={user?.id} />
+          <RecentExpenses
+            expenses={expenses}
+            currentUserId={user?.id}
+            isRefetching={expensesRefetching}
+          />
         )}
 
         {/* Empty state */}
@@ -296,16 +197,16 @@ export default function HomeScreen() {
               title="Start tracking expenses!"
               description="Add your first expense or create a group to start splitting costs with friends."
               ctaText="Add First Expense"
-              onCtaPress={() => setAddExpenseVisible(true)}
+              onCtaPress={handleOpenAddExpense}
               ctaIcon="add-circle"
             />
           )}
 
         {/* Category Spending Analytics */}
         {statsLoading && !stats ? (
-          <View style={[globalStyles.sectionContainer, { paddingBottom: 24 }]}>
+          <View style={[globalStyles.sectionContainer, styles.pbHighlight]}>
             <Text style={globalStyles.sectionTitle}>Spending by Category</Text>
-            <SkeletonLoader height={160} style={{ marginTop: 12 }} />
+            <SkeletonLoader height={160} />
           </View>
         ) : (
           <CategorySpendingCard summary={stats} totalSpent={totalSpent} />
@@ -316,7 +217,7 @@ export default function HomeScreen() {
       <TouchableOpacity
         style={[styles.fab, groupsLoading && styles.fabDisabled]}
         activeOpacity={0.85}
-        onPress={() => setAddExpenseVisible(true)}
+        onPress={handleOpenAddExpense}
         disabled={groupsLoading}
       >
         <Ionicons name="add" size={32} color="#ffffff" />
@@ -324,18 +225,17 @@ export default function HomeScreen() {
 
       <AddExpenseModal
         visible={addExpenseVisible}
-        onClose={() => setAddExpenseVisible(false)}
+        onClose={handleCloseAddExpense}
         onSuccess={refetchDashboard}
       />
 
       <CreateGroupModal
         visible={createGroupVisible}
-        onClose={() => setCreateGroupVisible(false)}
-        onSuccess={() => {
-          setCreateGroupVisible(false);
-          refetchDashboard();
-        }}
+        onClose={handleCloseCreateGroup}
+        onSuccess={handleCreateGroupSuccess}
       />
+
+      <CreateCategoryModal visible={createCategoryVisible} onClose={handleCloseCreateCategory} />
     </View>
   );
 }

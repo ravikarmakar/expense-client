@@ -54,6 +54,12 @@ export {
   clientUpdateExpenseSchema,
 } from './expenses/expense.validation';
 
+export {
+  useActivityController,
+  usePersonalController,
+  PERSONAL_CATEGORIES,
+} from './expenses/expense.controllers';
+
 // ── Group module ──────────────────────────────────────
 export type {
   Group,
@@ -143,6 +149,8 @@ export { settleUpApi, getGroupSettlementsApi } from './settlements/settlements.a
 
 export { settlementKeys, useGroupSettlements, useSettleUp } from './settlements/settlements.hooks';
 
+export { useSettleUpScreenController } from './settlements/settlements.controllers';
+
 // QueryClient factory
 export { createQueryClient } from './query-client';
 
@@ -206,6 +214,7 @@ export {
   useOtpController,
   useForgotPasswordController,
   useChangePasswordController,
+  useSettingsController,
 } from './auth/auth.controllers';
 
 // Auth validation schemas
@@ -338,3 +347,17 @@ export {
 // ── Update module ─────────────────────────────────────
 export type { UpdateCheckResult, UpdateProvider } from './update/update.types';
 export { useUpdateCheck, updateProvider } from './update/update.hooks';
+
+// ── Categories module ─────────────────────────────────
+export type { CustomCategory, CategoriesResponse } from './categories/categories.types';
+export {
+  getCategoriesApi,
+  createCategoryApi,
+  deleteCategoryApi,
+} from './categories/categories.api';
+export {
+  useCategories,
+  useCreateCategory,
+  useDeleteCategory,
+  categoryKeys,
+} from './categories/categories.hooks';

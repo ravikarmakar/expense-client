@@ -4,8 +4,9 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LineChart, BarChart, PieChart } from 'react-native-gifted-charts';
 import { TopAppBar } from '../../../components/TopAppBar';
-import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../../../constants/theme';
-import { useGroupDetailAnalytics } from '@workspace/api';
+import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
+import { getCategoryVisuals } from '../../../constants/categories';
+import { useGroupDetailAnalytics, useCategories } from '@workspace/api';
 import { globalStyles } from '../../../styles/globalStyles';
 import { ErrorView } from '../../../components/ErrorView';
 import { useRouteParams, idParamSchema } from '../../../hooks/useRouteParams';
@@ -50,6 +51,9 @@ export default function GroupAnalyticsScreen() {
     isError,
     refetch,
   } = useGroupDetailAnalytics(id, timeframe, refDate);
+
+  const { data: categoriesData } = useCategories();
+  const customCategories = categoriesData?.custom || [];
 
   const aggregatedData = useMemo(() => {
     if (!analytics) return null;
@@ -388,7 +392,7 @@ export default function GroupAnalyticsScreen() {
                 ) : (
                   <View style={styles.listViewContainer}>
                     {categorySpent.map((item) => {
-                      const config = CATEGORY_ICONS[item.category] || CATEGORY_ICONS.Other;
+                      const config = getCategoryVisuals(item.category, customCategories);
                       return (
                         <View key={item.category} style={styles.categoryRow}>
                           <View style={styles.categoryHeader}>

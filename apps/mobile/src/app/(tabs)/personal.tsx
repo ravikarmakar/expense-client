@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   StyleSheet,
   View,
@@ -13,85 +13,50 @@ import {
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../../constants/theme';
+import { COLORS, CURRENCY_SYMBOL } from '../../constants/theme';
 import { AddExpenseModal } from '../../components/AddExpenseModal';
 import { ExpenseItem } from '../../components/ExpenseItem';
 import { ExpenseItemSkeleton } from '../../components/ExpenseItemSkeleton';
 import { SkeletonLoader } from '../../components/SkeletonLoader';
 import { ErrorView } from '../../components/ErrorView';
 import { EmptyState } from '../../components/EmptyState';
-import { useExpenses, useMe, type ExpenseCategory } from '@workspace/api';
+import { usePersonalController, useCategories } from '@workspace/api';
 import { getDateHeading } from '../../utils/date';
-
-const PERSONAL_CATEGORIES = [
-  'Food',
-  'Transport',
-  'Shopping',
-  'Entertainment',
-  'Bills',
-  'Travel',
-  'Health',
-  'Other',
-] as const;
+import { getCategoryVisuals } from '../../constants/categories';
 
 export default function PersonalTabScreen() {
-  const [addExpenseVisible, setAddExpenseVisible] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const { data: user } = useMe();
-  const insets = useSafeAreaInsets();
-
   const {
-    data: expensesData,
+    user,
+    addExpenseVisible,
+    setAddExpenseVisible,
+    menuVisible,
+    setMenuVisible,
+    selectedCategoryFilter,
+    setSelectedCategoryFilter,
+    isRefreshing,
+    expensesList,
+    totalSpent,
+    categoryTotals: controllerCategoryTotals,
     isLoading,
     isError,
     refetch,
+    handleRefresh,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useExpenses({
-    personal: true,
-    ...(selectedCategoryFilter && { category: selectedCategoryFilter as ExpenseCategory }),
-  });
+  } = usePersonalController();
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await refetch();
-    setIsRefreshing(false);
-  };
+  const { data: categoriesData } = useCategories();
+  const customCategories = categoriesData?.custom || [];
 
-  const expensesList = React.useMemo(() => {
-    return expensesData?.pages.flatMap((page) => page.expenses) ?? [];
-  }, [expensesData]);
+  const insets = useSafeAreaInsets();
 
-  // Compute total spent on personal expenses (overall)
-  const totalSpent = React.useMemo(() => {
-    return expensesList.reduce((sum, item) => sum + item.amount, 0);
-  }, [expensesList]);
-
-  // Compute category breakdown totals for the carousel
   const categoryTotals = React.useMemo(() => {
-    const totals: Record<string, number> = {};
-    PERSONAL_CATEGORIES.forEach((cat) => {
-      totals[cat] = 0;
-    });
-
-    expensesList.forEach((exp) => {
-      const cat = exp.category;
-      if (cat in totals) {
-        totals[cat] += exp.amount;
-      } else {
-        totals['Other'] = (totals['Other'] ?? 0) + exp.amount;
-      }
-    });
-
-    return PERSONAL_CATEGORIES.map((cat) => ({
-      name: cat,
-      amount: totals[cat] ?? 0,
-      iconConfig: CATEGORY_ICONS[cat] ?? CATEGORY_ICONS.Other,
+    return controllerCategoryTotals.map((cat) => ({
+      ...cat,
+      iconConfig: getCategoryVisuals(cat.name, customCategories),
     }));
-  }, [expensesList]);
+  }, [controllerCategoryTotals, customCategories]);
 
   const isCloseToBottom = ({
     layoutMeasurement,
@@ -317,7 +282,7 @@ export default function PersonalTabScreen() {
         visible={addExpenseVisible}
         initialExpenseType="PERSONAL"
         onClose={() => setAddExpenseVisible(false)}
-        onSuccess={refetch}
+        onSuccess={() => refetch()}
       />
 
       {/* 3-Dot Dropdown Menu Modal */}

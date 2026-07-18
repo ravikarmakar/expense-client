@@ -23,6 +23,15 @@ export const globalStyles = StyleSheet.create({
     marginBottom: 16,
     marginLeft: 4,
   },
+  sectionTitleLarge: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.onSurface,
+    textTransform: 'none',
+    letterSpacing: 0,
+    marginBottom: 0,
+    marginLeft: 0,
+  },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

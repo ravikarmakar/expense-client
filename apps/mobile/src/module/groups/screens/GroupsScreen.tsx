@@ -163,6 +163,9 @@ export default function GroupsScreen() {
                   <GroupCardSkeleton />
                   <GroupCardSkeleton />
                   <GroupCardSkeleton />
+                  <GroupCardSkeleton />
+                  <GroupCardSkeleton />
+                  <GroupCardSkeleton />
                 </View>
               </>
             )}

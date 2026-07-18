@@ -10,6 +10,9 @@ import {
   useResetPassword,
   useVerifyPassword,
   useChangePassword,
+  useMe,
+  useLogout,
+  useUpdateProfile,
 } from './auth.hooks';
 import {
   clientLoginSchema,
@@ -622,5 +625,85 @@ export function useChangePasswordController({
     handleVerifyPassword,
     handleChangePassword,
     resetController,
+  };
+}
+
+interface SettingsControllerConfig {
+  onSaveSuccess?: () => void;
+  onSaveError?: (errorMessage: string) => void;
+  onLogoutSuccess?: () => void;
+  onLogoutError?: (errorMessage: string) => void;
+}
+
+export function useSettingsController(config?: SettingsControllerConfig) {
+  const { data: user } = useMe();
+  const updateProfileMutation = useUpdateProfile();
+  const logoutMutation = useLogout();
+
+  const [editName, setEditName] = useState('');
+  const [selectedAvatar, setSelectedAvatar] = useState('');
+  const [profileErrorMessage, setProfileErrorMessage] = useState('');
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
+
+  const handleOpenProfileModal = () => {
+    setEditName(user?.name ?? '');
+    setSelectedAvatar(user?.image ?? '');
+    setProfileErrorMessage('');
+    setProfileModalVisible(true);
+  };
+
+  const handleSaveProfile = () => {
+    setProfileErrorMessage('');
+    if (!editName.trim()) {
+      setProfileErrorMessage('Name cannot be empty.');
+      return;
+    }
+
+    updateProfileMutation.mutate(
+      {
+        name: editName.trim(),
+        image: selectedAvatar,
+      },
+      {
+        onSuccess: () => {
+          setProfileModalVisible(false);
+          config?.onSaveSuccess?.();
+        },
+        onError: (err) => {
+          const msg = getErrorMessage(err, 'Failed to update profile.');
+          setProfileErrorMessage(msg);
+          config?.onSaveError?.(msg);
+        },
+      }
+    );
+  };
+
+  const handleLogout = () => {
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        config?.onLogoutSuccess?.();
+      },
+      onError: (err) => {
+        const msg = getErrorMessage(err, 'Failed to log out.');
+        config?.onLogoutError?.(msg);
+      },
+    });
+  };
+
+  return {
+    user,
+    editName,
+    setEditName,
+    selectedAvatar,
+    setSelectedAvatar,
+    profileErrorMessage,
+    setProfileErrorMessage,
+    profileModalVisible,
+    setProfileModalVisible,
+    handleOpenProfileModal,
+    handleSaveProfile,
+    handleLogout,
+    isUpdatingProfile: updateProfileMutation.isPending,
+    isLoggingOut: logoutMutation.isPending,
   };
 }
