@@ -22,9 +22,12 @@ export const expenseAnalyticsResponseSchema = z.object({
     totalSpent: z.number(),
     totalPersonalSpent: z.number(),
     totalGroupSpent: z.number(),
+    myPayments: z.number().nullable().optional(),
+    myShare: z.number().nullable().optional(),
     history: z.array(analyticsHistoryItemSchema),
     categorySpent: z.array(categoryAnalyticsItemSchema),
     expenses: z.array(expenseSchema),
+    nextCursor: z.string().nullable().optional(),
     comparison: z.object({
       totalSpent: z.number(),
       totalPersonalSpent: z.number(),

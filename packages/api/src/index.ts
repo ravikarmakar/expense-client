@@ -3,7 +3,14 @@
 // ─────────────────────────────────────────────────────
 
 // Client setup
-export { createApiClient, getApiClient, getStorage, onAuthError, TOKEN_KEY } from './client';
+export {
+  createApiClient,
+  getApiClient,
+  getStorage,
+  onAuthError,
+  onSlowRequest,
+  TOKEN_KEY,
+} from './client';
 
 // ── Expense module ────────────────────────────────────
 export type {
@@ -47,6 +54,12 @@ export {
   clientUpdateExpenseSchema,
 } from './expenses/expense.validation';
 
+export {
+  useActivityController,
+  usePersonalController,
+  PERSONAL_CATEGORIES,
+} from './expenses/expense.controllers';
+
 // ── Group module ──────────────────────────────────────
 export type {
   Group,
@@ -58,13 +71,15 @@ export type {
   AddMemberInput,
   GroupType,
   GroupDetailConsolidated,
+  GroupBalances,
 } from './groups/group.types';
 
-export { MAX_GROUP_MEMBERS, MIN_GROUP_MEMBERS, GROUP_TYPES } from './groups/group.types';
+export { MAX_GROUP_MEMBERS, MIN_GROUP_MEMBERS, GROUP_TYPES, GroupRole } from './groups/group.types';
 
 export {
   createGroupApi,
   getGroupsApi,
+  getGroupBalancesApi,
   getGroupApi,
   updateGroupApi,
   deactivateGroupApi,
@@ -74,11 +89,14 @@ export {
   searchUsersPaginatedApi,
   leaveGroupApi,
   getGroupDetailApi,
+  getGroupActivityApi,
+  activateGroupApi,
 } from './groups/group.api';
 
 export {
   groupKeys,
   useGroups,
+  useGroupBalances,
   useGroup,
   useSearchUsers,
   useSearchUsersPaginated,
@@ -90,7 +108,22 @@ export {
   useLeaveGroup,
   useGroupDetail,
   useSendReminder,
+  useGroupActivity,
+  useActivateGroup,
 } from './groups/group.hooks';
+
+export type { ActivityItem, ActivityFeed } from './groups/activity.types';
+export { activityFeedSchema, activityItemSchema } from './groups/activity.types';
+
+export {
+  useGroupDetailController,
+  useGroupAddMemberController,
+  useCreateGroupController,
+  useGroupsController,
+  type GroupsFilterType,
+  useAddGroupExpenseController,
+  type UseAddGroupExpenseControllerProps,
+} from './groups/group.controllers';
 
 export {
   clientCreateGroupSchema,
@@ -115,6 +148,8 @@ export {
 export { settleUpApi, getGroupSettlementsApi } from './settlements/settlements.api';
 
 export { settlementKeys, useGroupSettlements, useSettleUp } from './settlements/settlements.hooks';
+
+export { useSettleUpScreenController } from './settlements/settlements.controllers';
 
 // QueryClient factory
 export { createQueryClient } from './query-client';
@@ -172,6 +207,16 @@ export {
   useUpdateProfile,
 } from './auth/auth.hooks';
 
+// Auth controllers
+export {
+  useLoginController,
+  useRegisterController,
+  useOtpController,
+  useForgotPasswordController,
+  useChangePasswordController,
+  useSettingsController,
+} from './auth/auth.controllers';
+
 // Auth validation schemas
 export {
   clientRegisterSchema,
@@ -185,6 +230,7 @@ export {
   clientChangePasswordSchema,
   authUserSchema,
   authSessionSchema,
+  userResponseSchema,
   messageResponseSchema,
 } from './auth/auth.validation';
 
@@ -205,12 +251,37 @@ export {
   useUpdateWalletManager,
   useUpdateWalletTarget,
   useContribute,
+  useWalletTransactions,
 } from './wallet/wallet.hooks';
+export { useGroupWalletController } from './wallet/wallet.controllers';
 
 // ── Dashboard module ──────────────────────────────────
-export type { DashboardData } from './dashboard/dashboard.types';
-export { getDashboardApi } from './dashboard/dashboard.api';
-export { useDashboard, dashboardKeys } from './dashboard/dashboard.hooks';
+export type {
+  DashboardData,
+  DashboardStatsData,
+  DashboardExpensesData,
+  DashboardGroupsData,
+} from './dashboard/dashboard.types';
+export {
+  getDashboardApi,
+  getDashboardStatsApi,
+  getDashboardRecentExpensesApi,
+  getDashboardGroupsApi,
+} from './dashboard/dashboard.api';
+export {
+  dashboardResponseSchema,
+  dashboardStatsSchema,
+  dashboardExpensesSchema,
+  dashboardGroupsSchema,
+} from './dashboard/dashboard.validation';
+export {
+  useDashboard,
+  useDashboardStats,
+  useDashboardRecentExpenses,
+  useDashboardGroups,
+  dashboardKeys,
+} from './dashboard/dashboard.hooks';
+export { useDashboardController } from './dashboard/dashboard.controllers';
 
 // ── Analytics module ──────────────────────────────────
 export type {
@@ -243,6 +314,7 @@ export {
 } from './analytics/analytics.api';
 export {
   useExpenseAnalytics,
+  useExpenseAnalyticsInfinite,
   useDebtBalances,
   useGroupAnalytics,
   useGroupDetailAnalytics,
@@ -275,3 +347,17 @@ export {
 // ── Update module ─────────────────────────────────────
 export type { UpdateCheckResult, UpdateProvider } from './update/update.types';
 export { useUpdateCheck, updateProvider } from './update/update.hooks';
+
+// ── Categories module ─────────────────────────────────
+export type { CustomCategory, CategoriesResponse } from './categories/categories.types';
+export {
+  getCategoriesApi,
+  createCategoryApi,
+  deleteCategoryApi,
+} from './categories/categories.api';
+export {
+  useCategories,
+  useCreateCategory,
+  useDeleteCategory,
+  categoryKeys,
+} from './categories/categories.hooks';

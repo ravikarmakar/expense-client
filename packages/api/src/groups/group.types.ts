@@ -9,6 +9,12 @@ import { settlementSchema, type Settlement } from '../settlements/settlements.ty
 export const GROUP_MEMBER_ROLES = ['admin', 'member', 'invited'] as const;
 export type GroupMemberRole = (typeof GROUP_MEMBER_ROLES)[number];
 
+export const GroupRole = {
+  ADMIN: 'admin',
+  MEMBER: 'member',
+  INVITED: 'invited',
+} as const;
+
 export const GROUP_TYPES = [
   'Roommates',
   'Travel',
@@ -27,7 +33,7 @@ export type GroupType = (typeof GROUP_TYPES)[number];
 export const groupMemberSchema = z.object({
   userId: z.string(),
   name: z.string(),
-  email: z.string().email(),
+  email: z.string(),
   image: z.string().nullable().optional(),
   role: z
     .preprocess((val) => {
@@ -62,9 +68,17 @@ export const groupSchema = z.object({
   totalExpenses: z.number().default(0),
   myBalance: z.number().default(0), // net balance for the logged-in user in this group
   memberCount: z.number(),
+  isActive: z.boolean().optional().default(true),
   createdBy: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  wallet: z
+    .object({
+      id: z.string(),
+      balance: z.number(),
+    })
+    .nullable()
+    .optional(),
 });
 
 export const groupListSchema = z.object({
@@ -85,7 +99,7 @@ export const groupDetailSchema = z.object({
 export const userSearchResultSchema = z.object({
   id: z.string(),
   name: z.string(),
-  email: z.string().email(),
+  email: z.string(),
   image: z.string().nullable().optional(),
 });
 
@@ -102,7 +116,20 @@ export const groupDetailConsolidatedSchema = z.object({
   data: z.object({
     group: groupSchema,
     expenses: z.array(expenseSchema),
-    settlements: z.array(settlementSchema),
+    settlements: z.array(settlementSchema).optional().default([]),
+  }),
+});
+
+export const groupBalancesSchema = z.object({
+  success: z.boolean(),
+  data: z.object({
+    balances: z.record(
+      z.string(),
+      z.object({
+        myBalance: z.number(),
+        totalExpenses: z.number(),
+      })
+    ),
   }),
 });
 
@@ -115,6 +142,7 @@ export type Group = z.infer<typeof groupSchema>;
 export type UserSearchResult = z.infer<typeof userSearchResultSchema>;
 export { type Settlement };
 export type GroupDetailConsolidated = z.infer<typeof groupDetailConsolidatedSchema>;
+export type GroupBalances = z.infer<typeof groupBalancesSchema>['data']['balances'];
 
 // ─────────────────────────────────────────────────────
 // Input types for mutations

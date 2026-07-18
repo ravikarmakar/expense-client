@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from '@tansta
 import {
   createGroupApi,
   getGroupsApi,
+  getGroupBalancesApi,
   getGroupApi,
   updateGroupApi,
   deactivateGroupApi,
@@ -12,6 +13,8 @@ import {
   leaveGroupApi,
   getGroupDetailApi,
   sendReminderApi,
+  getGroupActivityApi,
+  activateGroupApi,
 } from './group.api';
 import type { Group, CreateGroupInput, UpdateGroupInput, AddMemberInput } from './group.types';
 
@@ -22,7 +25,7 @@ import type { Group, CreateGroupInput, UpdateGroupInput, AddMemberInput } from '
 export const groupKeys = {
   all: ['groups'] as const,
   lists: () => [...groupKeys.all, 'list'] as const,
-  list: () => [...groupKeys.lists()] as const,
+  list: (search?: string) => [...groupKeys.lists(), { search }] as const,
   details: () => [...groupKeys.all, 'detail'] as const,
   detail: (id: string) => [...groupKeys.details(), id] as const,
   detailConsolidated: (id: string) => [...groupKeys.detail(id), 'consolidated'] as const,
@@ -36,13 +39,25 @@ export const groupKeys = {
 /**
  * Fetch all groups the user belongs to.
  */
-export const useGroups = () =>
+export const useGroups = (search?: string, options?: { enabled?: boolean }) =>
   useInfiniteQuery({
-    queryKey: groupKeys.list(),
-    queryFn: ({ pageParam }) => getGroupsApi(pageParam as string | undefined),
+    queryKey: groupKeys.list(search),
+    queryFn: ({ pageParam }) => getGroupsApi(pageParam as string | undefined, search),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: 5 * 60 * 1000,
+    ...options,
+  });
+
+/**
+ * Fetch dynamic group balances (used for deferred loading).
+ */
+export const useGroupBalances = (options?: { enabled?: boolean }) =>
+  useQuery({
+    queryKey: [...groupKeys.all, 'balances'] as const,
+    queryFn: getGroupBalancesApi,
+    staleTime: 30 * 1000,
+    ...options,
   });
 
 /**
@@ -142,6 +157,22 @@ export const useDeactivateGroup = () => {
 };
 
 /**
+ * Activate a group.
+ */
+export const useActivateGroup = () => {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: activateGroupApi,
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: groupKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.detailConsolidated(id) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+};
+
+/**
  * Add a member to a group by email.
  */
 export const useAddMember = (groupId: string) => {
@@ -194,3 +225,17 @@ export const useSendReminder = (groupId: string) => {
     mutationFn: (userId) => sendReminderApi(groupId, userId),
   });
 };
+
+export const useGroupActivity = (
+  groupId: string,
+  type?: 'all' | 'expenses' | 'settlements',
+  options?: { enabled?: boolean }
+) =>
+  useInfiniteQuery({
+    queryKey: [...groupKeys.detail(groupId), 'activity', type] as const,
+    queryFn: ({ pageParam }) => getGroupActivityApi(groupId, pageParam as string | undefined, type),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    enabled: !!groupId && (options?.enabled ?? true),
+    staleTime: 30 * 1000,
+  });

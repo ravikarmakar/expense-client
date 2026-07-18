@@ -6,7 +6,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   slug: 'splitshare',
   version: process.env.EXPO_PUBLIC_APP_VERSION || '1.0.0',
   orientation: 'portrait',
-  userInterfaceStyle: 'dark',
+  userInterfaceStyle: 'light',
+  androidNavigationBar: {
+    backgroundColor: '#00000000',
+    barStyle: 'dark-content',
+  },
   scheme: 'expensetransaction', // Keep scheme compatible with existing deep links
   ios: {
     supportsTablet: true,

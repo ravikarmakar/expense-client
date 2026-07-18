@@ -10,7 +10,10 @@ import {
   Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../constants/theme';
+import { useKeyboardHeight } from '../hooks/useKeyboardHeight';
+import { useHideTabBar } from '../hooks/useHideTabBar';
 
 interface BottomSheetModalProps {
   visible: boolean;
@@ -18,6 +21,7 @@ interface BottomSheetModalProps {
   title: string;
   children: React.ReactNode;
   behavior?: 'padding' | 'height' | 'position';
+  keyboardVerticalOffset?: number;
 }
 
 export const BottomSheetModal = React.memo(function BottomSheetModal({
@@ -26,7 +30,12 @@ export const BottomSheetModal = React.memo(function BottomSheetModal({
   title,
   children,
   behavior = Platform.OS === 'ios' ? 'padding' : undefined,
+  keyboardVerticalOffset = 0,
 }: BottomSheetModalProps) {
+  const keyboardHeight = useKeyboardHeight();
+  const insets = useSafeAreaInsets();
+  useHideTabBar(visible);
+
   return (
     <Modal
       animationType="slide"
@@ -35,25 +44,66 @@ export const BottomSheetModal = React.memo(function BottomSheetModal({
       onRequestClose={onClose}
       statusBarTranslucent={true}
     >
-      <KeyboardAvoidingView behavior={behavior} style={styles.overlay}>
-        {/* Backdrop click to dismiss */}
-        <Pressable style={styles.backdrop} onPress={onClose} />
+      {/* Backdrop click to dismiss - remains absolute-positioned to cover full screen */}
+      <Pressable style={styles.backdrop} onPress={onClose} />
 
-        <View style={styles.sheet}>
-          {/* Handle */}
-          <View style={styles.handle} />
+      {Platform.OS === 'ios' ? (
+        <KeyboardAvoidingView
+          behavior={behavior}
+          keyboardVerticalOffset={keyboardVerticalOffset}
+          style={styles.overlay}
+          pointerEvents="box-none"
+        >
+          <View
+            style={[
+              styles.sheet,
+              {
+                paddingBottom: Math.max(insets.bottom, 24),
+              },
+            ]}
+          >
+            {/* Handle */}
+            <View style={styles.handle} />
 
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.sheetTitle}>{title}</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.8}>
-              <Ionicons name="close" size={22} color={COLORS.onSurface} />
-            </TouchableOpacity>
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.sheetTitle}>{title}</Text>
+              <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.8}>
+                <Ionicons name="close" size={22} color={COLORS.onSurface} />
+              </TouchableOpacity>
+            </View>
+
+            {children}
           </View>
+        </KeyboardAvoidingView>
+      ) : (
+        <View
+          style={[styles.overlay, { paddingBottom: Math.max(0, keyboardHeight - insets.bottom) }]}
+          pointerEvents="box-none"
+        >
+          <View
+            style={[
+              styles.sheet,
+              {
+                paddingBottom: Math.max(insets.bottom, 24),
+              },
+            ]}
+          >
+            {/* Handle */}
+            <View style={styles.handle} />
 
-          {children}
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.sheetTitle}>{title}</Text>
+              <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.8}>
+                <Ionicons name="close" size={22} color={COLORS.onSurface} />
+              </TouchableOpacity>
+            </View>
+
+            {children}
+          </View>
         </View>
-      </KeyboardAvoidingView>
+      )}
     </Modal>
   );
 });
@@ -62,6 +112,8 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
+    elevation: 24,
+    zIndex: 99,
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -71,7 +123,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
     maxHeight: '92%',
     flexShrink: 1,
     shadowColor: '#000',

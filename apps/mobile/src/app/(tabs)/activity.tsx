@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   StyleSheet,
   View,
@@ -15,13 +15,14 @@ import {
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../../constants/theme';
-import { globalStyles } from '../../styles/globalStyles';
 import { ExpenseItem } from '../../components/ExpenseItem';
+import { ExpenseItemSkeleton } from '../../components/ExpenseItemSkeleton';
+import { SkeletonLoader } from '../../components/SkeletonLoader';
 import { AddExpenseModal } from '../../components/AddExpenseModal';
-import { LoadingView } from '../../components/LoadingView';
 import { ErrorView } from '../../components/ErrorView';
 import { EmptyState } from '../../components/EmptyState';
-import { useExpenses, useMe, type ExpenseCategory } from '@workspace/api';
+import { useActivityController, type ExpenseCategory } from '@workspace/api';
+import { getDateHeading } from '../../utils/date';
 
 const FILTER_TABS: Array<{ label: string; value: ExpenseCategory | 'All' }> = [
   { label: 'All', value: 'All' },
@@ -42,8 +43,6 @@ const DATE_RANGE_OPTIONS = [
   { label: 'Last 30 Days', value: 'last-30-days', icon: 'timer-outline' },
 ] as const;
 
-type DateRangeValue = (typeof DATE_RANGE_OPTIONS)[number]['value'];
-
 const SORT_OPTIONS = [
   { label: 'Date: Newest First', value: 'date-desc', icon: 'calendar-outline' },
   { label: 'Date: Oldest First', value: 'date-asc', icon: 'time-outline' },
@@ -51,99 +50,44 @@ const SORT_OPTIONS = [
   { label: 'Amount: High to Low', value: 'amount-desc', icon: 'trending-down-outline' },
 ] as const;
 
-type SortValue = (typeof SORT_OPTIONS)[number]['value'];
-
 export default function ActivityTabScreen() {
-  const [addExpenseVisible, setAddExpenseVisible] = useState(false);
-  const [filterModalVisible, setFilterModalVisible] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<ExpenseCategory | 'All'>('All');
-  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRangeValue>('all-time');
-  const [isDateRangeDropdownOpen, setIsDateRangeDropdownOpen] = useState(false);
-  const [paidByMe, setPaidByMe] = useState(false);
-  const [sortBy, setSortBy] = useState<SortValue>('date-desc');
-  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
-  const [useWalletOnly, setUseWalletOnly] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const { data: user } = useMe();
-
-  const [searchVisible, setSearchVisible] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 300);
-    return () => clearTimeout(handler);
-  }, [searchQuery]);
-
-  const dateFilter = React.useMemo(() => {
-    if (dateRange === 'all-time') return {};
-    const now = new Date();
-    let start = new Date();
-    let end = new Date();
-
-    if (dateRange === 'this-month') {
-      start = new Date(now.getFullYear(), now.getMonth(), 1);
-    } else if (dateRange === 'last-month') {
-      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-    } else if (dateRange === 'last-7-days') {
-      start.setDate(now.getDate() - 7);
-    } else if (dateRange === 'last-30-days') {
-      start.setDate(now.getDate() - 30);
-    }
-
-    return {
-      startDate: start.toISOString(),
-      endDate: end.toISOString(),
-    };
-  }, [dateRange]);
-
   const {
-    data: expensesData,
+    user,
+    addExpenseVisible,
+    setAddExpenseVisible,
+    filterModalVisible,
+    setFilterModalVisible,
+    activeFilter,
+    setActiveFilter,
+    isCategoryDropdownOpen,
+    setIsCategoryDropdownOpen,
+    dateRange,
+    setDateRange,
+    isDateRangeDropdownOpen,
+    setIsDateRangeDropdownOpen,
+    paidByMe,
+    setPaidByMe,
+    sortBy,
+    setSortBy,
+    isSortDropdownOpen,
+    setIsSortDropdownOpen,
+    useWalletOnly,
+    setUseWalletOnly,
+    isRefreshing,
+    searchVisible,
+    setSearchVisible,
+    searchQuery,
+    setSearchQuery,
+    sortedExpenses,
     isLoading,
     isError,
     refetch,
+    handleRefresh,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useExpenses({
-    ...(activeFilter !== 'All' && { category: activeFilter }),
-    ...(paidByMe && { paidByMe: true }),
-    ...(useWalletOnly && { useWallet: true }),
-    ...(debouncedSearchQuery.trim() !== '' && { search: debouncedSearchQuery.trim() }),
-    ...dateFilter,
-  });
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await refetch();
-    setIsRefreshing(false);
-  };
-
-  const expenses = React.useMemo(() => {
-    return expensesData?.pages.flatMap((page) => page.expenses) ?? [];
-  }, [expensesData]);
-
-  const sortedExpenses = React.useMemo(() => {
-    return [...expenses].sort((a, b) => {
-      if (sortBy === 'date-desc') {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-      }
-      if (sortBy === 'date-asc') {
-        return new Date(a.date).getTime() - new Date(b.date).getTime();
-      }
-      if (sortBy === 'amount-asc') {
-        return a.amount - b.amount;
-      }
-      if (sortBy === 'amount-desc') {
-        return b.amount - a.amount;
-      }
-      return 0;
-    });
-  }, [expenses, sortBy]);
+    handleResetAll,
+  } = useActivityController();
 
   const isCloseToBottom = ({
     layoutMeasurement,
@@ -272,7 +216,7 @@ export default function ActivityTabScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={globalStyles.scrollContent}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
         onScroll={({ nativeEvent }) => {
@@ -283,34 +227,61 @@ export default function ActivityTabScreen() {
         scrollEventThrottle={400}
       >
         {/* Premium Total Spent Banner */}
-        {sortedExpenses.length > 0 && (
+        {(isLoading || sortedExpenses.length > 0) && (
           <View style={styles.premiumCard}>
             <View style={styles.cardCircle1} />
             <View style={styles.cardCircle2} />
             <View style={styles.premiumCardContent}>
               <View style={styles.premiumCardLeft}>
                 <Text style={styles.premiumCardLabel}>Total Shared Spend</Text>
-                <Text style={styles.premiumCardValue}>
-                  {CURRENCY_SYMBOL}
-                  {sortedExpenses
-                    .reduce((s, e) => s + e.amount, 0)
-                    .toLocaleString('en-IN', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                </Text>
+                {isLoading ? (
+                  <SkeletonLoader
+                    width={100}
+                    height={28}
+                    borderRadius={6}
+                    style={{ marginTop: 4, backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+                  />
+                ) : (
+                  <Text style={styles.premiumCardValue}>
+                    {CURRENCY_SYMBOL}
+                    {sortedExpenses
+                      .reduce((s, e) => s + e.amount, 0)
+                      .toLocaleString('en-IN', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                  </Text>
+                )}
               </View>
               <View style={styles.premiumCardDivider} />
               <View style={styles.premiumCardRight}>
                 <Text style={styles.premiumCardRightLabel}>Transactions</Text>
-                <Text style={styles.premiumCardRightValue}>{sortedExpenses.length}</Text>
+                {isLoading ? (
+                  <SkeletonLoader
+                    width={30}
+                    height={20}
+                    borderRadius={4}
+                    style={{ marginTop: 4, backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+                  />
+                ) : (
+                  <Text style={styles.premiumCardRightValue}>{sortedExpenses.length}</Text>
+                )}
               </View>
             </View>
           </View>
         )}
 
         {/* Loading */}
-        {isLoading && <LoadingView />}
+        {isLoading && (
+          <View>
+            <ExpenseItemSkeleton />
+            <ExpenseItemSkeleton />
+            <ExpenseItemSkeleton />
+            <ExpenseItemSkeleton />
+            <ExpenseItemSkeleton />
+            <ExpenseItemSkeleton />
+          </View>
+        )}
 
         {/* Error */}
         {isError && <ErrorView message="Failed to load expenses" onRetry={refetch} />}
@@ -335,9 +306,25 @@ export default function ActivityTabScreen() {
         {/* Expense list */}
         {sortedExpenses.length > 0 && (
           <View style={styles.activityFeed}>
-            {sortedExpenses.map((expense) => (
-              <ExpenseItem key={expense.id} expense={expense} currentUserId={user?.id} />
-            ))}
+            {(() => {
+              let lastDateHeading = '';
+              return sortedExpenses.map((expense) => {
+                const currentHeading = getDateHeading(expense.date);
+                const showHeading = currentHeading !== lastDateHeading;
+                lastDateHeading = currentHeading;
+
+                return (
+                  <React.Fragment key={expense.id}>
+                    {showHeading && (
+                      <View style={styles.dateHeaderContainer}>
+                        <Text style={styles.dateHeaderText}>{currentHeading}</Text>
+                      </View>
+                    )}
+                    <ExpenseItem expense={expense} currentUserId={user?.id} />
+                  </React.Fragment>
+                );
+              });
+            })()}
           </View>
         )}
 
@@ -352,7 +339,7 @@ export default function ActivityTabScreen() {
       <AddExpenseModal
         visible={addExpenseVisible}
         onClose={() => setAddExpenseVisible(false)}
-        onSuccess={refetch}
+        onSuccess={() => refetch()}
       />
 
       {/* Filter Modal */}
@@ -671,17 +658,7 @@ export default function ActivityTabScreen() {
               <View style={styles.modalActionsRow}>
                 <TouchableOpacity
                   style={styles.modalResetBtn}
-                  onPress={() => {
-                    setActiveFilter('All');
-                    setDateRange('all-time');
-                    setPaidByMe(false);
-                    setUseWalletOnly(false);
-                    setSortBy('date-desc');
-                    setIsCategoryDropdownOpen(false);
-                    setIsDateRangeDropdownOpen(false);
-                    setIsSortDropdownOpen(false);
-                    setFilterModalVisible(false);
-                  }}
+                  onPress={handleResetAll}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.modalResetBtnText}>Reset All</Text>
@@ -707,9 +684,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  scrollContent: {
+    paddingTop: 12,
+    paddingBottom: 100,
+    paddingHorizontal: 0,
+  },
   headerContainer: {
     backgroundColor: COLORS.surface,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#f1f1f1',
@@ -1031,6 +1013,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 20,
     marginBottom: 20,
+    marginHorizontal: 16,
     overflow: 'hidden',
     position: 'relative',
     elevation: 8,
@@ -1105,7 +1088,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#ffffff',
   },
-  activityFeed: { gap: 10 },
+  activityFeed: {},
   loadingMore: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1117,5 +1100,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.outline,
     fontWeight: '500',
+  },
+  dateHeaderContainer: {
+    backgroundColor: COLORS.surfaceContainerLow,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.surfaceContainer,
+  },
+  dateHeaderText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.outline,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
 });

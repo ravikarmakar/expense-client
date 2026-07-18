@@ -4,7 +4,7 @@ export const walletTransactionSchema = z.object({
   id: z.string(),
   walletId: z.string(),
   amount: z.number().nullable(),
-  type: z.enum(['DEPOSIT', 'EXPENSE', 'MANAGER_CHANGE']),
+  type: z.enum(['DEPOSIT', 'EXPENSE', 'MANAGER_CHANGE', 'TARGET_CHANGE']),
   description: z.string().nullable(),
   userId: z.string().nullable(),
   expenseId: z.string().nullable(),
@@ -40,6 +40,7 @@ export const walletSchema = z.object({
   walletManagerId: z.string(),
   balance: z.number(),
   targetContribution: z.number(),
+  targetExpiresAt: z.string().nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
   manager: z.object({
@@ -59,6 +60,8 @@ export type WalletContribution = z.infer<typeof walletContributionSchema>;
 export const setupWalletInputSchema = z.object({
   walletManagerId: z.string(),
   targetContribution: z.number().min(0),
+  durationDays: z.number().optional(),
+  expiresAt: z.string().optional(),
 });
 export type SetupWalletInput = z.infer<typeof setupWalletInputSchema>;
 
@@ -69,6 +72,8 @@ export type UpdateManagerInput = z.infer<typeof updateManagerInputSchema>;
 
 export const updateTargetInputSchema = z.object({
   targetContribution: z.number().min(0),
+  durationDays: z.number().optional(),
+  expiresAt: z.string().optional(),
 });
 export type UpdateTargetInput = z.infer<typeof updateTargetInputSchema>;
 

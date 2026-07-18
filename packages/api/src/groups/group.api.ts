@@ -1,24 +1,31 @@
 import { getApiClient } from '../client';
+import { messageResponseSchema } from '../auth/auth.validation';
 import {
   groupListSchema,
   groupDetailSchema,
   userSearchListSchema,
   groupDetailConsolidatedSchema,
+  groupBalancesSchema,
   type Group,
   type UserSearchResult,
   type CreateGroupInput,
   type UpdateGroupInput,
   type AddMemberInput,
   type GroupDetailConsolidated,
+  type GroupBalances,
 } from './group.types';
+import { activityFeedSchema, type ActivityFeed } from './activity.types';
 
-/**
- * Get consolidated group details (includes group metadata, members list, expenses, and settlements).
- */
 export const getGroupDetailApi = async (id: string): Promise<GroupDetailConsolidated['data']> => {
   const { data } = await getApiClient().get<unknown>(`/groups/${id}/detail`);
-  const parsed = groupDetailConsolidatedSchema.parse(data);
-  return parsed.data;
+  try {
+    const parsed = groupDetailConsolidatedSchema.parse(data);
+    return parsed.data;
+  } catch (err) {
+    console.error('[getGroupDetailApi] Zod parsing failed. Received payload:', data);
+    console.error('[getGroupDetailApi] Zod Error details:', err);
+    throw err;
+  }
 };
 
 // ─────────────────────────────────────────────────────
@@ -38,16 +45,26 @@ export const createGroupApi = async (input: CreateGroupInput): Promise<Group> =>
  * Get all groups the current user belongs to.
  */
 export const getGroupsApi = async (
-  cursor?: string
+  cursor?: string,
+  search?: string
 ): Promise<{ groups: Group[]; nextCursor: string | null }> => {
   const { data } = await getApiClient().get<unknown>('/groups', {
-    params: { cursor },
+    params: { cursor, search },
   });
   const parsed = groupListSchema.parse(data);
   return {
     groups: parsed.data.groups,
     nextCursor: parsed.data.nextCursor ?? null,
   };
+};
+
+/**
+ * Get group balances for all active groups (used for background loading).
+ */
+export const getGroupBalancesApi = async (): Promise<GroupBalances> => {
+  const { data } = await getApiClient().get<unknown>('/groups/balances');
+  const parsed = groupBalancesSchema.parse(data);
+  return parsed.data.balances;
 };
 
 /**
@@ -73,6 +90,13 @@ export const updateGroupApi = async ({ id, ...rest }: UpdateGroupInput): Promise
  */
 export const deactivateGroupApi = async (id: string): Promise<void> => {
   await getApiClient().patch(`/groups/${id}/deactivate`);
+};
+
+/**
+ * Activate a group (only admin can do this).
+ */
+export const activateGroupApi = async (id: string): Promise<void> => {
+  await getApiClient().patch(`/groups/${id}/activate`);
 };
 
 /**
@@ -131,12 +155,29 @@ export const searchUsersPaginatedApi = async (
  * Leave a group (current user exits).
  */
 export const leaveGroupApi = async (groupId: string): Promise<void> => {
-  await getApiClient().delete(`/groups/${groupId}/leave`);
+  const { data } = await getApiClient().delete<unknown>(`/groups/${groupId}/leave`);
+  messageResponseSchema.parse(data);
 };
 
 /**
  * Send settle up reminder notification to a debtor in the group.
  */
 export const sendReminderApi = async (groupId: string, userId: string): Promise<void> => {
-  await getApiClient().post(`/groups/${groupId}/remind`, { userId });
+  const { data } = await getApiClient().post<unknown>(`/groups/${groupId}/remind`, { userId });
+  messageResponseSchema.parse(data);
+};
+
+export const getGroupActivityApi = async (
+  groupId: string,
+  cursor?: string,
+  type?: 'all' | 'expenses' | 'settlements'
+): Promise<{ activity: ActivityFeed['data']['activity']; nextCursor: string | null }> => {
+  const { data } = await getApiClient().get<unknown>(`/groups/${groupId}/activity`, {
+    params: { cursor, type },
+  });
+  const parsed = activityFeedSchema.parse(data);
+  return {
+    activity: parsed.data.activity,
+    nextCursor: parsed.data.nextCursor ?? null,
+  };
 };

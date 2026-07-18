@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   StyleSheet,
   View,
@@ -8,87 +8,55 @@ import {
   RefreshControl,
   ActivityIndicator,
   NativeScrollEvent,
+  Modal,
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../../constants/theme';
-import { globalStyles } from '../../styles/globalStyles';
-import { ExpenseItem } from '../../components/ExpenseItem';
+import { COLORS, CURRENCY_SYMBOL } from '../../constants/theme';
 import { AddExpenseModal } from '../../components/AddExpenseModal';
-import { LoadingView } from '../../components/LoadingView';
+import { ExpenseItem } from '../../components/ExpenseItem';
+import { ExpenseItemSkeleton } from '../../components/ExpenseItemSkeleton';
+import { SkeletonLoader } from '../../components/SkeletonLoader';
 import { ErrorView } from '../../components/ErrorView';
 import { EmptyState } from '../../components/EmptyState';
-import { useExpenses, useMe, type ExpenseCategory } from '@workspace/api';
-
-const PERSONAL_CATEGORIES = [
-  'Food',
-  'Transport',
-  'Shopping',
-  'Entertainment',
-  'Bills',
-  'Travel',
-  'Health',
-  'Other',
-] as const;
+import { usePersonalController, useCategories } from '@workspace/api';
+import { getDateHeading } from '../../utils/date';
+import { getCategoryVisuals } from '../../constants/categories';
 
 export default function PersonalTabScreen() {
-  const [addExpenseVisible, setAddExpenseVisible] = useState(false);
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const { data: user } = useMe();
-  const insets = useSafeAreaInsets();
-
   const {
-    data: expensesData,
+    user,
+    addExpenseVisible,
+    setAddExpenseVisible,
+    menuVisible,
+    setMenuVisible,
+    selectedCategoryFilter,
+    setSelectedCategoryFilter,
+    isRefreshing,
+    expensesList,
+    totalSpent,
+    categoryTotals: controllerCategoryTotals,
     isLoading,
     isError,
     refetch,
+    handleRefresh,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useExpenses({
-    personal: true,
-    ...(selectedCategoryFilter && { category: selectedCategoryFilter as ExpenseCategory }),
-  });
+  } = usePersonalController();
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await refetch();
-    setIsRefreshing(false);
-  };
+  const { data: categoriesData } = useCategories();
+  const customCategories = categoriesData?.custom || [];
 
-  const expensesList = React.useMemo(() => {
-    return expensesData?.pages.flatMap((page) => page.expenses) ?? [];
-  }, [expensesData]);
+  const insets = useSafeAreaInsets();
 
-  // Compute total spent on personal expenses (overall)
-  const totalSpent = React.useMemo(() => {
-    return expensesList.reduce((sum, item) => sum + item.amount, 0);
-  }, [expensesList]);
-
-  // Compute category breakdown totals for the carousel
   const categoryTotals = React.useMemo(() => {
-    const totals: Record<string, number> = {};
-    PERSONAL_CATEGORIES.forEach((cat) => {
-      totals[cat] = 0;
-    });
-
-    expensesList.forEach((exp) => {
-      const cat = exp.category;
-      if (cat in totals) {
-        totals[cat] += exp.amount;
-      } else {
-        totals['Other'] = (totals['Other'] ?? 0) + exp.amount;
-      }
-    });
-
-    return PERSONAL_CATEGORIES.map((cat) => ({
-      name: cat,
-      amount: totals[cat] ?? 0,
-      iconConfig: CATEGORY_ICONS[cat] ?? CATEGORY_ICONS.Other,
+    return controllerCategoryTotals.map((cat) => ({
+      ...cat,
+      iconConfig: getCategoryVisuals(cat.name, customCategories),
     }));
-  }, [expensesList]);
+  }, [controllerCategoryTotals, customCategories]);
 
   const isCloseToBottom = ({
     layoutMeasurement,
@@ -108,18 +76,23 @@ export default function PersonalTabScreen() {
             <Text style={styles.headerTitle}>My Expenses</Text>
             <Text style={styles.headerSubtitle}>Personal Budget</Text>
           </View>
-          <TouchableOpacity
-            style={styles.personalWalletBtn}
-            activeOpacity={0.7}
-            onPress={() => router.push('/personal-wallet')}
-          >
-            <Ionicons name="wallet-sharp" size={30} color={COLORS.secondary} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <TouchableOpacity
+              style={styles.personalWalletBtn}
+              activeOpacity={0.7}
+              onPress={() => router.push('/personal-wallet')}
+            >
+              <Ionicons name="wallet-sharp" size={30} color={COLORS.secondary} />
+            </TouchableOpacity>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => setMenuVisible(true)}>
+              <Ionicons name="ellipsis-vertical" size={26} color={COLORS.onSurface} />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
       <ScrollView
-        contentContainerStyle={[globalStyles.scrollContent, styles.scrollContentExtra]}
+        contentContainerStyle={[styles.scrollContent, styles.scrollContentExtra]}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
         onScroll={({ nativeEvent }) => {
@@ -134,13 +107,22 @@ export default function PersonalTabScreen() {
           <View style={styles.cardCircle1} />
           <View style={styles.cardCircle2} />
           <Text style={styles.cardLabel}>Total Personal Expenses</Text>
-          <Text style={styles.cardValue}>
-            {CURRENCY_SYMBOL}
-            {totalSpent.toLocaleString('en-IN', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
-          </Text>
+          {isLoading ? (
+            <SkeletonLoader
+              width={140}
+              height={32}
+              borderRadius={6}
+              style={{ marginVertical: 4, backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+            />
+          ) : (
+            <Text style={styles.cardValue}>
+              {CURRENCY_SYMBOL}
+              {totalSpent.toLocaleString('en-IN', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </Text>
+          )}
           <View style={styles.cardFooter}>
             <Ionicons name="shield-checkmark-sharp" size={14} color="rgba(255, 255, 255, 0.7)" />
             <Text style={styles.cardFooterText}>Tracking strictly offline/personal items</Text>
@@ -226,7 +208,16 @@ export default function PersonalTabScreen() {
         </View>
 
         {/* Loading State */}
-        {isLoading && <LoadingView />}
+        {isLoading && (
+          <View>
+            <ExpenseItemSkeleton />
+            <ExpenseItemSkeleton />
+            <ExpenseItemSkeleton />
+            <ExpenseItemSkeleton />
+            <ExpenseItemSkeleton />
+            <ExpenseItemSkeleton />
+          </View>
+        )}
 
         {/* Error State */}
         {isError && <ErrorView message="Failed to load personal expenses" onRetry={refetch} />}
@@ -247,9 +238,25 @@ export default function PersonalTabScreen() {
         {/* Expenses List */}
         {expensesList.length > 0 && (
           <View style={styles.expensesFeed}>
-            {expensesList.map((expense) => (
-              <ExpenseItem key={expense.id} expense={expense} currentUserId={user?.id} />
-            ))}
+            {(() => {
+              let lastDateHeading = '';
+              return expensesList.map((expense) => {
+                const currentHeading = getDateHeading(expense.date);
+                const showHeading = currentHeading !== lastDateHeading;
+                lastDateHeading = currentHeading;
+
+                return (
+                  <React.Fragment key={expense.id}>
+                    {showHeading && (
+                      <View style={styles.dateHeaderContainer}>
+                        <Text style={styles.dateHeaderText}>{currentHeading}</Text>
+                      </View>
+                    )}
+                    <ExpenseItem expense={expense} currentUserId={user?.id} />
+                  </React.Fragment>
+                );
+              });
+            })()}
           </View>
         )}
 
@@ -275,8 +282,36 @@ export default function PersonalTabScreen() {
         visible={addExpenseVisible}
         initialExpenseType="PERSONAL"
         onClose={() => setAddExpenseVisible(false)}
-        onSuccess={refetch}
+        onSuccess={() => refetch()}
       />
+
+      {/* 3-Dot Dropdown Menu Modal */}
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setMenuVisible(false)}
+        >
+          <View style={[styles.dropdownMenu, { top: insets.top + 56 }]}>
+            <TouchableOpacity
+              style={styles.dropdownItem}
+              activeOpacity={0.7}
+              onPress={() => {
+                setMenuVisible(false);
+                router.push('/total-spent');
+              }}
+            >
+              <Ionicons name="bar-chart-outline" size={20} color={COLORS.secondary} />
+              <Text style={styles.dropdownItemText}>Analytics</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -286,9 +321,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  scrollContent: {
+    paddingTop: 12,
+    paddingBottom: 100,
+    paddingHorizontal: 0,
+  },
   headerContainer: {
     backgroundColor: COLORS.surface,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#f1f1f1',
@@ -330,6 +370,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 24,
     marginBottom: 24,
+    marginHorizontal: 16,
     overflow: 'hidden',
     position: 'relative',
     elevation: 8,
@@ -386,7 +427,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
-    paddingHorizontal: 4,
+    paddingHorizontal: 16,
   },
   sectionTitle: {
     fontSize: 18,
@@ -400,8 +441,7 @@ const styles = StyleSheet.create({
     color: COLORS.secondary,
   },
   carouselContainer: {
-    paddingLeft: 4,
-    paddingRight: 16,
+    paddingHorizontal: 16,
     paddingBottom: 4,
     gap: 12,
   },
@@ -444,9 +484,7 @@ const styles = StyleSheet.create({
   mtNormal: {
     marginTop: 20,
   },
-  expensesFeed: {
-    gap: 12,
-  },
+  expensesFeed: {},
   loadingMore: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -475,5 +513,51 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     zIndex: 40,
+  },
+  dateHeaderContainer: {
+    backgroundColor: COLORS.surfaceContainerLow,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.surfaceContainer,
+  },
+  dateHeaderText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.outline,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    right: 16,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 6,
+    minWidth: 145,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e8ece9',
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 10,
+    borderRadius: 8,
+  },
+  dropdownItemText: {
+    fontSize: 14.5,
+    fontWeight: '600',
+    color: COLORS.onSurface,
   },
 });

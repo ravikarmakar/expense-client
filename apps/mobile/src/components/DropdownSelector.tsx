@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 
@@ -9,7 +9,7 @@ interface DropdownSelectorProps<T> {
   onToggle: () => void;
   selectedItem: T | null;
   placeholder: string;
-  options: T[];
+  options: readonly T[];
   renderHeaderContent: (item: T) => React.ReactNode;
   renderOptionContent: (item: T) => React.ReactNode;
   getOptionKey: (item: T) => string;
@@ -48,7 +48,11 @@ export function DropdownSelector<T>({
         </TouchableOpacity>
 
         {isOpen && (
-          <View style={styles.dropdownList}>
+          <ScrollView
+            style={styles.dropdownList}
+            nestedScrollEnabled={true}
+            showsVerticalScrollIndicator={true}
+          >
             {options.map((option) => {
               const key = getOptionKey(option);
               const isSelected = selectedItem ? getOptionKey(selectedItem) === key : false;
@@ -64,7 +68,7 @@ export function DropdownSelector<T>({
                 </TouchableOpacity>
               );
             })}
-          </View>
+          </ScrollView>
         )}
       </View>
     </View>
@@ -116,6 +120,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.surfaceContainer,
     padding: 6,
+    maxHeight: 200,
   },
   dropdownItem: {
     flexDirection: 'row',

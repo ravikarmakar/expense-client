@@ -1,4 +1,19 @@
 import { z } from 'zod';
+import {
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_LOWERCASE_REGEX,
+  PASSWORD_UPPERCASE_REGEX,
+  PASSWORD_NUMBER_REGEX,
+  PASSWORD_SPECIAL_CHAR_REGEX,
+} from '@workspace/types';
+
+export const passwordSchema = z
+  .string()
+  .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`)
+  .regex(PASSWORD_LOWERCASE_REGEX, 'Password must contain at least one lowercase letter')
+  .regex(PASSWORD_UPPERCASE_REGEX, 'Password must contain at least one uppercase letter')
+  .regex(PASSWORD_NUMBER_REGEX, 'Password must contain at least one number')
+  .regex(PASSWORD_SPECIAL_CHAR_REGEX, 'Password must contain at least one special character');
 
 // ─────────────────────────────────────────────────────
 // Input Schemas (to validate client inputs before API calls)
@@ -6,13 +21,7 @@ import { z } from 'zod';
 
 export const clientRegisterSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number')
-    .regex(/[^a-zA-Z0-9]/, 'Password must contain at least one special character'),
+  password: passwordSchema,
   name: z.string().min(2, 'Name must be at least 2 characters'),
 });
 
@@ -49,7 +58,7 @@ export const authUserSchema = z.object({
     (val) => (typeof val === 'string' ? val.toUpperCase() : val),
     z.enum(['USER', 'ADMIN'])
   ),
-  emailVerified: z.boolean().optional(),
+  emailVerified: z.boolean(),
   image: z.string().nullable().optional(),
 });
 
@@ -68,19 +77,20 @@ export const authResponseSchema = z.object({
   }),
 });
 
+export const userResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.object({
+    user: authUserSchema,
+  }),
+});
+
 export const clientResetPasswordSchema = z.object({
   email: z.string().email('Invalid email address'),
   code: z
     .string()
     .length(6, 'Reset code must be 6 digits')
     .regex(/^\d{6}$/, 'Code must be numeric'),
-  newPassword: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number')
-    .regex(/[^a-zA-Z0-9]/, 'Password must contain at least one special character'),
+  newPassword: passwordSchema,
 });
 
 export const clientVerifyResetCodeSchema = z.object({
@@ -96,6 +106,16 @@ export const messageResponseSchema = z.object({
   message: z.string(),
 });
 
+export const changePasswordResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  data: z
+    .object({
+      token: z.string().nullable().optional(),
+    })
+    .optional(),
+});
+
 export const clientVerifyPasswordSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
@@ -103,13 +123,7 @@ export const clientVerifyPasswordSchema = z.object({
 export const clientChangePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, 'Current password is required'),
-    newPassword: z
-      .string()
-      .min(8, 'New password must be at least 8 characters')
-      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-      .regex(/[0-9]/, 'Password must contain at least one number')
-      .regex(/[^a-zA-Z0-9]/, 'Password must contain at least one special character'),
+    newPassword: passwordSchema,
     confirmPassword: z.string().min(1, 'Please confirm your new password'),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {

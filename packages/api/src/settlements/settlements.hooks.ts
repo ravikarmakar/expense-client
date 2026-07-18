@@ -1,6 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { settleUpApi, getGroupSettlementsApi } from './settlements.api';
-import { type SettleUpInput } from './settlements.types';
+import { type SettleUpInput, type Settlement } from './settlements.types';
 import type { Group } from '../groups/group.types';
 import { groupKeys } from '../groups/group.hooks';
 
@@ -9,17 +9,23 @@ export const settlementKeys = {
   group: (groupId: string) => [...settlementKeys.all, 'group', groupId] as const,
 };
 
-export const useGroupSettlements = (groupId: string) =>
-  useQuery({
+export const useGroupSettlements = (groupId: string, options?: { enabled?: boolean }) =>
+  useInfiniteQuery({
     queryKey: settlementKeys.group(groupId),
-    queryFn: () => getGroupSettlementsApi(groupId),
-    enabled: !!groupId,
+    queryFn: ({ pageParam }) => getGroupSettlementsApi(groupId, pageParam as string | undefined),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    enabled: !!groupId && (options?.enabled ?? true),
     staleTime: 3 * 60 * 1000,
   });
 
 export const useSettleUp = (groupId: string) => {
   const queryClient = useQueryClient();
-  return useMutation<Group, Error, Omit<SettleUpInput, 'groupId'>>({
+  return useMutation<
+    { group?: Group; settlement?: Settlement },
+    Error,
+    Omit<SettleUpInput, 'groupId'>
+  >({
     mutationFn: (input) => settleUpApi({ groupId, ...input }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: groupKeys.detail(groupId) });

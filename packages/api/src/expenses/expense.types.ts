@@ -15,7 +15,7 @@ export const EXPENSE_CATEGORIES = [
   'Other',
 ] as const;
 
-export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
+export type ExpenseCategory = string;
 
 export const SPLIT_MODES = ['equal', 'exact', 'percentage'] as const;
 export type SplitMode = (typeof SPLIT_MODES)[number];
@@ -27,7 +27,7 @@ export type SplitMode = (typeof SPLIT_MODES)[number];
 export const expenseSplitSchema = z.object({
   userId: z.string(),
   name: z.string(),
-  email: z.string().email(),
+  email: z.string(),
   image: z.string().nullable().optional(),
   amount: z.number(),
   paid: z.boolean().default(false),
@@ -40,12 +40,9 @@ export const expenseSchema = z.object({
   title: z.string(),
   amount: z.number(),
   category: z.preprocess((val) => {
-    if (typeof val === 'string') {
-      const match = EXPENSE_CATEGORIES.find((c) => c.toLowerCase() === val.toLowerCase());
-      return match || 'Other';
-    }
+    if (typeof val === 'string' && val.trim() !== '') return val.trim();
     return 'Other';
-  }, z.enum(EXPENSE_CATEGORIES)),
+  }, z.string().default('Other')),
   date: z.string(), // ISO date string
   notes: z.string().nullable().optional(),
   paidBy: z.object({
@@ -64,6 +61,7 @@ export const expenseSchema = z.object({
   myShare: z.number().nullable().optional(),
   youOwe: z.number().nullable().optional(), // positive = you owe, negative = owed to you
   isWalletPayment: z.boolean().optional(),
+  walletAmount: z.number().nullable().optional(),
   group: z
     .object({
       name: z.string(),
@@ -73,6 +71,7 @@ export const expenseSchema = z.object({
     .optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  isSettled: z.boolean().optional(),
 });
 
 export const expenseListSchema = z.object({

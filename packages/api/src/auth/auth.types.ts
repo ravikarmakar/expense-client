@@ -1,7 +1,3 @@
-// ─────────────────────────────────────────────
-// Core domain types (mirrors server responses)
-// ─────────────────────────────────────────────
-
 export interface AuthUser {
   id: string;
   email: string;
@@ -31,9 +27,13 @@ export interface MessageResponse {
   message: string;
 }
 
-// ─────────────────────────────────────────────
-// Request payload types (match server validation)
-// ─────────────────────────────────────────────
+export interface ChangePasswordResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    token?: string | null;
+  };
+}
 
 export interface LoginInput {
   email: string;
@@ -79,20 +79,11 @@ export interface ChangePasswordInput {
   newPassword: string;
 }
 
-// ─────────────────────────────────────────────
-// Storage adapter — platform-agnostic interface
-// Mobile uses AsyncStorage, Web uses localStorage
-// ─────────────────────────────────────────────
-
 export interface StorageAdapter {
   getItem(key: string): Promise<string | null>;
   setItem(key: string, value: string): Promise<void>;
   removeItem(key: string): Promise<void>;
 }
-
-// ─────────────────────────────────────────────
-// API error type (for structured error handling)
-// ─────────────────────────────────────────────
 
 export interface ApiError {
   message: string;

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -13,17 +13,112 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { TopAppBar } from '../components/TopAppBar';
 import { COLORS } from '../constants/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   useNotifications,
   useAcceptInvitation,
   useDeclineInvitation,
   useReadNotifications,
 } from '@workspace/api';
+import { SkeletonLoader } from '../components/SkeletonLoader';
+
+const getNotificationTypeConfig = (
+  type: string
+): {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  color: string;
+  bg: string;
+} => {
+  switch (type) {
+    case 'GROUP_INVITATION':
+      return {
+        icon: 'people-sharp',
+        color: '#1a73e8',
+        bg: '#e8f0fe',
+      };
+    case 'EXPENSE_CREATED':
+      return {
+        icon: 'receipt-sharp',
+        color: '#137333',
+        bg: '#e6f4ea',
+      };
+    case 'SETTLEMENT_COMPLETED':
+      return {
+        icon: 'checkmark-circle-sharp',
+        color: '#0f9d58',
+        bg: '#e8f5e9',
+      };
+    case 'REMINDER':
+      return {
+        icon: 'alarm-sharp',
+        color: '#b06000',
+        bg: '#fef7e0',
+      };
+    default:
+      return {
+        icon: 'notifications-sharp',
+        color: '#7b1fa2',
+        bg: '#f3e5f5',
+      };
+  }
+};
+
+const formatNotificationTime = (dateStr: string) => {
+  try {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (60 * 1000));
+    const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
+    const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  } catch {
+    return '';
+  }
+};
+
+function NotificationSkeleton() {
+  return (
+    <View style={styles.skeletonContainer}>
+      {[1, 2, 3, 4].map((i) => (
+        <View key={i} style={styles.skeletonCard}>
+          <SkeletonLoader width={40} height={40} borderRadius={14} />
+          <View style={{ flex: 1, gap: 8 }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <SkeletonLoader width={120} height={14} borderRadius={4} />
+              <SkeletonLoader width={40} height={10} borderRadius={3} />
+            </View>
+            <SkeletonLoader width="90%" height={12} borderRadius={4} />
+            <SkeletonLoader width="60%" height={12} borderRadius={4} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
-  const { data: notifications = [], isLoading, refetch } = useNotifications();
+  const { data, isLoading, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    useNotifications(15);
+
+  const notifications = useMemo(() => {
+    return data?.pages.flatMap((page) => page.notifications) ?? [];
+  }, [data]);
   const acceptInvitation = useAcceptInvitation();
   const declineInvitation = useDeclineInvitation();
   const readNotifications = useReadNotifications();
@@ -73,38 +168,34 @@ export default function NotificationsScreen() {
       <TopAppBar title="Notifications" showBack={true} onBack={() => router.back()} />
 
       {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading notifications...</Text>
-        </View>
+        <NotificationSkeleton />
       ) : notifications.length > 0 ? (
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 20 + insets.bottom }]}
           refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
         >
           {notifications.map((item) => {
             const isInvitation = item.type === 'GROUP_INVITATION';
+            const config = getNotificationTypeConfig(item.type);
+            const timeAgo = formatNotificationTime(item.createdAt);
 
             return (
-              <View key={item.id} style={styles.notificationCard}>
-                <View
-                  style={[
-                    styles.iconBadge,
-                    {
-                      backgroundColor: isInvitation ? '#e8f0fe' : '#e6f4ea',
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name={isInvitation ? 'people' : 'information-circle'}
-                    size={20}
-                    color={isInvitation ? '#1a73e8' : '#137333'}
-                  />
+              <View
+                key={item.id}
+                style={[styles.notificationCard, !item.read && styles.unreadCard]}
+              >
+                <View style={[styles.iconBadge, { backgroundColor: config.bg }]}>
+                  <Ionicons name={config.icon} size={20} color={config.color} />
                 </View>
                 <View style={styles.cardContent}>
                   <View style={styles.cardHeaderRow}>
-                    <Text style={styles.cardTitle}>{item.title}</Text>
-                    {!item.read && <View style={styles.unreadDot} />}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                      <Text style={styles.cardTitle} numberOfLines={1}>
+                        {item.title}
+                      </Text>
+                      {!item.read && <View style={styles.unreadDot} />}
+                    </View>
+                    {timeAgo ? <Text style={styles.cardTime}>{timeAgo}</Text> : null}
                   </View>
                   <Text style={styles.cardBody}>{item.message}</Text>
 
@@ -157,10 +248,24 @@ export default function NotificationsScreen() {
               </View>
             );
           })}
+          {hasNextPage && (
+            <TouchableOpacity
+              style={styles.loadMoreBtn}
+              onPress={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              activeOpacity={0.8}
+            >
+              {isFetchingNextPage ? (
+                <ActivityIndicator size="small" color={COLORS.primary} />
+              ) : (
+                <Text style={styles.loadMoreText}>Load More</Text>
+              )}
+            </TouchableOpacity>
+          )}
         </ScrollView>
       ) : (
         <ScrollView
-          contentContainerStyle={styles.emptyContainer}
+          contentContainerStyle={[styles.emptyContainer, { paddingBottom: 60 + insets.bottom }]}
           refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
         >
           <View style={styles.bellBadgeContainer}>
@@ -247,6 +352,24 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   notificationCard: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
+    gap: 14,
+    alignItems: 'flex-start',
+  },
+  unreadCard: {
+    backgroundColor: '#f6f9fc',
+    borderColor: '#e8f0fe',
+  },
+  skeletonContainer: {
+    padding: 20,
+    gap: 12,
+  },
+  skeletonCard: {
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
     borderRadius: 20,
@@ -345,6 +468,21 @@ const styles = StyleSheet.create({
   backHomeBtnText: {
     color: '#ffffff',
     fontSize: 14,
+    fontWeight: '700',
+  },
+  loadMoreBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    marginTop: 8,
+    backgroundColor: COLORS.surfaceContainerLow,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
+    borderRadius: 14,
+  },
+  loadMoreText: {
+    color: COLORS.primary,
+    fontSize: 13,
     fontWeight: '700',
   },
 });

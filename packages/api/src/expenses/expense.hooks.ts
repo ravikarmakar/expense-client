@@ -69,14 +69,17 @@ export const useExpensesSummary = () =>
   });
 
 /**
- * Fetch expenses for a specific group.
+ * Fetch expenses for a specific group (paginated).
  */
-export const useGroupExpenses = (groupId: string) =>
-  useQuery({
-    queryKey: expenseKeys.groupExpenses(groupId),
-    queryFn: () => getGroupExpensesApi(groupId),
-    enabled: !!groupId,
+export const useGroupExpenses = (groupId: string, search?: string) =>
+  useInfiniteQuery({
+    queryKey: [...expenseKeys.groupExpenses(groupId), { search }] as const,
+    queryFn: ({ pageParam }) =>
+      getGroupExpensesApi(groupId, pageParam as string | undefined, search),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: 3 * 60 * 1000,
+    enabled: !!groupId,
   });
 
 // ─────────────────────────────────────────────────────
@@ -90,11 +93,15 @@ export const useCreateExpense = () => {
   const queryClient = useQueryClient();
   return useMutation<Expense, Error, CreateExpenseInput>({
     mutationFn: createExpenseApi,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['groups'] });
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      if (data.isWalletPayment) {
+        queryClient.invalidateQueries({ queryKey: ['groups', 'list'] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['groups'] });
+      }
     },
   });
 };
@@ -106,11 +113,15 @@ export const useCreateGroupExpense = (groupId: string) => {
   const queryClient = useQueryClient();
   return useMutation<Expense, Error, Omit<CreateExpenseInput, 'groupId'>>({
     mutationFn: (input) => createGroupExpenseApi(groupId, input),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['groups'] });
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      if (data.isWalletPayment) {
+        queryClient.invalidateQueries({ queryKey: ['groups', 'list'] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['groups'] });
+      }
     },
   });
 };

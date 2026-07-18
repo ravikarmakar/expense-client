@@ -27,6 +27,7 @@ import type {
   VerifyResetCodeInput,
   VerifyPasswordInput,
   ChangePasswordInput,
+  ChangePasswordResponse,
 } from './auth.types';
 
 export const authKeys = {
@@ -41,6 +42,11 @@ export const useLogin = () => {
       // Token is absent when the server asks for email verification first
       if (data.data.token) {
         await getStorage().setItem(TOKEN_KEY, data.data.token);
+        // Clear any recorded pending verification
+        await getStorage().removeItem('pending_verification_email');
+      } else if (data.data.requiresVerification && data.data.user?.email) {
+        // Record the email that requires verification
+        await getStorage().setItem('pending_verification_email', data.data.user.email);
       }
       // Seed the "me" cache so the app doesn't need a second request
       queryClient.setQueryData(authKeys.me, data.data.user);
@@ -56,6 +62,11 @@ export const useRegister = () => {
       // Token is only issued after email verification — nothing to store yet.
       // Seed the "me" cache with the unverified user so OTP screen can read the email.
       queryClient.setQueryData(authKeys.me, data.data.user);
+
+      // Store the pending verification email so the app can guide the user back if closed
+      if (data.data.user?.email) {
+        await getStorage().setItem('pending_verification_email', data.data.user.email);
+      }
     },
   });
 };
@@ -66,11 +77,20 @@ export const useLogout = () => {
     mutationFn: logoutApi,
     onSettled: async () => {
       // Always clear local state even if the server call fails
+      // 1. Remove the token first to prevent any concurrent background queries from utilizing it
       await getStorage().removeItem(TOKEN_KEY);
-      queryClient.setQueryData(authKeys.me, null);
+
+      // 2. Clear any recorded pending verification
+      await getStorage().removeItem('pending_verification_email');
+
+      // 3. Cancel in-flight queries and remove other query caches to prevent trailing requests
+      await queryClient.cancelQueries();
       queryClient.removeQueries({
         predicate: (query) => query.queryKey[0] !== 'auth',
       });
+
+      // 4. Set the current user to null last to trigger state changes/navigation redirects
+      queryClient.setQueryData(authKeys.me, null);
     },
   });
 };
@@ -93,24 +113,33 @@ export const useResetPassword = () =>
 export const useMe = () =>
   useQuery({
     queryKey: authKeys.me,
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const storage = getStorage();
       const token = await storage.getItem(TOKEN_KEY);
       if (!token) return null;
       try {
-        return await meApi();
+        return await meApi(signal);
       } catch (error) {
-        // If the token was cleared (e.g. by 401 response interceptor), return null.
-        // Otherwise (e.g. offline/network issue), throw so the query state remains error.
-        const tokenCheck = await storage.getItem(TOKEN_KEY);
-        if (!tokenCheck) return null;
+        // If the query failed with a 401 Unauthorized error, it means the interceptor
+        // has already cleared the token and logged the user out. Return null to transition
+        // the query state to authenticated: false cleanly without throwing.
+        if (error instanceof AxiosError && error.response?.status === 401) {
+          return null;
+        }
         throw error;
       }
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    // staleTime: 10 minutes. This is intentionally longer than the global default
+    // of 5 minutes because the current user profile is relatively static, preventing
+    // excessive /auth/me checks on every component mount or AppState refocus.
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000, // 30 minutes (keep cache alive during backgrounding)
     retry: (failureCount, error: unknown) => {
-      if (error instanceof AxiosError && error.response?.status === 401) return false;
-      return failureCount < 2;
+      if (error instanceof AxiosError) {
+        const status = error.response?.status;
+        if (status === 401 || status === 403 || (status && status >= 500)) return false;
+      }
+      return failureCount < 1;
     },
   });
 
@@ -121,6 +150,8 @@ export const useVerifyEmail = () => {
     onSuccess: async (data) => {
       if (data.data.token) {
         await getStorage().setItem(TOKEN_KEY, data.data.token);
+        // Clear pending verification email
+        await getStorage().removeItem('pending_verification_email');
       }
       queryClient.setQueryData(authKeys.me, data.data.user);
     },
@@ -138,8 +169,13 @@ export const useVerifyPassword = () =>
   });
 
 export const useChangePassword = () => {
-  return useMutation<MessageResponse, Error, ChangePasswordInput>({
+  return useMutation<ChangePasswordResponse, Error, ChangePasswordInput>({
     mutationFn: changePasswordApi,
+    onSuccess: async (data) => {
+      if (data.data?.token) {
+        await getStorage().setItem(TOKEN_KEY, data.data.token);
+      }
+    },
   });
 };
 
@@ -149,8 +185,9 @@ export const useUpdateProfile = () => {
     mutationFn: updateProfileApi,
     onSuccess: (data) => {
       queryClient.setQueryData(authKeys.me, data);
+      // Invalidate dashboard and groups since they display user info (name/avatar)
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['groups'] });
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
     },
   });
 };
