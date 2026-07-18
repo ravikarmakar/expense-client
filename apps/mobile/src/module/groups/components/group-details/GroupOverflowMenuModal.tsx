@@ -6,7 +6,11 @@ import { COLORS } from '../../../../constants/theme';
 import { detailStyles as styles } from '../../styles/group.styles';
 import { useGroupDetail } from '../../contexts/GroupDetailContext';
 
-export function GroupOverflowMenuModal() {
+interface GroupOverflowMenuModalProps {
+  onAddCategoryPress: () => void;
+}
+
+export function GroupOverflowMenuModal({ onAddCategoryPress }: GroupOverflowMenuModalProps) {
   const {
     menuVisible,
     setMenuVisible,
@@ -41,6 +45,17 @@ export function GroupOverflowMenuModal() {
           >
             <Ionicons name="bar-chart-outline" size={20} color={COLORS.onSurface} />
             <Text style={styles.menuItemText}>Analytics</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.menuItem, styles.menuItemBorder]}
+            onPress={() => {
+              handleClose();
+              onAddCategoryPress();
+            }}
+          >
+            <Ionicons name="grid-outline" size={20} color={COLORS.onSurface} />
+            <Text style={styles.menuItemText}>Add Category</Text>
           </TouchableOpacity>
 
           {isAdmin && (

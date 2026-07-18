@@ -14,6 +14,7 @@ import { COLORS } from '../../../constants/theme';
 import { globalStyles } from '../../../styles/globalStyles';
 import { SplitSummaryCard } from '../components/group-details/SplitSummaryCard';
 import { AddExpenseModal } from '../../../components/AddExpenseModal';
+import { CreateCategoryModal } from '../../../components/CreateCategoryModal';
 import { EditGroupModal } from '../components/EditGroupModal';
 import { ErrorView } from '../../../components/ErrorView';
 import { z } from 'zod';
@@ -27,6 +28,7 @@ import { GroupDetailHeader } from '../components/group-details/GroupDetailHeader
 import { GroupBalanceCard } from '../components/group-details/GroupBalanceCard';
 import { GroupRecentActivity } from '../components/group-details/GroupRecentActivity';
 import { GroupOverflowMenuModal } from '../components/group-details/GroupOverflowMenuModal';
+import { GroupCategoriesModal } from '../components/group-details/GroupCategoriesModal';
 import { GroupDetailProvider, useGroupDetail } from '../contexts/GroupDetailContext';
 
 const groupRouteSchema = z.object({
@@ -68,6 +70,8 @@ function GroupDetailContent() {
   } = useGroupDetail();
 
   const { triggerCooldown } = useReminderCooldown();
+  const [addCategoryVisible, setAddCategoryVisible] = React.useState(false);
+  const [categoriesModalVisible, setCategoriesModalVisible] = React.useState(false);
 
   // Watch sendReminder status to trigger client-side cooldown
   const prevSendReminderIsSuccess = React.useRef(sendReminder.isSuccess);
@@ -130,17 +134,33 @@ function GroupDetailContent() {
             >
               Balances
             </Text>
-            {isAdmin && group?.isActive !== false && (
-              <TouchableOpacity
-                onPress={() => router.push(`/groups/${id}/add-member`)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.addMemberBtn}>
-                  <Ionicons name="person-add" size={14} color={COLORS.secondary} />
-                  <Text style={styles.addMemberBtnText}>Add</Text>
-                </View>
-              </TouchableOpacity>
-            )}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {group?.isActive !== false && (
+                <TouchableOpacity
+                  onPress={() => setCategoriesModalVisible(true)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.addMemberBtn}>
+                    <Ionicons name="grid-outline" size={14} color={COLORS.primary} />
+                    <Text style={[styles.addMemberBtnText, { color: COLORS.primary }]}>
+                      Categories
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+
+              {isAdmin && group?.isActive !== false && (
+                <TouchableOpacity
+                  onPress={() => router.push(`/groups/${id}/add-member`)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.addMemberBtn}>
+                    <Ionicons name="person-add" size={14} color={COLORS.secondary} />
+                    <Text style={styles.addMemberBtnText}>Add</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
           {showSkeleton || !group ? (
             <View style={localStyles.membersSkeletonContainer}>
@@ -231,8 +251,22 @@ function GroupDetailContent() {
         />
       )}
 
+      <CreateCategoryModal
+        visible={addCategoryVisible}
+        onClose={() => setAddCategoryVisible(false)}
+        groupId={id}
+      />
+
+      <GroupCategoriesModal
+        visible={categoriesModalVisible}
+        onClose={() => setCategoriesModalVisible(false)}
+        groupId={id}
+        isAdmin={isAdmin}
+        onAddCategoryPress={() => setAddCategoryVisible(true)}
+      />
+
       {/* ── Overflow Menu Modal ── */}
-      <GroupOverflowMenuModal />
+      <GroupOverflowMenuModal onAddCategoryPress={() => setAddCategoryVisible(true)} />
     </View>
   );
 }

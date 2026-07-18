@@ -15,6 +15,9 @@ import { AuthTextInput } from './AuthTextInput';
 import { CustomAlertDialog } from '@/components/CustomAlertDialog';
 import { useChangePasswordController } from '@workspace/api';
 import { authStyles } from '../styles/auth.styles';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
+import { useHideTabBar } from '@/hooks/useHideTabBar';
 
 interface ChangePasswordModalProps {
   visible: boolean;
@@ -23,6 +26,9 @@ interface ChangePasswordModalProps {
 
 export function ChangePasswordModal({ visible, onClose }: ChangePasswordModalProps) {
   const [successAlertVisible, setSuccessAlertVisible] = useState(false);
+  const insets = useSafeAreaInsets();
+  const keyboardHeight = useKeyboardHeight();
+  useHideTabBar(visible);
 
   const {
     step,
@@ -66,6 +72,112 @@ export function ChangePasswordModal({ visible, onClose }: ChangePasswordModalPro
   const isVerifyButtonDisabled = !currentPassword.trim() || verifyLoading;
   const isChangeButtonDisabled = !newPassword.trim() || !confirmPassword.trim() || changeLoading;
 
+  const renderContent = () => (
+    <View style={[authStyles.modalContent, { paddingBottom: Math.max(insets.bottom, 24) + 8 }]}>
+      {/* Header */}
+      <View style={authStyles.modalHeader}>
+        <Text style={authStyles.modalTitle}>
+          {step === 'VERIFY' ? 'Verify Identity' : 'Set New Password'}
+        </Text>
+        <TouchableOpacity
+          onPress={handleClose}
+          style={authStyles.closeButton}
+          activeOpacity={0.7}
+          disabled={verifyLoading || changeLoading}
+        >
+          <Ionicons name="close" size={24} color={COLORS.onSurface} />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={authStyles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        {errorMessage ? <Text style={authStyles.errorText}>{errorMessage}</Text> : null}
+
+        {step === 'VERIFY' ? (
+          <View style={authStyles.formContainer}>
+            <Text style={authStyles.modalDescription}>
+              Please enter your current password to continue.
+            </Text>
+
+            <AuthTextInput
+              label="CURRENT PASSWORD"
+              icon="lock-closed-outline"
+              placeholder="Enter current password"
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+              secureTextEntry={!isCurrentPasswordVisible}
+              rightIcon={isCurrentPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
+              onRightIconPress={() => setIsCurrentPasswordVisible(!isCurrentPasswordVisible)}
+            />
+
+            <TouchableOpacity
+              onPress={handleVerifyPassword}
+              style={[
+                authStyles.primaryButton,
+                isVerifyButtonDisabled && authStyles.disabledButton,
+              ]}
+              activeOpacity={0.8}
+              disabled={isVerifyButtonDisabled}
+            >
+              {verifyLoading ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <Text style={authStyles.primaryButtonText}>Verify Password</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={authStyles.formContainer}>
+            <Text style={authStyles.modalDescription}>
+              Choose a strong, secure password that is at least 8 characters long.
+            </Text>
+
+            <AuthTextInput
+              label="NEW PASSWORD"
+              icon="lock-closed-outline"
+              placeholder="Enter new password"
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry={!isNewPasswordVisible}
+              rightIcon={isNewPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
+              onRightIconPress={() => setIsNewPasswordVisible(!isNewPasswordVisible)}
+            />
+
+            <AuthTextInput
+              label="CONFIRM PASSWORD"
+              icon="lock-closed-outline"
+              placeholder="Confirm new password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry={!isConfirmPasswordVisible}
+              rightIcon={isConfirmPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
+              onRightIconPress={() => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)}
+            />
+
+            <TouchableOpacity
+              onPress={handleChangePassword}
+              style={[
+                authStyles.primaryButton,
+                isChangeButtonDisabled && authStyles.disabledButton,
+              ]}
+              activeOpacity={0.8}
+              disabled={isChangeButtonDisabled}
+            >
+              {changeLoading ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <Text style={authStyles.primaryButtonText}>Update Password</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
+    </View>
+  );
+
   return (
     <>
       <CustomAlertDialog
@@ -82,139 +194,23 @@ export function ChangePasswordModal({ visible, onClose }: ChangePasswordModalPro
         transparent={true}
         visible={visible}
         onRequestClose={handleClose}
+        statusBarTranslucent={true}
       >
-        <View style={authStyles.modalOverlay}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={authStyles.keyboardAvoidingView}
-          >
-            <View style={authStyles.modalContent}>
-              {/* Header */}
-              <View style={authStyles.modalHeader}>
-                <Text style={authStyles.modalTitle}>
-                  {step === 'VERIFY' ? 'Verify Identity' : 'Set New Password'}
-                </Text>
-                <TouchableOpacity
-                  onPress={handleClose}
-                  style={authStyles.closeButton}
-                  activeOpacity={0.7}
-                  disabled={verifyLoading || changeLoading}
-                >
-                  <Ionicons name="close" size={24} color={COLORS.onSurface} />
-                </TouchableOpacity>
-              </View>
-
-              {/* Error Message */}
-              {errorMessage ? (
-                <View style={authStyles.errorContainer}>
-                  <Ionicons name="alert-circle" size={18} color={COLORS.error} />
-                  <Text style={authStyles.errorText}>{errorMessage}</Text>
-                </View>
-              ) : null}
-
-              {/* Form scroll wrapper to prevent button hiding */}
-              <ScrollView
-                contentContainerStyle={authStyles.scrollContent}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-              >
-                {step === 'VERIFY' ? (
-                  <View style={authStyles.formContainer}>
-                    <Text style={authStyles.modalDescription}>
-                      Please enter your current password to continue.
-                    </Text>
-
-                    <AuthTextInput
-                      label="Current Password"
-                      icon="lock-closed-outline"
-                      value={currentPassword}
-                      onChangeText={setCurrentPassword}
-                      placeholder="Enter current password"
-                      secureTextEntry={!isCurrentPasswordVisible}
-                      autoCapitalize="none"
-                      textContentType="oneTimeCode"
-                      autoComplete="off"
-                      loading={verifyLoading}
-                      rightIcon={isCurrentPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
-                      onRightIconPress={() =>
-                        setIsCurrentPasswordVisible(!isCurrentPasswordVisible)
-                      }
-                    />
-
-                    <TouchableOpacity
-                      onPress={handleVerifyPassword}
-                      style={[
-                        authStyles.primaryButton,
-                        isVerifyButtonDisabled && authStyles.disabledButton,
-                      ]}
-                      activeOpacity={0.8}
-                      disabled={isVerifyButtonDisabled}
-                    >
-                      {verifyLoading ? (
-                        <ActivityIndicator color="#ffffff" />
-                      ) : (
-                        <Text style={authStyles.primaryButtonText}>Verify Password</Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <View style={authStyles.formContainer}>
-                    <Text style={authStyles.modalDescription}>
-                      Create a new secure password. It must meet complexity requirements.
-                    </Text>
-
-                    <AuthTextInput
-                      label="New Password"
-                      icon="lock-closed-outline"
-                      value={newPassword}
-                      onChangeText={setNewPassword}
-                      placeholder="Enter new password"
-                      secureTextEntry={!isNewPasswordVisible}
-                      autoCapitalize="none"
-                      textContentType="oneTimeCode"
-                      autoComplete="off"
-                      loading={changeLoading}
-                      rightIcon={isNewPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
-                      onRightIconPress={() => setIsNewPasswordVisible(!isNewPasswordVisible)}
-                    />
-
-                    <AuthTextInput
-                      label="Confirm New Password"
-                      icon="lock-closed-outline"
-                      value={confirmPassword}
-                      onChangeText={setConfirmPassword}
-                      placeholder="Confirm new password"
-                      secureTextEntry={!isConfirmPasswordVisible}
-                      autoCapitalize="none"
-                      textContentType="oneTimeCode"
-                      autoComplete="off"
-                      loading={changeLoading}
-                      rightIcon={isConfirmPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
-                      onRightIconPress={() =>
-                        setIsConfirmPasswordVisible(!isConfirmPasswordVisible)
-                      }
-                    />
-
-                    <TouchableOpacity
-                      onPress={handleChangePassword}
-                      style={[
-                        authStyles.primaryButton,
-                        isChangeButtonDisabled && authStyles.disabledButton,
-                      ]}
-                      activeOpacity={0.8}
-                      disabled={isChangeButtonDisabled}
-                    >
-                      {changeLoading ? (
-                        <ActivityIndicator color="#ffffff" />
-                      ) : (
-                        <Text style={authStyles.primaryButtonText}>Update Password</Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </ScrollView>
-            </View>
-          </KeyboardAvoidingView>
+        <View
+          style={[
+            authStyles.modalOverlay,
+            Platform.OS === 'android' && {
+              paddingBottom: Math.max(0, keyboardHeight - insets.bottom),
+            },
+          ]}
+        >
+          {Platform.OS === 'ios' ? (
+            <KeyboardAvoidingView behavior="padding" style={authStyles.keyboardAvoidingView}>
+              {renderContent()}
+            </KeyboardAvoidingView>
+          ) : (
+            <View style={authStyles.keyboardAvoidingView}>{renderContent()}</View>
+          )}
         </View>
       </Modal>
     </>

@@ -10,7 +10,10 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../constants/theme';
+import { useKeyboardHeight } from '../hooks/useKeyboardHeight';
+import { useHideTabBar } from '../hooks/useHideTabBar';
 
 interface ModalContainerProps {
   visible: boolean;
@@ -36,42 +39,59 @@ export function ModalContainer({
   animationType = 'slide',
   children,
 }: ModalContainerProps) {
+  const keyboardHeight = useKeyboardHeight();
+  const insets = useSafeAreaInsets();
+  useHideTabBar(visible);
+
+  const renderContent = () => (
+    <View style={[styles.content, { paddingBottom: Math.max(insets.bottom, 24) + 8 }]}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>{title}</Text>
+        <TouchableOpacity
+          onPress={onClose}
+          style={styles.closeBtn}
+          activeOpacity={0.7}
+          disabled={loading}
+        >
+          <Ionicons name="close" size={24} color={COLORS.onSurface} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Scrollable body */}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {children}
+      </ScrollView>
+    </View>
+  );
+
   return (
     <Modal
       animationType={animationType}
       transparent={true}
       visible={visible}
       onRequestClose={onClose}
+      statusBarTranslucent={true}
     >
-      <View style={styles.overlay}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardView}
-        >
-          <View style={styles.content}>
-            {/* Header */}
-            <View style={styles.header}>
-              <Text style={styles.title}>{title}</Text>
-              <TouchableOpacity
-                onPress={onClose}
-                style={styles.closeBtn}
-                activeOpacity={0.7}
-                disabled={loading}
-              >
-                <Ionicons name="close" size={24} color={COLORS.onSurface} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Scrollable body */}
-            <ScrollView
-              contentContainerStyle={styles.scrollContent}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              {children}
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
+      <View
+        style={[
+          styles.overlay,
+          Platform.OS === 'android' && {
+            paddingBottom: Math.max(0, keyboardHeight - insets.bottom),
+          },
+        ]}
+      >
+        {Platform.OS === 'ios' ? (
+          <KeyboardAvoidingView behavior="padding" style={styles.keyboardView}>
+            {renderContent()}
+          </KeyboardAvoidingView>
+        ) : (
+          <View style={styles.keyboardView}>{renderContent()}</View>
+        )}
       </View>
     </Modal>
   );
@@ -82,6 +102,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
+    elevation: 24,
+    zIndex: 99,
   },
   keyboardView: {
     width: '100%',
@@ -91,8 +113,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     padding: 24,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceContainer,
     maxHeight: '90%',
   },
   header: {
@@ -111,6 +131,5 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
   },
 });

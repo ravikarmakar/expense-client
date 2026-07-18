@@ -299,6 +299,7 @@ export function AddExpenseModal({
                   onToggle={handleToggleCategoryDropdown}
                   category={category}
                   onSelect={handleSelectCategory}
+                  groupId={groupId}
                 />
 
                 <FormInput

@@ -12,6 +12,7 @@ interface CategoryDropdownProps {
   onToggle: () => void;
   category: ExpenseCategory | null;
   onSelect: (cat: ExpenseCategory) => void;
+  groupId?: string;
 }
 
 const CategoryIcon = ({
@@ -35,9 +36,10 @@ export const CategoryDropdown = React.memo(function CategoryDropdown({
   onToggle,
   category,
   onSelect,
+  groupId,
 }: CategoryDropdownProps) {
   const router = useRouter();
-  const { data } = useCategories();
+  const { data } = useCategories(groupId);
 
   const customCategories = data?.custom || [];
 
@@ -135,17 +137,19 @@ export const CategoryDropdown = React.memo(function CategoryDropdown({
             })}
 
             {/* Manage Categories Action Row */}
-            <TouchableOpacity
-              style={styles.dropdownManageBtn}
-              onPress={() => {
-                onToggle();
-                router.push('/categories');
-              }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="settings-outline" size={14} color={COLORS.primary} />
-              <Text style={styles.dropdownManageBtnText}>Manage Custom Categories</Text>
-            </TouchableOpacity>
+            {!groupId && (
+              <TouchableOpacity
+                style={styles.dropdownManageBtn}
+                onPress={() => {
+                  onToggle();
+                  router.push('/categories');
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="settings-outline" size={14} color={COLORS.primary} />
+                <Text style={styles.dropdownManageBtnText}>Manage Custom Categories</Text>
+              </TouchableOpacity>
+            )}
           </ScrollView>
         )}
       </View>

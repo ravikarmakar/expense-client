@@ -34,9 +34,15 @@ interface CreateCategoryModalProps {
   visible: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  groupId?: string;
 }
 
-export function CreateCategoryModal({ visible, onClose, onSuccess }: CreateCategoryModalProps) {
+export function CreateCategoryModal({
+  visible,
+  onClose,
+  onSuccess,
+  groupId,
+}: CreateCategoryModalProps) {
   const createCategory = useCreateCategory();
 
   const [name, setName] = useState('');
@@ -55,6 +61,7 @@ export function CreateCategoryModal({ visible, onClose, onSuccess }: CreateCateg
         name: trimmedName,
         icon: selectedIcon,
         color: selectedColor,
+        groupId,
       },
       {
         onSuccess: () => {

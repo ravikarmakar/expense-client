@@ -4,15 +4,16 @@ import { type CategoriesResponse, type CustomCategory } from './categories.types
 
 export const categoryKeys = {
   all: ['categories'] as const,
+  list: (groupId?: string) => ['categories', { groupId }] as const,
 };
 
 /**
  * Hook to get standard and custom categories
  */
-export const useCategories = () => {
+export const useCategories = (groupId?: string) => {
   return useQuery<CategoriesResponse, Error>({
-    queryKey: categoryKeys.all,
-    queryFn: getCategoriesApi,
+    queryKey: categoryKeys.list(groupId),
+    queryFn: () => getCategoriesApi(groupId),
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
 };
@@ -22,7 +23,11 @@ export const useCategories = () => {
  */
 export const useCreateCategory = () => {
   const queryClient = useQueryClient();
-  return useMutation<CustomCategory, Error, { name: string; icon: string; color: string }>({
+  return useMutation<
+    CustomCategory,
+    Error,
+    { name: string; icon: string; color: string; groupId?: string }
+  >({
     mutationFn: createCategoryApi,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: categoryKeys.all });

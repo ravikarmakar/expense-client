@@ -179,6 +179,8 @@ export const authStyles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
+    elevation: 24,
+    zIndex: 99,
   },
   keyboardAvoidingView: {
     width: '100%',

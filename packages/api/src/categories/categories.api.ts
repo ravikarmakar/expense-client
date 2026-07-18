@@ -9,8 +9,13 @@ import {
 /**
  * Fetch all categories (standard + custom)
  */
-export const getCategoriesApi = async (): Promise<CategoriesResponse> => {
-  const { data } = await getApiClient().get<unknown>('/categories');
+/**
+ * Fetch all categories (standard + custom)
+ */
+export const getCategoriesApi = async (groupId?: string): Promise<CategoriesResponse> => {
+  const { data } = await getApiClient().get<unknown>('/categories', {
+    params: groupId ? { groupId } : undefined,
+  });
   const parsed = categoriesResponseSchema.parse(data);
   return parsed.data;
 };
@@ -22,6 +27,7 @@ export const createCategoryApi = async (input: {
   name: string;
   icon: string;
   color: string;
+  groupId?: string;
 }): Promise<CustomCategory> => {
   const { data } = await getApiClient().post<unknown>('/categories', input);
   const parsed = z

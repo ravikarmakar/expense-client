@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const customCategorySchema = z.object({
   id: z.string(),
   userId: z.string(),
+  groupId: z.string().nullable().optional(),
   name: z.string(),
   icon: z.string(),
   color: z.string(),
