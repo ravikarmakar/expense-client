@@ -12,6 +12,7 @@ interface SplitSummaryCardProps {
   isSettling?: string | null; // userId being settled
   onSendReminder?: (member: GroupMember) => void;
   isReminding?: string | null; // userId being reminded
+  groupId?: string;
 }
 
 export function SplitSummaryCard({
@@ -21,6 +22,7 @@ export function SplitSummaryCard({
   isSettling,
   onSendReminder,
   isReminding,
+  groupId,
 }: SplitSummaryCardProps) {
   const currentUser = members.find((m) => m.userId === currentUserId);
   const otherMembers = members.filter((m) => m.userId !== currentUserId);
@@ -55,6 +57,7 @@ export function SplitSummaryCard({
           onSendReminder={onSendReminder}
           isReminding={isReminding === member.userId}
           isLast={index === renderedMembers.length - 1}
+          groupId={groupId}
         />
       ))}
 

@@ -31,5 +31,6 @@ export const notificationListResponseSchema = z.object({
   success: z.boolean(),
   data: z.object({
     notifications: z.array(notificationItemSchema),
+    nextCursor: z.string().nullable().optional(),
   }),
 });

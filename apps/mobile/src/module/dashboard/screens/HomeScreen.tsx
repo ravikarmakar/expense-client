@@ -13,10 +13,11 @@ import { EmptyState } from '../../../components/EmptyState';
 import { SkeletonLoader } from '../components/SkeletonLoader';
 import { useDashboardController } from '@workspace/api';
 import { router } from 'expo-router';
-import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
+import { COLORS, CURRENCY_SYMBOL, resolveAvatar } from '../../../constants/theme';
 import { globalStyles } from '../../../styles/globalStyles';
 import { TopAppBar } from '../../../components/TopAppBar';
 import { RecentExpenses } from '../components/RecentExpenses';
+import { useSinglePress } from '../../../hooks/useSinglePress';
 
 export default function HomeScreen() {
   const {
@@ -43,6 +44,8 @@ export default function HomeScreen() {
     totalGroupSpent,
   } = useDashboardController();
 
+  const singlePress = useSinglePress();
+
   const greetingHour = new Date().getHours();
   const greeting =
     greetingHour < 12 ? 'Good Morning' : greetingHour < 17 ? 'Good Afternoon' : 'Good Evening';
@@ -67,22 +70,7 @@ export default function HomeScreen() {
             <Text style={styles.greetingName}>{user?.name ?? 'Welcome'}</Text>
           </View>
           <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/(tabs)/settings')}>
-            {user?.image ? (
-              <Image source={{ uri: user.image }} style={styles.greetingAvatar} />
-            ) : (
-              <View
-                style={[
-                  styles.greetingAvatar,
-                  {
-                    backgroundColor: COLORS.surfaceContainer,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  },
-                ]}
-              >
-                <Ionicons name="person" size={20} color={COLORS.outline} />
-              </View>
-            )}
+            <Image source={{ uri: resolveAvatar(user?.image) }} style={styles.greetingAvatar} />
           </TouchableOpacity>
         </View>
 
@@ -91,9 +79,13 @@ export default function HomeScreen() {
           <View style={[styles.abstractCircle, styles.circleTopRight]} />
           <View style={[styles.abstractCircle, styles.circleBottomLeft]} />
 
-          <View style={styles.mainBalanceWrapper}>
-            <Text style={styles.balanceLabel}>Total Net Balance</Text>
-            {groupsLoading && groups.length === 0 ? (
+          <TouchableOpacity
+            style={styles.mainBalanceWrapper}
+            activeOpacity={0.8}
+            onPress={singlePress(() => router.push('/total-spent'))}
+          >
+            <Text style={styles.balanceLabel}>All-Time Spending</Text>
+            {statsLoading && !stats ? (
               <SkeletonLoader
                 width={140}
                 height={32}
@@ -102,10 +94,10 @@ export default function HomeScreen() {
             ) : (
               <Text style={styles.balanceAmount}>
                 {CURRENCY_SYMBOL}
-                {netBalance.toFixed(2)}
+                {totalSpent.toFixed(2)}
               </Text>
             )}
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.balanceDivider} />
 
@@ -115,7 +107,9 @@ export default function HomeScreen() {
               <TouchableOpacity
                 style={styles.statBox}
                 activeOpacity={0.8}
-                onPress={() => router.push({ pathname: '/settle-up', params: { type: 'owed' } })}
+                onPress={singlePress(() =>
+                  router.push({ pathname: '/groups/settle-up', params: { type: 'owed' } })
+                )}
               >
                 <View style={[styles.statIconBg, { backgroundColor: COLORS.primaryFixed }]}>
                   <Ionicons name="arrow-down" size={16} color={COLORS.primary} />
@@ -139,7 +133,9 @@ export default function HomeScreen() {
               <TouchableOpacity
                 style={styles.statBox}
                 activeOpacity={0.8}
-                onPress={() => router.push({ pathname: '/settle-up', params: { type: 'owe' } })}
+                onPress={singlePress(() =>
+                  router.push({ pathname: '/groups/settle-up', params: { type: 'owe' } })
+                )}
               >
                 <View style={[styles.statIconBg, { backgroundColor: COLORS.errorContainer }]}>
                   <Ionicons name="arrow-up" size={16} color={COLORS.error} />
@@ -166,14 +162,14 @@ export default function HomeScreen() {
               <TouchableOpacity
                 style={styles.statBox}
                 activeOpacity={0.8}
-                onPress={() => router.push('/total-spent')}
+                onPress={singlePress(() => router.push('/(tabs)/groups'))}
               >
                 <View style={[styles.statIconBg, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
-                  <Ionicons name="wallet-outline" size={16} color="#ffffff" />
+                  <Ionicons name="scale-outline" size={16} color="#ffffff" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.statLabel}>Total Spent</Text>
-                  {statsLoading && !stats ? (
+                  <Text style={styles.statLabel}>Net Balance</Text>
+                  {groupsLoading && groups.length === 0 ? (
                     <SkeletonLoader
                       width={50}
                       height={16}
@@ -182,7 +178,7 @@ export default function HomeScreen() {
                   ) : (
                     <Text style={styles.statValue}>
                       {CURRENCY_SYMBOL}
-                      {totalSpent.toFixed(2)}
+                      {netBalance.toFixed(2)}
                     </Text>
                   )}
                 </View>
@@ -190,7 +186,7 @@ export default function HomeScreen() {
               <TouchableOpacity
                 style={styles.statBox}
                 activeOpacity={0.8}
-                onPress={() => router.push('/owed-details')}
+                onPress={singlePress(() => router.push('/groups/analytics'))}
               >
                 <View style={[styles.statIconBg, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
                   <Ionicons name="people-outline" size={16} color="#ffffff" />

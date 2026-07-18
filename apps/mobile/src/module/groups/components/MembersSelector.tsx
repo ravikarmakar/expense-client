@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, PREDEFINED_AVATARS } from '../../../constants/theme';
+import { COLORS, resolveAvatar } from '../../../constants/theme';
 
 export interface SelectorGroupMember {
   userId: string;
@@ -55,10 +55,7 @@ export const MembersSelector = React.memo(function MembersSelector({
               disabled={isCurrentUser}
             >
               <View style={styles.memberAvatarContainer}>
-                <Image
-                  source={{ uri: member.image || PREDEFINED_AVATARS[0] }}
-                  style={styles.memberAvatar}
-                />
+                <Image source={{ uri: resolveAvatar(member.image) }} style={styles.memberAvatar} />
                 <View style={[styles.memberCheck, isSelected && styles.memberCheckActive]}>
                   {isSelected && <Ionicons name="checkmark" size={10} color="#fff" />}
                 </View>

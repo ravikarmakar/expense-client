@@ -185,6 +185,7 @@ export const useUpdateProfile = () => {
     mutationFn: updateProfileApi,
     onSuccess: (data) => {
       queryClient.setQueryData(authKeys.me, data);
+      queryClient.invalidateQueries();
     },
   });
 };

@@ -16,7 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, PREDEFINED_AVATARS } from '../../constants/theme';
+import { COLORS, PREDEFINED_AVATARS, resolveAvatar } from '../../constants/theme';
 import { globalStyles } from '../../styles/globalStyles';
 import { useMe, useLogout, useUpdateProfile, getErrorMessage } from '@workspace/api';
 import { ChangePasswordModal } from '../../module/auth/components/ChangePasswordModal';
@@ -85,16 +85,13 @@ export default function SettingsTabScreen() {
         {/* Premium Profile Section */}
         <View style={styles.profileSection}>
           <View style={styles.avatarOutlineContainer}>
-            <Image
-              source={{ uri: user?.image || PREDEFINED_AVATARS[0] }}
-              style={styles.profileAvatar}
-            />
+            <Image source={{ uri: resolveAvatar(user?.image) }} style={styles.profileAvatar} />
             <TouchableOpacity
               style={styles.avatarEditOverlay}
               activeOpacity={0.85}
               onPress={() => {
                 setEditName(user?.name ?? '');
-                setSelectedAvatar(user?.image ?? PREDEFINED_AVATARS[0]);
+                setSelectedAvatar(resolveAvatar(user?.image));
                 setProfileErrorMessage('');
                 setProfileModalVisible(true);
               }}
@@ -113,7 +110,7 @@ export default function SettingsTabScreen() {
               activeOpacity={0.7}
               onPress={() => {
                 setEditName(user?.name ?? '');
-                setSelectedAvatar(user?.image ?? PREDEFINED_AVATARS[0]);
+                setSelectedAvatar(resolveAvatar(user?.image));
                 setProfileErrorMessage('');
                 setProfileModalVisible(true);
               }}
@@ -138,7 +135,7 @@ export default function SettingsTabScreen() {
             activeOpacity={0.7}
             onPress={() => {
               setEditName(user?.name ?? '');
-              setSelectedAvatar(user?.image ?? PREDEFINED_AVATARS[0]);
+              setSelectedAvatar(resolveAvatar(user?.image));
               setProfileErrorMessage('');
               setProfileModalVisible(true);
             }}

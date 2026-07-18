@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, TextInput, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURRENCY_SYMBOL, PREDEFINED_AVATARS } from '../../../constants/theme';
+import { COLORS, CURRENCY_SYMBOL, resolveAvatar } from '../../../constants/theme';
 import { styles } from '../styles/add-expense.styles';
 import { MembersSelector, type SelectorGroupMember } from './MembersSelector';
 import { SkeletonLoader } from '../../../components/SkeletonLoader';
@@ -170,7 +170,7 @@ export const SplitSelector = React.memo(function SplitSelector({
               <View key={member.userId} style={styles.exactSplitRow}>
                 <View style={styles.exactSplitMemberInfo}>
                   <Image
-                    source={{ uri: member.image || PREDEFINED_AVATARS[0] }}
+                    source={{ uri: resolveAvatar(member.image) }}
                     style={styles.exactSplitAvatar}
                   />
                   <Text style={styles.exactSplitName} numberOfLines={1}>

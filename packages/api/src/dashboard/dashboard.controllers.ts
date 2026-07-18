@@ -15,7 +15,7 @@ export function useDashboardController() {
     isLoading: dashboardLoading,
     refetch: refetchDashboardData,
   } = useDashboard();
-  const { data: notifications = [], refetch: refetchNotifications } = useNotifications();
+  const { data: notificationsData, refetch: refetchNotifications } = useNotifications();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const stats = dashboardData?.stats;
@@ -25,7 +25,11 @@ export function useDashboardController() {
   const groups = dashboardData?.groups ?? [];
   const groupsLoading = dashboardLoading;
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = useMemo(() => {
+    if (!notificationsData) return 0;
+    const all = notificationsData.pages.flatMap((page) => page.notifications);
+    return all.filter((n) => !n.read).length;
+  }, [notificationsData]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);

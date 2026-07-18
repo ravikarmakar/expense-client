@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { PieChart, LineChart } from 'react-native-gifted-charts';
+import { PieChart, BarChart } from 'react-native-gifted-charts';
 import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
 import { globalStyles } from '../../../styles/globalStyles';
 
@@ -41,7 +41,22 @@ export const CategorySpendingCard = React.memo(function CategorySpendingCard({
   };
 
   if (!summary?.categorySpent || summary.categorySpent.length === 0) {
-    return null;
+    return (
+      <View style={[globalStyles.sectionContainer, styles.pbHighlight]}>
+        <View style={styles.categoryCardHeader}>
+          <Text style={[globalStyles.sectionTitle, styles.sectionTitle]}>Spending by Category</Text>
+        </View>
+        <View style={styles.emptyCard}>
+          <View style={styles.emptyIconBg}>
+            <Ionicons name="pie-chart-outline" size={28} color={COLORS.outline} />
+          </View>
+          <Text style={styles.emptyCardTitle}>No spending recorded</Text>
+          <Text style={styles.emptyCardSubtitle}>
+            Add expenses with categories to see your monthly spending breakdown here.
+          </Text>
+        </View>
+      </View>
+    );
   }
 
   const activeCategory = selectedCategory
@@ -70,13 +85,13 @@ export const CategorySpendingCard = React.memo(function CategorySpendingCard({
     };
   });
 
-  const areaData = summary.categorySpent.map((item) => {
+  const barData = summary.categorySpent.map((item) => {
     const config =
       CATEGORY_CONFIG[item.category as keyof typeof CATEGORY_CONFIG] || CATEGORY_CONFIG.Other;
     return {
       value: item.amount,
       label: item.category.substring(0, 4),
-      dataPointColor: config.color,
+      frontColor: config.color,
     };
   });
 
@@ -239,44 +254,29 @@ export const CategorySpendingCard = React.memo(function CategorySpendingCard({
           <View style={styles.barContainer}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={{ paddingRight: 20 }}>
-                <LineChart
-                  data={areaData}
-                  height={160}
-                  areaChart
-                  thickness={3}
-                  color={COLORS.primary}
-                  startFillColor={COLORS.primary}
-                  endFillColor={COLORS.primary}
-                  startOpacity={0.4}
-                  endOpacity={0.05}
-                  noOfSections={4}
-                  yAxisThickness={0}
+                <BarChart
+                  data={barData}
+                  barWidth={28}
+                  spacing={summary.categorySpent.length === 1 ? 120 : 30}
+                  roundedTop
+                  roundedBottom={false}
+                  hideRules
                   xAxisThickness={1}
                   xAxisColor={COLORS.surfaceContainer}
-                  rulesColor={COLORS.surfaceContainer}
-                  rulesType="solid"
-                  spacing={50}
-                  dataPointsColor={COLORS.primary}
-                  dataPointsRadius={4}
-                  xAxisLabelTextStyle={styles.barLabelText}
+                  yAxisThickness={0}
                   yAxisTextStyle={{ color: COLORS.outline, fontSize: 10 }}
-                  pointerConfig={{
-                    pointerColor: COLORS.primary,
-                    showPointerStrip: true,
-                    pointerStripColor: COLORS.surfaceContainer,
-                    pointerLabelWidth: 80,
-                    pointerLabelHeight: 30,
-                    pointerLabelComponent: (items: { value: number }[]) => {
-                      if (!items || items.length === 0) return null;
-                      return (
-                        <View style={styles.barTooltip}>
-                          <Text style={styles.barTooltipText}>
-                            {CURRENCY_SYMBOL}
-                            {items[0].value.toFixed(0)}
-                          </Text>
-                        </View>
-                      );
-                    },
+                  noOfSections={3}
+                  height={150}
+                  xAxisLabelTextStyle={styles.barLabelText}
+                  renderTooltip={(item: { value: number }) => {
+                    return (
+                      <View style={styles.barTooltip}>
+                        <Text style={styles.barTooltipText}>
+                          {CURRENCY_SYMBOL}
+                          {item.value.toFixed(0)}
+                        </Text>
+                      </View>
+                    );
                   }}
                 />
               </View>
@@ -466,5 +466,39 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: COLORS.surface,
+  },
+  emptyCard: {
+    backgroundColor: COLORS.surface,
+    borderColor: COLORS.surfaceContainer,
+    borderWidth: 1,
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 16,
+    gap: 8,
+  },
+  emptyIconBg: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: COLORS.surfaceContainerLow,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
+  },
+  emptyCardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.onSurface,
+  },
+  emptyCardSubtitle: {
+    fontSize: 13,
+    color: COLORS.outline,
+    textAlign: 'center',
+    lineHeight: 18,
+    paddingHorizontal: 16,
   },
 });

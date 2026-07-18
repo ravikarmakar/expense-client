@@ -1,14 +1,16 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { getNotificationsApi, readNotificationsApi } from './notification.api';
 
 export const notificationKeys = {
   all: () => ['notifications'] as const,
 };
 
-export const useNotifications = () =>
-  useQuery({
+export const useNotifications = (limit = 15) =>
+  useInfiniteQuery({
     queryKey: notificationKeys.all(),
-    queryFn: getNotificationsApi,
+    queryFn: ({ pageParam }) => getNotificationsApi(pageParam as string | undefined, limit),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor || undefined,
     staleTime: Infinity, // Keep in cache, do not auto-refetch
     refetchOnWindowFocus: false, // Disable refetch on app focus
   });

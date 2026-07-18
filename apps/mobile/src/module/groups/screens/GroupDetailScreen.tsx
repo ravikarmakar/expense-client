@@ -18,6 +18,7 @@ import { EditGroupModal } from '../components/EditGroupModal';
 import { ErrorView } from '../../../components/ErrorView';
 import { z } from 'zod';
 import { useRouteParams } from '../../../hooks/useRouteParams';
+import { useReminderCooldown } from '../../../hooks/useReminderCooldown';
 import { detailStyles as styles } from '../styles/group.styles';
 import { MemberBalanceItemSkeleton } from '../components/group-details/MemberBalanceItemSkeleton';
 import SettleUpModal from '../../settlements/components/SettleUpModal';
@@ -65,6 +66,32 @@ function GroupDetailContent() {
     routeName,
     insets,
   } = useGroupDetail();
+
+  const { triggerCooldown } = useReminderCooldown();
+
+  // Watch sendReminder status to trigger client-side cooldown
+  const prevSendReminderIsSuccess = React.useRef(sendReminder.isSuccess);
+  const prevVariables = React.useRef(sendReminder.variables);
+  React.useEffect(() => {
+    if (sendReminder.isSuccess && !prevSendReminderIsSuccess.current && sendReminder.variables) {
+      triggerCooldown(sendReminder.variables, id);
+    }
+    prevSendReminderIsSuccess.current = sendReminder.isSuccess;
+    prevVariables.current = sendReminder.variables;
+  }, [sendReminder.isSuccess, sendReminder.variables, id]);
+
+  React.useEffect(() => {
+    if (sendReminder.isError && sendReminder.variables) {
+      const errMessage = sendReminder.error?.message || '';
+      if (
+        errMessage.includes('429') ||
+        errMessage.toLowerCase().includes('cooldown') ||
+        errMessage.toLowerCase().includes('one reminder per day')
+      ) {
+        triggerCooldown(sendReminder.variables, id);
+      }
+    }
+  }, [sendReminder.isError, sendReminder.error, sendReminder.variables, id]);
 
   const showSkeleton = isLoading || (isFetching && !isRefreshing);
 
@@ -129,6 +156,7 @@ function GroupDetailContent() {
               isSettling={settlingUserId}
               onSendReminder={handleSendReminder}
               isReminding={sendReminder.isPending ? sendReminder.variables : null}
+              groupId={id}
             />
           )}
         </View>

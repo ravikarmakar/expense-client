@@ -180,3 +180,11 @@ export const PREDEFINED_AVATARS = Array.from({ length: 100 }, (_, i) => {
 });
 
 export const CURRENCY_SYMBOL = '₹';
+
+export function resolveAvatar(image: string | null | undefined): string {
+  if (!image) return PREDEFINED_AVATARS[0];
+  if (image in avatars) {
+    return avatars[image as keyof typeof avatars];
+  }
+  return image;
+}

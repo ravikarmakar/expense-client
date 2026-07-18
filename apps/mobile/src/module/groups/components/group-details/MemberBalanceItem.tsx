@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURRENCY_SYMBOL } from '../../../../constants/theme';
+import { COLORS, CURRENCY_SYMBOL, resolveAvatar } from '../../../../constants/theme';
 import type { GroupMember } from '@workspace/api';
+import { useReminderCooldown } from '../../../../hooks/useReminderCooldown';
 
 interface MemberBalanceItemProps {
   member: GroupMember;
@@ -12,6 +13,7 @@ interface MemberBalanceItemProps {
   onSendReminder?: (member: GroupMember) => void;
   isReminding?: boolean;
   isLast?: boolean;
+  groupId?: string;
 }
 
 export const MemberBalanceItem: React.FC<MemberBalanceItemProps> = ({
@@ -22,7 +24,11 @@ export const MemberBalanceItem: React.FC<MemberBalanceItemProps> = ({
   onSendReminder,
   isReminding,
   isLast = false,
+  groupId,
 }) => {
+  const { getIsCooldown } = useReminderCooldown();
+  const isCooldown = groupId ? getIsCooldown(member.userId, groupId) : false;
+
   const isMe = member.userId === currentUserId;
   const isPositive = member.balance >= 0; // they owe you / you are owed
   const isSettled = Math.abs(member.balance) < 0.01;
@@ -32,43 +38,7 @@ export const MemberBalanceItem: React.FC<MemberBalanceItemProps> = ({
     <View style={[styles.row, !isLast && styles.rowBorder, isMe && styles.meRow]}>
       {/* Avatar */}
       <View style={styles.avatarContainer}>
-        {member.image ? (
-          <Image source={{ uri: member.image }} style={styles.avatarImage} />
-        ) : (
-          <View
-            style={[
-              styles.avatar,
-              {
-                backgroundColor:
-                  member.role === 'invited'
-                    ? '#feefe3'
-                    : isSettled
-                      ? COLORS.surfaceContainer
-                      : isPositive
-                        ? COLORS.primaryFixed
-                        : COLORS.errorContainer,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.avatarText,
-                {
-                  color:
-                    member.role === 'invited'
-                      ? '#b06000'
-                      : isSettled
-                        ? COLORS.outline
-                        : isPositive
-                          ? COLORS.primary
-                          : COLORS.error,
-                },
-              ]}
-            >
-              {member.name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
+        <Image source={{ uri: resolveAvatar(member.image) }} style={styles.avatarImage} />
       </View>
 
       {/* Name + status */}
@@ -99,15 +69,22 @@ export const MemberBalanceItem: React.FC<MemberBalanceItemProps> = ({
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           {isPositive && onSendReminder && (
             <TouchableOpacity
-              style={styles.nudgeBtn}
+              style={[
+                styles.nudgeBtn,
+                isCooldown && { backgroundColor: 'transparent', opacity: 0.6 },
+              ]}
               onPress={() => onSendReminder(member)}
               activeOpacity={0.85}
-              disabled={isSettling || isReminding}
+              disabled={isSettling || isReminding || isCooldown}
             >
               {isReminding ? (
                 <ActivityIndicator size="small" color={COLORS.primary} />
               ) : (
-                <Ionicons name="notifications-outline" size={16} color={COLORS.primary} />
+                <Ionicons
+                  name={isCooldown ? 'notifications' : 'notifications-outline'}
+                  size={16}
+                  color={isCooldown ? COLORS.outline : COLORS.primary}
+                />
               )}
             </TouchableOpacity>
           )}
@@ -227,5 +204,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryFixed,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  disabledNudgeBtn: {
+    backgroundColor: 'transparent',
+    opacity: 0.6,
   },
 });
