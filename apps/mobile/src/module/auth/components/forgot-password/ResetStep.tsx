@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { z } from 'zod';
-import { COLORS } from '../../../../constants/theme';
 import { PasswordRequirements } from '../PasswordRequirements';
 import { AuthTextInput } from '../AuthTextInput';
+import { TactileButton } from '../../../../components/TactileButton';
 import { authStyles } from '../../styles/auth.styles';
 
 const localResetPasswordSchema = z
@@ -32,7 +32,6 @@ interface ResetStepProps {
   loading: boolean;
   errorMessage: string;
   setErrorMessage: (msg: string) => void;
-  onBack: () => void;
 }
 
 export function ResetStep({
@@ -44,12 +43,9 @@ export function ResetStep({
   loading,
   errorMessage,
   setErrorMessage,
-  onBack,
 }: ResetStepProps) {
   const [secureNewPassword, setSecureNewPassword] = useState(true);
   const [secureConfirmPassword, setSecureConfirmPassword] = useState(true);
-
-  const isSubmitDisabled = !newPassword || !confirmPassword || loading;
 
   const handleSubmit = () => {
     const result = localResetPasswordSchema.safeParse({
@@ -65,82 +61,72 @@ export function ResetStep({
   };
 
   return (
-    <View style={authStyles.stepContainer}>
-      {/* Header Section */}
-      <View style={authStyles.headerSection}>
-        <View style={[authStyles.backButtonRow, loading && { opacity: 0.5 }]}>
-          <TouchableOpacity
-            onPress={onBack}
-            activeOpacity={0.7}
-            style={authStyles.backButton}
-            disabled={loading}
-          >
-            <Ionicons name="arrow-back" size={24} color={COLORS.onSurface} />
-          </TouchableOpacity>
+    <View style={{ width: '100%' }}>
+      {errorMessage ? (
+        <View style={authStyles.errorContainer}>
+          <Ionicons name="alert-circle" size={18} color="#fca5a5" />
+          <Text style={authStyles.errorText}>{errorMessage}</Text>
         </View>
-        <Text style={authStyles.headerTitle}>New Password</Text>
-        <Text style={authStyles.headerSubtitle}>
-          Please choose a strong password to secure your account.
-        </Text>
-      </View>
+      ) : null}
 
-      {/* Form Section */}
-      <View style={authStyles.formSection}>
-        {errorMessage ? (
-          <View style={authStyles.errorContainer}>
-            <Ionicons name="alert-circle" size={18} color={COLORS.error} />
-            <Text style={authStyles.errorText}>{errorMessage}</Text>
-          </View>
-        ) : null}
+      {/* New Password Input */}
+      <AuthTextInput
+        label="New Password"
+        icon="lock-closed-outline"
+        value={newPassword}
+        onChangeText={setNewPassword}
+        placeholder="Enter new password"
+        secureTextEntry={secureNewPassword}
+        autoCapitalize="none"
+        textContentType="oneTimeCode"
+        autoComplete="off"
+        loading={loading}
+        rightIcon={secureNewPassword ? 'eye-off-outline' : 'eye-outline'}
+        onRightIconPress={() => setSecureNewPassword(!secureNewPassword)}
+      />
 
-        {/* New Password Input */}
-        <AuthTextInput
-          label="New Password"
-          icon="lock-closed-outline"
-          value={newPassword}
-          onChangeText={setNewPassword}
-          placeholder="Enter new password"
-          secureTextEntry={secureNewPassword}
-          autoCapitalize="none"
-          textContentType="oneTimeCode"
-          autoComplete="off"
-          loading={loading}
-          rightIcon={secureNewPassword ? 'eye-off-outline' : 'eye-outline'}
-          onRightIconPress={() => setSecureNewPassword(!secureNewPassword)}
-        />
+      {newPassword.length > 0 && <PasswordRequirements password={newPassword} />}
 
-        {newPassword.length > 0 && <PasswordRequirements password={newPassword} />}
+      {/* Confirm New Password Input */}
+      <AuthTextInput
+        label="Confirm New Password"
+        icon="lock-closed-outline"
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        placeholder="Confirm new password"
+        secureTextEntry={secureConfirmPassword}
+        autoCapitalize="none"
+        textContentType="oneTimeCode"
+        autoComplete="off"
+        loading={loading}
+        rightIcon={secureConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+        onRightIconPress={() => setSecureConfirmPassword(!secureConfirmPassword)}
+      />
 
-        {/* Confirm New Password Input */}
-        <AuthTextInput
-          label="Confirm New Password"
-          icon="lock-closed-outline"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          placeholder="Confirm new password"
-          secureTextEntry={secureConfirmPassword}
-          autoCapitalize="none"
-          textContentType="oneTimeCode"
-          autoComplete="off"
-          loading={loading}
-          rightIcon={secureConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
-          onRightIconPress={() => setSecureConfirmPassword(!secureConfirmPassword)}
-        />
+      {/* Reset Password Button */}
+      <TactileButton
+        title="Reset Password"
+        icon="key-outline"
+        variant="emerald"
+        onPress={handleSubmit}
+        loading={loading}
+        style={{ marginTop: 8 }}
+      />
 
-        {/* Reset Password Button */}
-        <TouchableOpacity
-          onPress={handleSubmit}
-          style={[authStyles.primaryButton, isSubmitDisabled && authStyles.disabledButton]}
-          activeOpacity={0.8}
-          disabled={isSubmitDisabled}
-        >
-          {loading ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text style={authStyles.primaryButtonText}>Reset Password</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+      {/* Helper description note placed below the button */}
+      <Text style={styles.footerNote}>Please choose a strong password to secure your account.</Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  footerNote: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
+    textAlign: 'center',
+    marginTop: 20,
+    lineHeight: 19,
+    fontWeight: '500',
+    paddingHorizontal: 12,
+  },
+});

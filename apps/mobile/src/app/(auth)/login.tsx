@@ -1,1 +1,6 @@
-export { default } from '../../module/auth/screens/LoginScreen';
+import React from 'react';
+import { AuthFlowScreen } from '../../module/auth/components/AuthFlowScreen';
+
+export default function LoginRoute() {
+  return <AuthFlowScreen initialMode="LOGIN" />;
+}

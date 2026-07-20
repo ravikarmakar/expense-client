@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../../../../constants/theme';
 import { AuthTextInput } from '../AuthTextInput';
+import { TactileButton } from '../../../../components/TactileButton';
 import { authStyles } from '../../styles/auth.styles';
 
 interface EmailStepProps {
@@ -11,75 +11,56 @@ interface EmailStepProps {
   onSendOtp: () => void;
   loading: boolean;
   errorMessage: string;
-  onBack: () => void;
 }
 
-export function EmailStep({
-  email,
-  setEmail,
-  onSendOtp,
-  loading,
-  errorMessage,
-  onBack,
-}: EmailStepProps) {
-  const isSubmitDisabled = !email.trim() || loading;
-
+export function EmailStep({ email, setEmail, onSendOtp, loading, errorMessage }: EmailStepProps) {
   return (
-    <View style={authStyles.stepContainer}>
-      {/* Header Section */}
-      <View style={authStyles.headerSection}>
-        <View style={[authStyles.backButtonRow, loading && { opacity: 0.5 }]}>
-          <TouchableOpacity
-            onPress={onBack}
-            activeOpacity={0.7}
-            style={authStyles.backButton}
-            disabled={loading}
-          >
-            <Ionicons name="arrow-back" size={24} color={COLORS.onSurface} />
-          </TouchableOpacity>
+    <View style={{ width: '100%' }}>
+      {errorMessage ? (
+        <View style={authStyles.errorContainer}>
+          <Ionicons name="alert-circle" size={18} color="#fca5a5" />
+          <Text style={authStyles.errorText}>{errorMessage}</Text>
         </View>
-        <Text style={authStyles.headerTitle}>Reset Password</Text>
-        <Text style={authStyles.headerSubtitle}>
-          {"Enter your email address and we'll send you an OTP to reset your password."}
-        </Text>
-      </View>
+      ) : null}
 
-      {/* Form Section */}
-      <View style={authStyles.formSection}>
-        {errorMessage ? (
-          <View style={authStyles.errorContainer}>
-            <Ionicons name="alert-circle" size={18} color={COLORS.error} />
-            <Text style={authStyles.errorText}>{errorMessage}</Text>
-          </View>
-        ) : null}
+      <AuthTextInput
+        label="Email Address"
+        icon="mail-outline"
+        value={email}
+        onChangeText={setEmail}
+        placeholder="Enter your email"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoComplete="email"
+        textContentType="emailAddress"
+        loading={loading}
+      />
 
-        <AuthTextInput
-          label="Email Address"
-          icon="mail-outline"
-          value={email}
-          onChangeText={setEmail}
-          placeholder="Enter your email"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoComplete="email"
-          textContentType="emailAddress"
-          loading={loading}
-        />
+      <TactileButton
+        title="Send Reset Code"
+        icon="paper-plane-outline"
+        variant="emerald"
+        onPress={onSendOtp}
+        loading={loading}
+        style={{ marginTop: 8 }}
+      />
 
-        {/* Submit Email Button */}
-        <TouchableOpacity
-          onPress={onSendOtp}
-          style={[authStyles.primaryButton, isSubmitDisabled && authStyles.disabledButton]}
-          activeOpacity={0.8}
-          disabled={isSubmitDisabled}
-        >
-          {loading ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text style={authStyles.primaryButtonText}>Send Reset Code</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+      {/* Helper description note placed below the button */}
+      <Text style={styles.footerNote}>
+        {"Enter your email address and we'll send you an OTP to reset your password."}
+      </Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  footerNote: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
+    textAlign: 'center',
+    marginTop: 20,
+    lineHeight: 19,
+    fontWeight: '500',
+    paddingHorizontal: 12,
+  },
+});

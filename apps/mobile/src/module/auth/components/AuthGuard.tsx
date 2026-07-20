@@ -22,6 +22,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const navigationRef = useNavigationContainerRef();
   const [isNavigationReady, setIsNavigationReady] = React.useState(false);
+  const [isInitialRedirectDone, setIsInitialRedirectDone] = React.useState(false);
 
   // Logo spring & opacity animations
   const logoScale = React.useRef(new Animated.Value(0.8)).current;
@@ -56,8 +57,11 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   // Listen for navigation container ready state
   React.useEffect(() => {
+    if (isNavigationReady) return;
+
     if (navigationRef?.isReady()) {
       setIsNavigationReady(true);
+      return;
     }
 
     const unsubscribe = navigationRef?.addListener?.('state', () => {
@@ -69,7 +73,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [navigationRef]);
+  }, [navigationRef, isNavigationReady]);
 
   // Navigate once auth is resolved AND navigation is ready
   React.useEffect(() => {
@@ -84,22 +88,31 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         targetRoute = '/(tabs)';
       }
     } else {
-      targetRoute = '/(auth)/login';
+      targetRoute = '/(auth)/welcome';
     }
 
     if (lastRouteRef.current !== targetRoute) {
       lastRouteRef.current = targetRoute;
       router.replace(targetRoute as Href);
     }
+
+    // Delay hiding the splash overlay until Expo Router completes the background route transition
+    const timer = setTimeout(() => {
+      setIsInitialRedirectDone(true);
+    }, 150);
+
+    return () => clearTimeout(timer);
   }, [user, isLoading, isNavigationReady, router]);
+
+  const showSplashOverlay = isLoading || !isInitialRedirectDone;
 
   return (
     <View style={styles.container}>
       {/* 1. Always render children (<Stack>) so Root Navigator is ALWAYS mounted */}
       {children}
 
-      {/* 2. Show premium branded splash overlay ON TOP while auth state is resolving */}
-      {isLoading && (
+      {/* 2. Show premium branded splash overlay ON TOP until initial route transition completes */}
+      {showSplashOverlay && (
         <View style={styles.splashOverlay}>
           <BrandedLaunchScreen logoOpacity={logoOpacity} logoScale={logoScale} />
         </View>
@@ -111,6 +124,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#08110F',
   },
   splashOverlay: {
     ...StyleSheet.absoluteFillObject,

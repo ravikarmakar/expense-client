@@ -1,6 +1,6 @@
 import React from 'react';
 import { AuthFlowScreen } from '../../module/auth/components/AuthFlowScreen';
 
-export default function ForgotPasswordRoute() {
-  return <AuthFlowScreen initialMode="FORGOT_PASSWORD" />;
+export default function WelcomeRoute() {
+  return <AuthFlowScreen initialMode="WELCOME" />;
 }

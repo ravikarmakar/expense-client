@@ -1,12 +1,15 @@
 import React from 'react';
 import { Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
-import { COLORS } from '../../../constants/theme';
 
 interface TermsAndConditionsProps {
   action?: 'login' | 'signup';
   disabled?: boolean;
 }
 
+/**
+ * Terms and Conditions footer link component.
+ * Uses clean dark matte typography with crisp white link styling.
+ */
 export const TermsAndConditions = React.memo(function TermsAndConditions({
   action = 'signup',
   disabled = false,
@@ -39,13 +42,13 @@ const styles = StyleSheet.create({
   },
   termsText: {
     fontSize: 12,
-    color: COLORS.outline,
+    color: 'rgba(255, 255, 255, 0.6)',
     textAlign: 'center',
     lineHeight: 16,
     fontWeight: '500',
   },
   termsLink: {
-    color: COLORS.primary,
+    color: 'rgba(255, 255, 255, 0.85)',
     fontWeight: '700',
     textDecorationLine: 'underline',
   },

@@ -1,7 +1,14 @@
 import React, { useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../../../../constants/theme';
+import { TactileButton } from '../../../../components/TactileButton';
 import { authStyles } from '../../styles/auth.styles';
 
 const CODE_LENGTH = 6;
@@ -23,7 +30,6 @@ interface VerifyStepProps {
   cooldown: number;
   errorMessage: string;
   successMessage: string;
-  onBack: () => void;
 }
 
 export function VerifyStep({
@@ -37,11 +43,9 @@ export function VerifyStep({
   cooldown,
   errorMessage,
   successMessage,
-  onBack,
 }: VerifyStepProps) {
   const inputRefs = useRef<(TextInput | null)[]>(Array(CODE_LENGTH).fill(null));
   const isLockedOut = cooldown > 60;
-  const isSubmitDisabled = code.some((digit) => !digit) || loading || isLockedOut;
 
   const handleTextChange = (text: string, index: number) => {
     const cleaned = text.replace(/[^0-9]/g, '');
@@ -84,7 +88,7 @@ export function VerifyStep({
     }
   }, [code, loading, isLockedOut]);
 
-  // Auto-focus the first box when code is cleared (e.g., after an error)
+  // Auto-focus the first box when code is cleared
   React.useEffect(() => {
     if (code.every((digit) => digit === '')) {
       inputRefs.current[0]?.focus();
@@ -92,107 +96,101 @@ export function VerifyStep({
   }, [code]);
 
   return (
-    <View style={authStyles.stepContainer}>
-      {/* Header Section */}
-      <View style={authStyles.headerSection}>
-        <View style={[authStyles.backButtonRow, loading && { opacity: 0.5 }]}>
-          <TouchableOpacity
-            onPress={onBack}
-            activeOpacity={0.7}
-            style={authStyles.backButton}
-            disabled={loading}
-          >
-            <Ionicons name="arrow-back" size={24} color={COLORS.onSurface} />
-          </TouchableOpacity>
+    <View style={{ width: '100%' }}>
+      {errorMessage ? (
+        <View style={authStyles.errorContainer}>
+          <Ionicons name="alert-circle" size={18} color="#fca5a5" />
+          <Text style={authStyles.errorText}>{errorMessage}</Text>
         </View>
-        <Text style={authStyles.headerTitle}>Verify Code</Text>
-        <Text style={authStyles.headerSubtitle}>
-          We sent a 6-digit reset code to <Text style={authStyles.emailHighlight}>{email}</Text>
-        </Text>
+      ) : null}
+
+      {successMessage ? (
+        <View style={authStyles.successContainer}>
+          <Ionicons name="checkmark-circle" size={18} color="#6ee7b7" />
+          <Text style={authStyles.successText}>{successMessage}</Text>
+        </View>
+      ) : null}
+
+      <Text style={authStyles.inputLabel}>Verification Code</Text>
+      <View style={authStyles.otpGrid}>
+        {code.map((digit, idx) => (
+          <View
+            key={idx}
+            style={[
+              authStyles.otpBoxContainer,
+              digit ? authStyles.otpBoxFilled : null,
+              loading && { opacity: 0.6 },
+            ]}
+          >
+            <TextInput
+              ref={(ref) => {
+                inputRefs.current[idx] = ref;
+              }}
+              value={digit}
+              onChangeText={(text) => handleTextChange(text, idx)}
+              onKeyPress={(e) => handleKeyPress(e, idx)}
+              placeholder="•"
+              placeholderTextColor="rgba(255, 255, 255, 0.3)"
+              keyboardType="number-pad"
+              maxLength={CODE_LENGTH}
+              selectTextOnFocus
+              style={authStyles.otpInput}
+              editable={!loading && !isLockedOut}
+              textContentType="oneTimeCode"
+              autoComplete="one-time-code"
+            />
+          </View>
+        ))}
       </View>
 
-      {/* Form Section */}
-      <View style={authStyles.formSection}>
-        {errorMessage ? (
-          <View style={authStyles.errorContainer}>
-            <Ionicons name="alert-circle" size={18} color={COLORS.error} />
-            <Text style={authStyles.errorText}>{errorMessage}</Text>
-          </View>
-        ) : null}
-
-        {successMessage ? (
-          <View style={authStyles.successNotification}>
-            <Ionicons name="checkmark-circle" size={18} color={COLORS.secondary} />
-            <Text style={authStyles.successNotificationText}>{successMessage}</Text>
-          </View>
-        ) : null}
-
-        <Text style={authStyles.inputLabel}>Verification Code</Text>
-        <View style={authStyles.otpGrid}>
-          {code.map((digit, idx) => (
-            <View
-              key={idx}
-              style={[
-                authStyles.otpBoxContainer,
-                digit ? authStyles.otpBoxFilled : null,
-                loading && { opacity: 0.6 },
-              ]}
-            >
-              <TextInput
-                ref={(ref) => {
-                  inputRefs.current[idx] = ref;
-                }}
-                value={digit}
-                onChangeText={(text) => handleTextChange(text, idx)}
-                onKeyPress={(e) => handleKeyPress(e, idx)}
-                placeholder="•"
-                placeholderTextColor={COLORS.outlineVariant}
-                keyboardType="number-pad"
-                maxLength={CODE_LENGTH}
-                selectTextOnFocus
-                style={authStyles.otpInput}
-                editable={!loading && !isLockedOut}
-                textContentType="oneTimeCode"
-                autoComplete="one-time-code"
-              />
-            </View>
-          ))}
-        </View>
-
-        {/* Resend Action */}
-        <View style={authStyles.resendContainer}>
-          <Text style={authStyles.resendText}>{"Didn't receive the code? "}</Text>
-          <TouchableOpacity
-            onPress={onResendOtp}
-            activeOpacity={0.7}
-            disabled={resendLoading || cooldown > 0}
-          >
-            {resendLoading ? (
-              <ActivityIndicator size="small" color={COLORS.secondary} />
-            ) : (
-              <Text style={[authStyles.resendLink, cooldown > 0 && authStyles.disabledLink]}>
-                {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend Code'}
-              </Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Verify OTP Button */}
+      {/* Resend Action */}
+      <View style={authStyles.resendContainer}>
+        <Text style={authStyles.resendText}>{"Didn't receive the code? "}</Text>
         <TouchableOpacity
-          onPress={onVerifyOtp}
-          style={[authStyles.primaryButton, isSubmitDisabled && authStyles.disabledButton]}
-          activeOpacity={0.8}
-          disabled={isSubmitDisabled}
+          onPress={onResendOtp}
+          activeOpacity={0.7}
+          disabled={resendLoading || cooldown > 0}
         >
-          {loading ? (
-            <ActivityIndicator color="#ffffff" />
+          {resendLoading ? (
+            <ActivityIndicator size="small" color="#34d399" />
           ) : (
-            <Text style={authStyles.primaryButtonText}>
-              {isLockedOut ? `Locked out (${formatCooldown(cooldown)})` : 'Verify Code'}
+            <Text style={[authStyles.resendLink, cooldown > 0 && authStyles.disabledLink]}>
+              {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend Code'}
             </Text>
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Verify OTP Button */}
+      <TactileButton
+        title={isLockedOut ? `Locked out (${formatCooldown(cooldown)})` : 'Verify Code'}
+        icon="shield-checkmark-outline"
+        variant="emerald"
+        onPress={onVerifyOtp}
+        loading={loading}
+        style={{ marginTop: 8 }}
+      />
+
+      {/* Helper description note placed below the button */}
+      <Text style={styles.footerNote}>
+        We sent a 6-digit reset code to <Text style={styles.emailHighlight}>{email}</Text>
+      </Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  footerNote: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
+    textAlign: 'center',
+    marginTop: 20,
+    lineHeight: 19,
+    fontWeight: '500',
+    paddingHorizontal: 12,
+  },
+  emailHighlight: {
+    color: '#ffffff',
+    fontWeight: '700',
+  },
+});

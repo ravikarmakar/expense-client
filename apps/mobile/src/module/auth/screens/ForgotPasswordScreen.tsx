@@ -1,23 +1,19 @@
 import React, { useRef, useEffect } from 'react';
-import {
-  StyleSheet,
-  View,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  AppState,
-  AppStateStatus,
-} from 'react-native';
+import { AppState, AppStateStatus } from 'react-native';
 import { router } from 'expo-router';
-import { COLORS } from '../../../constants/theme';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForgotPasswordController } from '@workspace/api';
 
+import { AuthScreenLayout } from '../components/AuthScreenLayout';
 import { EmailStep } from '../components/forgot-password/EmailStep';
 import { VerifyStep } from '../components/forgot-password/VerifyStep';
 import { ResetStep } from '../components/forgot-password/ResetStep';
 import { SuccessStep } from '../components/forgot-password/SuccessStep';
 
+/**
+ * Premium Dark Matte Forgot Password Screen (#08110F).
+ * Features top safe area back button, dark matte styling, full-width input fields,
+ * and Welcome-page style Tactile Action Buttons across all 4 steps.
+ */
 export default function ForgotPasswordScreen() {
   const cooldownEndTimeRef = useRef<number>(0);
 
@@ -90,81 +86,63 @@ export default function ForgotPasswordScreen() {
     handleBackPress(() => router.back());
   };
 
+  const getStepTitle = () => {
+    switch (step) {
+      case 'EMAIL':
+        return 'Reset Password';
+      case 'VERIFY':
+        return 'Verify Code';
+      case 'RESET':
+        return 'New Password';
+      case 'SUCCESS':
+        return 'Success!';
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          {step === 'EMAIL' && (
-            <EmailStep
-              email={email}
-              setEmail={setEmail}
-              onSendOtp={handleSendOtp}
-              loading={emailLoading}
-              errorMessage={errorMessage}
-              onBack={onBackHandler}
-            />
-          )}
+    <AuthScreenLayout
+      title={getStepTitle()}
+      onBack={step === 'SUCCESS' ? undefined : onBackHandler}
+    >
+      {step === 'EMAIL' && (
+        <EmailStep
+          email={email}
+          setEmail={setEmail}
+          onSendOtp={handleSendOtp}
+          loading={emailLoading}
+          errorMessage={errorMessage}
+        />
+      )}
 
-          {step === 'VERIFY' && (
-            <VerifyStep
-              email={email}
-              code={code}
-              setCode={setCode}
-              onVerifyOtp={handleVerifyOtp}
-              onResendOtp={handleResendOtp}
-              loading={verifyLoading}
-              resendLoading={emailLoading}
-              cooldown={cooldown}
-              errorMessage={errorMessage}
-              successMessage={successMessage}
-              onBack={onBackHandler}
-            />
-          )}
+      {step === 'VERIFY' && (
+        <VerifyStep
+          email={email}
+          code={code}
+          setCode={setCode}
+          onVerifyOtp={handleVerifyOtp}
+          onResendOtp={handleResendOtp}
+          loading={verifyLoading}
+          resendLoading={emailLoading}
+          cooldown={cooldown}
+          errorMessage={errorMessage}
+          successMessage={successMessage}
+        />
+      )}
 
-          {step === 'RESET' && (
-            <ResetStep
-              newPassword={newPassword}
-              setNewPassword={setNewPassword}
-              confirmPassword={confirmPassword}
-              setConfirmPassword={setConfirmPassword}
-              onResetPassword={handleResetPassword}
-              loading={resetLoading}
-              errorMessage={errorMessage}
-              setErrorMessage={setErrorMessage}
-              onBack={onBackHandler}
-            />
-          )}
+      {step === 'RESET' && (
+        <ResetStep
+          newPassword={newPassword}
+          setNewPassword={setNewPassword}
+          confirmPassword={confirmPassword}
+          setConfirmPassword={setConfirmPassword}
+          onResetPassword={handleResetPassword}
+          loading={resetLoading}
+          errorMessage={errorMessage}
+          setErrorMessage={setErrorMessage}
+        />
+      )}
 
-          {step === 'SUCCESS' && <SuccessStep onBackToSignIn={() => router.replace('/login')} />}
-
-          <View style={styles.spacer} />
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      {step === 'SUCCESS' && <SuccessStep onBackToSignIn={() => router.replace('/login')} />}
+    </AuthScreenLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-  },
-  spacer: {
-    height: 60,
-  },
-});

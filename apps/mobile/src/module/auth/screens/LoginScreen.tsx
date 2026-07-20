@@ -1,18 +1,26 @@
-import React, { useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Animated } from 'react-native';
+import React, { useRef, useState, useCallback } from 'react';
+import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { COLORS } from '../../../constants/theme';
 import { useLoginController } from '@workspace/api';
 import { TermsAndConditions } from '../components/TermsAndConditions';
 import { AuthTextInput } from '../components/AuthTextInput';
 import { AuthScreenLayout } from '../components/AuthScreenLayout';
-import { LinearGradient } from 'expo-linear-gradient';
+import { TactileButton } from '../../../components/TactileButton';
+import { hapticFeedback } from '../../../utils/haptics';
 import { authStyles } from '../styles/auth.styles';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Premium Dark Matte Login Screen (#08110F).
+ * Features real-time inline validation on blur directly underneath inputs.
+ */
 export default function LoginScreen() {
   const passwordInputRef = useRef<TextInput>(null);
-  const buttonScale = useRef(new Animated.Value(1)).current;
+
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   const {
     email,
@@ -21,7 +29,6 @@ export default function LoginScreen() {
     isPasswordVisible,
     setIsPasswordVisible,
     loading,
-    isSubmitDisabled,
     handleSignIn,
     handleEmailChange,
     handlePasswordChange,
@@ -33,42 +40,71 @@ export default function LoginScreen() {
         router.replace('/(tabs)');
       }
     },
-    onError: () => {},
+    onError: () => {
+      hapticFeedback.error();
+    },
   });
 
-  const handlePressIn = () => {
-    Animated.spring(buttonScale, {
-      toValue: 0.96,
-      useNativeDriver: true,
-    }).start();
-  };
+  const validateEmailOnBlur = useCallback(() => {
+    if (!email.trim()) {
+      setEmailError('Email address is required');
+      hapticFeedback.error();
+    } else if (!EMAIL_REGEX.test(email.trim())) {
+      setEmailError('Please enter a valid email address');
+      hapticFeedback.error();
+    } else {
+      setEmailError('');
+    }
+  }, [email]);
 
-  const handlePressOut = () => {
-    Animated.spring(buttonScale, {
-      toValue: 1,
-      useNativeDriver: true,
-      friction: 4,
-      tension: 40,
-    }).start();
-  };
+  const validatePasswordOnBlur = useCallback(() => {
+    if (!password) {
+      setPasswordError('Password is required');
+      hapticFeedback.error();
+    } else {
+      setPasswordError('');
+    }
+  }, [password]);
+
+  const onEmailChangeWithClear = useCallback(
+    (text: string) => {
+      handleEmailChange(text);
+      if (emailError) setEmailError('');
+    },
+    [handleEmailChange, emailError]
+  );
+
+  const onPasswordChangeWithClear = useCallback(
+    (text: string) => {
+      handlePasswordChange(text);
+      if (passwordError) setPasswordError('');
+    },
+    [handlePasswordChange, passwordError]
+  );
+
+  const onSubmit = useCallback(() => {
+    validateEmailOnBlur();
+    validatePasswordOnBlur();
+    handleSignIn();
+  }, [validateEmailOnBlur, validatePasswordOnBlur, handleSignIn]);
 
   return (
-    <AuthScreenLayout showBranding title="Sign In">
-      <Text style={authStyles.screenTitle}>Sign In</Text>
-
+    <AuthScreenLayout title="Log In" onBack={() => router.back()}>
       {errorMessage ? (
         <View style={authStyles.errorContainer}>
-          <Ionicons name="alert-circle" size={18} color={COLORS.error} />
+          <Ionicons name="alert-circle" size={18} color="#fca5a5" />
           <Text style={authStyles.errorText}>{errorMessage}</Text>
         </View>
       ) : null}
 
-      {/* Email Input */}
+      {/* Email Address Input */}
       <AuthTextInput
         label="Email Address"
         icon="mail-outline"
         value={email}
-        onChangeText={handleEmailChange}
+        onChangeText={onEmailChangeWithClear}
+        onBlur={validateEmailOnBlur}
+        error={emailError}
         placeholder="Enter your email"
         keyboardType="email-address"
         autoCapitalize="none"
@@ -86,19 +122,22 @@ export default function LoginScreen() {
         label="Password"
         icon="lock-closed-outline"
         value={password}
-        onChangeText={handlePasswordChange}
+        onChangeText={onPasswordChangeWithClear}
+        onBlur={validatePasswordOnBlur}
+        error={passwordError}
         placeholder="Enter your password"
         secureTextEntry={!isPasswordVisible}
         autoCapitalize="none"
         autoComplete="password"
         textContentType="password"
         returnKeyType="done"
-        onSubmitEditing={handleSignIn}
+        onSubmitEditing={onSubmit}
         loading={loading}
         rightIcon={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
         onRightIconPress={() => setIsPasswordVisible(!isPasswordVisible)}
       />
 
+      {/* Forgot Password Link */}
       <TouchableOpacity
         onPress={() => router.push('/forgot-password')}
         style={[authStyles.forgotPassword, loading && { opacity: 0.4 }]}
@@ -108,36 +147,14 @@ export default function LoginScreen() {
         <Text style={authStyles.forgotPasswordText}>Forgot Password?</Text>
       </TouchableOpacity>
 
-      {/* Sign In Button */}
-      <TouchableOpacity
-        onPress={handleSignIn}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        style={authStyles.buttonWrapper}
-        activeOpacity={0.9}
-        disabled={isSubmitDisabled}
-      >
-        <Animated.View
-          style={[
-            authStyles.primaryButtonAnimated,
-            { transform: [{ scale: buttonScale }] },
-            isSubmitDisabled && authStyles.disabledButton,
-          ]}
-        >
-          <LinearGradient
-            colors={isSubmitDisabled ? ['#a3b8b0', '#a3b8b0'] : [COLORS.primary, '#008f62']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={authStyles.gradientButton}
-          >
-            {loading ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={authStyles.primaryButtonText}>Sign In</Text>
-            )}
-          </LinearGradient>
-        </Animated.View>
-      </TouchableOpacity>
+      {/* Log In Button */}
+      <TactileButton
+        title="Log In"
+        icon="log-in-outline"
+        variant="emerald"
+        onPress={onSubmit}
+        loading={loading}
+      />
 
       {/* Footer Section */}
       <View style={authStyles.footerContainer}>

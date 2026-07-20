@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   StyleSheet,
   View,
@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, PREDEFINED_AVATARS, resolveAvatar } from '../../constants/theme';
 import { globalStyles } from '../../styles/globalStyles';
 import { useSettingsController } from '@workspace/api';
-import { ChangePasswordModal } from '../../module/auth/components/ChangePasswordModal';
+
 import { ModalContainer } from '../../components/ModalContainer';
 import { LoadingButton } from '../../components/LoadingButton';
 import { feedbackStyles } from '../../styles/feedbackStyles';
@@ -47,8 +47,6 @@ export default function SettingsTabScreen() {
       Alert.alert('Error', err);
     },
   });
-
-  const [modalVisible, setModalVisible] = useState(false);
 
   const insets = useSafeAreaInsets();
 
@@ -164,9 +162,7 @@ export default function SettingsTabScreen() {
           <TouchableOpacity
             style={styles.settingsItem}
             activeOpacity={0.7}
-            onPress={() => {
-              setModalVisible(true);
-            }}
+            onPress={() => router.push('/change-password')}
           >
             <View style={styles.settingsItemLeft}>
               <View style={[styles.iconBadge, { backgroundColor: '#fce8e6' }]}>
@@ -260,8 +256,6 @@ export default function SettingsTabScreen() {
           <Text style={styles.footerCopyright}>© 2026 SplitShare Inc. All rights reserved.</Text>
         </View>
       </ScrollView>
-
-      <ChangePasswordModal visible={modalVisible} onClose={() => setModalVisible(false)} />
 
       {/* ── Modal: Edit Profile ── */}
       <ModalContainer

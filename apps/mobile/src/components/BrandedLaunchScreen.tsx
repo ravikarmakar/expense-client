@@ -9,10 +9,9 @@ interface BrandedLaunchScreenProps {
 }
 
 /**
- * Premium SplitShare Branded Launch Screen
- *
- * Displays a lush dark emerald gradient background, glassmorphic glowing logo circle,
- * crisp brand typography, and animated pulse loading dots.
+ * Premium SplitShare Branded Launch / Splash Screen (#08110F).
+ * Matches the exact dark matte background theme with top spotlight gradient
+ * and edge vignette used throughout the app.
  */
 export function BrandedLaunchScreen({ logoOpacity, logoScale }: BrandedLaunchScreenProps) {
   // Default values if animation values are not passed
@@ -23,15 +22,24 @@ export function BrandedLaunchScreen({ logoOpacity, logoScale }: BrandedLaunchScr
   const scale = logoScale ?? defaultScale;
 
   return (
-    <LinearGradient
-      colors={['#022c22', '#064e3b', '#022c22']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
-      {/* Decorative ambient background glows */}
-      <View style={styles.ambientGlowTop} />
-      <View style={styles.ambientGlowBottom} />
+    <View style={styles.container}>
+      {/* Top Spotlight Gradient */}
+      <LinearGradient
+        colors={['rgba(20, 42, 33, 0.45)', 'rgba(12, 26, 20, 0.2)', '#08110F']}
+        locations={[0, 0.38, 1]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+      />
+
+      {/* Faint Edge Vignette */}
+      <LinearGradient
+        colors={['rgba(4, 9, 8, 0.25)', 'transparent', 'rgba(4, 9, 8, 0.5)']}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+        pointerEvents="none"
+      />
 
       {/* Main Logo Section */}
       <Animated.View
@@ -44,25 +52,20 @@ export function BrandedLaunchScreen({ logoOpacity, logoScale }: BrandedLaunchScr
         ]}
       >
         <View style={styles.iconGlowWrapper}>
-          <LinearGradient
-            colors={['rgba(52, 211, 153, 0.25)', 'rgba(16, 185, 129, 0.08)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.iconCircle}
-          >
+          <View style={styles.iconCircle}>
             <Ionicons name="wallet" size={42} color="#34d399" />
-          </LinearGradient>
+          </View>
         </View>
 
         <Text style={styles.appName}>SplitShare</Text>
-        <Text style={styles.tagline}>Split expenses, not friendships</Text>
+        <Text style={styles.tagline}>Splitting bills made easy and beautiful</Text>
       </Animated.View>
 
       {/* Bottom Section with Animated Loading Dots */}
       <View style={styles.bottomSection}>
         <LoadingDots />
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -119,64 +122,47 @@ function LoadingDots() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#08110F',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  ambientGlowTop: {
-    position: 'absolute',
-    top: -100,
-    right: -100,
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: 'rgba(52, 211, 153, 0.08)',
-  },
-  ambientGlowBottom: {
-    position: 'absolute',
-    bottom: -100,
-    left: -100,
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: 'rgba(16, 185, 129, 0.06)',
   },
   logoContainer: {
     alignItems: 'center',
   },
   iconGlowWrapper: {
-    borderRadius: 48,
-    shadowColor: '#10b981',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    elevation: 12,
-    marginBottom: 22,
+    marginBottom: 20,
   },
   iconCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: 'rgba(52, 211, 153, 0.12)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: 'rgba(52, 211, 153, 0.35)',
+    borderColor: 'rgba(52, 211, 153, 0.3)',
+    shadowColor: '#34d399',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
   },
   appName: {
     fontSize: 34,
     fontWeight: '800',
     color: '#ffffff',
-    letterSpacing: 0.8,
+    letterSpacing: 0.4,
   },
   tagline: {
     fontSize: 14,
-    color: 'rgba(209, 250, 229, 0.75)',
+    color: 'rgba(209, 250, 229, 0.7)',
     marginTop: 8,
     fontWeight: '500',
     letterSpacing: 0.2,
   },
   bottomSection: {
     position: 'absolute',
-    bottom: 80,
+    bottom: 70,
     alignItems: 'center',
   },
   dotsRow: {

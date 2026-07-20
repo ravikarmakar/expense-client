@@ -1,8 +1,7 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../../../../constants/theme';
-import { authStyles } from '../../styles/auth.styles';
+import { TactileButton } from '../../../../components/TactileButton';
 
 interface SuccessStepProps {
   onBackToSignIn: () => void;
@@ -10,34 +9,22 @@ interface SuccessStepProps {
 
 export function SuccessStep({ onBackToSignIn }: SuccessStepProps) {
   return (
-    <View style={authStyles.stepContainer}>
-      {/* Header Section */}
-      <View style={authStyles.headerSection}>
-        <Text style={authStyles.headerTitle}>Success!</Text>
-        <Text style={authStyles.headerSubtitle}>Your password has been successfully reset.</Text>
+    <View style={styles.successContainer}>
+      <View style={styles.successIconBadge}>
+        <Ionicons name="checkmark-circle" size={56} color="#34d399" />
       </View>
+      <Text style={styles.successTitle}>Password Reset Complete</Text>
+      <Text style={styles.successDescription}>
+        Your password has been successfully updated. You can now use your new password to sign in.
+      </Text>
 
-      {/* Form/Content Section */}
-      <View style={authStyles.formSection}>
-        <View style={styles.successContainer}>
-          <View style={styles.successIconBadge}>
-            <Ionicons name="checkmark-circle" size={56} color={COLORS.primary} />
-          </View>
-          <Text style={styles.successTitle}>Password Reset Complete</Text>
-          <Text style={styles.successDescription}>
-            Your password has been successfully updated. You can now use your new password to sign
-            in.
-          </Text>
-
-          <TouchableOpacity
-            onPress={onBackToSignIn}
-            style={authStyles.primaryButton}
-            activeOpacity={0.8}
-          >
-            <Text style={authStyles.primaryButtonText}>Back to Sign In</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <TactileButton
+        title="Back to Sign In"
+        icon="log-in-outline"
+        variant="emerald"
+        onPress={onBackToSignIn}
+        style={{ width: '100%', marginTop: 16 }}
+      />
     </View>
   );
 }
@@ -46,22 +33,23 @@ const styles = StyleSheet.create({
   successContainer: {
     alignItems: 'center',
     paddingVertical: 12,
+    width: '100%',
   },
   successIconBadge: {
     marginBottom: 16,
   },
   successTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.onSurface,
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#ffffff',
     marginBottom: 8,
   },
   successDescription: {
     fontSize: 14,
-    color: COLORS.outline,
+    color: 'rgba(209, 250, 229, 0.75)',
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: 32,
+    marginBottom: 24,
     fontWeight: '500',
   },
 });

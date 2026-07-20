@@ -1,13 +1,13 @@
-import { StyleSheet, Platform } from 'react-native';
-import { COLORS } from '../../../constants/theme';
+import { StyleSheet } from 'react-native';
 
 export const authStyles = StyleSheet.create({
   // Screen Headers
   screenTitle: {
     fontSize: 22,
-    fontWeight: '700',
-    color: COLORS.onSurface,
+    fontWeight: '800',
+    color: '#ffffff',
     marginBottom: 20,
+    letterSpacing: 0.2,
   },
 
   // Status Notifications
@@ -15,16 +15,16 @@ export const authStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: COLORS.errorContainer,
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
     padding: 12,
     borderRadius: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(186, 26, 26, 0.1)',
+    borderColor: 'rgba(239, 68, 68, 0.25)',
   },
   errorText: {
-    fontSize: 12,
-    color: COLORS.error,
+    fontSize: 13,
+    color: '#fca5a5',
     fontWeight: '600',
     flex: 1,
   },
@@ -32,78 +32,35 @@ export const authStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(22, 163, 74, 0.08)',
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
     padding: 12,
     borderRadius: 12,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(22, 163, 74, 0.15)',
+    borderColor: 'rgba(16, 185, 129, 0.25)',
   },
   successText: {
-    fontSize: 12,
-    color: COLORS.secondary,
+    fontSize: 13,
+    color: '#6ee7b7',
     fontWeight: '600',
     flex: 1,
-  },
-
-  // Interactive Buttons
-  buttonWrapper: {
-    marginTop: 8,
-    width: '100%',
-  },
-  primaryButtonAnimated: {
-    borderRadius: 14,
-    overflow: 'hidden',
-    elevation: 4,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-  },
-  gradientButton: {
-    height: 54,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  primaryButton: {
-    backgroundColor: COLORS.primary,
-    height: 54,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    width: '100%',
-    marginTop: 8,
-  },
-  disabledButton: {
-    opacity: 0.7,
-  },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
   },
 
   // Password Recovery Helpers
   forgotPassword: {
     alignSelf: 'flex-end',
     marginTop: -8,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   forgotPasswordText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
-    color: COLORS.primary,
+    color: 'rgba(255, 255, 255, 0.85)',
   },
 
   // Screen Footers
   footerContainer: {
-    marginTop: 24,
+    marginTop: 22,
     alignItems: 'center',
   },
   footerSection: {
@@ -113,16 +70,25 @@ export const authStyles = StyleSheet.create({
   },
   footerLabel: {
     fontSize: 14,
-    color: COLORS.outline,
+    color: 'rgba(255, 255, 255, 0.65)',
     fontWeight: '500',
   },
   footerLink: {
     fontSize: 14,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: 'rgba(255, 255, 255, 0.85)',
   },
 
   // OTP Grid Inputs
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.6)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 6,
+    paddingLeft: 4,
+  },
   otpGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -131,25 +97,25 @@ export const authStyles = StyleSheet.create({
   },
   otpBoxContainer: {
     flex: 1,
-    height: 54,
+    height: 56,
     borderRadius: 14,
-    backgroundColor: COLORS.surfaceContainerLow,
+    backgroundColor: '#1a2d24',
     borderWidth: 1.5,
-    borderColor: COLORS.surfaceContainer,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   otpBoxFilled: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.surface,
+    borderColor: '#10b981',
+    backgroundColor: '#1e342a',
   },
   otpInput: {
     width: '100%',
     height: '100%',
     textAlign: 'center',
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.onSurface,
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#ffffff',
   },
 
   // OTP Resend Cooldown
@@ -161,135 +127,15 @@ export const authStyles = StyleSheet.create({
   },
   resendText: {
     fontSize: 13,
-    color: COLORS.outline,
+    color: 'rgba(255, 255, 255, 0.6)',
     fontWeight: '500',
   },
   resendLink: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.secondary,
+    color: '#34d399',
   },
   disabledLink: {
-    color: COLORS.outline,
-    opacity: 0.6,
-  },
-
-  // Modal Custom Overlays
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-    elevation: 24,
-    zIndex: 99,
-  },
-  keyboardAvoidingView: {
-    width: '100%',
-  },
-  modalContent: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceContainer,
-    maxHeight: '90%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.onSurface,
-  },
-  closeButton: {
-    padding: 4,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
-  },
-  formContainer: {
-    width: '100%',
-  },
-  modalDescription: {
-    fontSize: 13,
-    color: COLORS.outline,
-    marginBottom: 20,
-    lineHeight: 18,
-  },
-
-  // Forgot Password Steps Layout
-  stepContainer: {
-    flex: 1,
-  },
-  headerSection: {
-    marginTop: 10,
-    marginBottom: 30,
-  },
-  backButtonRow: {
-    marginBottom: 20,
-    marginLeft: -4,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: COLORS.onSurface,
-    letterSpacing: -0.5,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: COLORS.outline,
-    marginTop: 6,
-    lineHeight: 20,
-    fontWeight: '500',
-  },
-  formSection: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceContainer,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-  },
-  emailHighlight: {
-    fontWeight: '700',
-    color: COLORS.onSurface,
-  },
-  successNotification: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(22, 163, 74, 0.08)',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(22, 163, 74, 0.15)',
-  },
-  successNotificationText: {
-    fontSize: 12,
-    color: COLORS.secondary,
-    fontWeight: '600',
-    flex: 1,
-  },
-  inputLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.outline,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 6,
-    paddingLeft: 4,
+    color: 'rgba(255, 255, 255, 0.4)',
   },
 });

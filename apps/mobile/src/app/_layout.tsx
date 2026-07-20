@@ -85,7 +85,12 @@ function RootLayoutNav() {
   return (
     <>
       <AuthGuard>
-        <Stack screenOptions={{ headerShown: false }}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: '#08110F' },
+          }}
+        >
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="groups/[id]" options={{ headerShown: false }} />

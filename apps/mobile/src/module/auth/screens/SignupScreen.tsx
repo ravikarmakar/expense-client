@@ -1,21 +1,31 @@
-import React, { useRef } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Animated, TextInput } from 'react-native';
+import React, { useRef, useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { COLORS } from '../../../constants/theme';
 import { useRegisterController } from '@workspace/api';
 import { PasswordRequirements } from '../components/PasswordRequirements';
 import { TermsAndConditions } from '../components/TermsAndConditions';
 import { AuthTextInput } from '../components/AuthTextInput';
 import { AuthScreenLayout } from '../components/AuthScreenLayout';
-import { LinearGradient } from 'expo-linear-gradient';
+import { TactileButton } from '../../../components/TactileButton';
+import { hapticFeedback } from '../../../utils/haptics';
 import { authStyles } from '../styles/auth.styles';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Premium Dark Matte Create Account / Signup Screen (#08110F).
+ * Features real-time inline input validation on blur underneath fields.
+ */
 export default function SignupScreen() {
-  const buttonScale = useRef(new Animated.Value(1)).current;
   const emailInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
   const confirmPasswordInputRef = useRef<TextInput>(null);
+
+  const [nameError, setNameError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
 
   const {
     name,
@@ -28,7 +38,6 @@ export default function SignupScreen() {
     isConfirmPasswordVisible,
     setIsConfirmPasswordVisible,
     loading,
-    isSubmitDisabled,
     handleSignUp,
     handleNameChange,
     handleEmailChange,
@@ -38,32 +47,78 @@ export default function SignupScreen() {
     onSuccess: () => {
       router.push({ pathname: '/otp', params: { email: email.trim() } });
     },
-    onError: () => {},
+    onError: () => {
+      hapticFeedback.error();
+    },
   });
 
-  const handlePressIn = () => {
-    Animated.spring(buttonScale, {
-      toValue: 0.96,
-      useNativeDriver: true,
-    }).start();
-  };
+  const validateNameOnBlur = useCallback(() => {
+    if (!name.trim()) {
+      setNameError('Full name is required');
+      hapticFeedback.error();
+    } else if (name.trim().length < 2) {
+      setNameError('Name must be at least 2 characters');
+      hapticFeedback.error();
+    } else {
+      setNameError('');
+    }
+  }, [name]);
 
-  const handlePressOut = () => {
-    Animated.spring(buttonScale, {
-      toValue: 1,
-      useNativeDriver: true,
-      friction: 4,
-      tension: 40,
-    }).start();
-  };
+  const validateEmailOnBlur = useCallback(() => {
+    if (!email.trim()) {
+      setEmailError('Email address is required');
+      hapticFeedback.error();
+    } else if (!EMAIL_REGEX.test(email.trim())) {
+      setEmailError('Please enter a valid email address');
+      hapticFeedback.error();
+    } else {
+      setEmailError('');
+    }
+  }, [email]);
+
+  const validatePasswordOnBlur = useCallback(() => {
+    if (!password) {
+      setPasswordError('Password is required');
+      hapticFeedback.error();
+    } else if (password.length < 8) {
+      setPasswordError('Password must be at least 8 characters');
+      hapticFeedback.error();
+    } else {
+      setPasswordError('');
+    }
+  }, [password]);
+
+  const validateConfirmPasswordOnBlur = useCallback(() => {
+    if (!confirmPassword) {
+      setConfirmPasswordError('Please confirm your password');
+      hapticFeedback.error();
+    } else if (confirmPassword !== password) {
+      setConfirmPasswordError('Passwords do not match');
+      hapticFeedback.error();
+    } else {
+      setConfirmPasswordError('');
+    }
+  }, [confirmPassword, password]);
+
+  const onSubmit = useCallback(() => {
+    validateNameOnBlur();
+    validateEmailOnBlur();
+    validatePasswordOnBlur();
+    validateConfirmPasswordOnBlur();
+    handleSignUp();
+  }, [
+    validateNameOnBlur,
+    validateEmailOnBlur,
+    validatePasswordOnBlur,
+    validateConfirmPasswordOnBlur,
+    handleSignUp,
+  ]);
 
   return (
-    <AuthScreenLayout showBranding title="Create Account">
-      <Text style={authStyles.screenTitle}>Create Account</Text>
-
+    <AuthScreenLayout title="Create Account" onBack={() => router.back()}>
       {errorMessage ? (
         <View style={authStyles.errorContainer}>
-          <Ionicons name="alert-circle" size={18} color={COLORS.error} />
+          <Ionicons name="alert-circle" size={18} color="#fca5a5" />
           <Text style={authStyles.errorText}>{errorMessage}</Text>
         </View>
       ) : null}
@@ -73,7 +128,12 @@ export default function SignupScreen() {
         label="Full Name"
         icon="person-outline"
         value={name}
-        onChangeText={handleNameChange}
+        onChangeText={(text) => {
+          handleNameChange(text);
+          if (nameError) setNameError('');
+        }}
+        onBlur={validateNameOnBlur}
+        error={nameError}
         placeholder="Enter your name"
         autoCapitalize="words"
         autoComplete="name"
@@ -90,7 +150,12 @@ export default function SignupScreen() {
         label="Email Address"
         icon="mail-outline"
         value={email}
-        onChangeText={handleEmailChange}
+        onChangeText={(text) => {
+          handleEmailChange(text);
+          if (emailError) setEmailError('');
+        }}
+        onBlur={validateEmailOnBlur}
+        error={emailError}
         placeholder="Enter your email"
         keyboardType="email-address"
         autoCapitalize="none"
@@ -108,7 +173,12 @@ export default function SignupScreen() {
         label="Password"
         icon="lock-closed-outline"
         value={password}
-        onChangeText={handlePasswordChange}
+        onChangeText={(text) => {
+          handlePasswordChange(text);
+          if (passwordError) setPasswordError('');
+        }}
+        onBlur={validatePasswordOnBlur}
+        error={passwordError}
         placeholder="Min 8 chars (A-Z, a-z, 0-9, !@#)"
         secureTextEntry={!isPasswordVisible}
         autoCapitalize="none"
@@ -130,49 +200,33 @@ export default function SignupScreen() {
         label="Confirm Password"
         icon="lock-closed-outline"
         value={confirmPassword}
-        onChangeText={handleConfirmPasswordChange}
+        onChangeText={(text) => {
+          handleConfirmPasswordChange(text);
+          if (confirmPasswordError) setConfirmPasswordError('');
+        }}
+        onBlur={validateConfirmPasswordOnBlur}
+        error={confirmPasswordError}
         placeholder="Confirm your password"
         secureTextEntry={!isConfirmPasswordVisible}
         autoCapitalize="none"
         autoComplete="off"
         textContentType="oneTimeCode"
         returnKeyType="done"
-        onSubmitEditing={handleSignUp}
+        onSubmitEditing={onSubmit}
         loading={loading}
         rightIcon={isConfirmPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
         onRightIconPress={() => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)}
       />
 
-      {/* Sign Up Button */}
-      <TouchableOpacity
-        onPress={handleSignUp}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        style={authStyles.buttonWrapper}
-        activeOpacity={0.9}
-        disabled={isSubmitDisabled}
-      >
-        <Animated.View
-          style={[
-            authStyles.primaryButtonAnimated,
-            { transform: [{ scale: buttonScale }] },
-            isSubmitDisabled && authStyles.disabledButton,
-          ]}
-        >
-          <LinearGradient
-            colors={isSubmitDisabled ? ['#a3b8b0', '#a3b8b0'] : [COLORS.primary, '#008f62']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={authStyles.gradientButton}
-          >
-            {loading ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={authStyles.primaryButtonText}>Create Account</Text>
-            )}
-          </LinearGradient>
-        </Animated.View>
-      </TouchableOpacity>
+      {/* Create Account Primary Action Button */}
+      <TactileButton
+        title="Create Account"
+        icon="person-add-outline"
+        variant="emerald"
+        onPress={onSubmit}
+        loading={loading}
+        style={{ marginTop: 8 }}
+      />
 
       {/* Footer Section */}
       <View style={authStyles.footerContainer}>
@@ -184,7 +238,7 @@ export default function SignupScreen() {
             disabled={loading}
             style={loading ? { opacity: 0.4 } : undefined}
           >
-            <Text style={authStyles.footerLink}>Sign In</Text>
+            <Text style={authStyles.footerLink}>Log In</Text>
           </TouchableOpacity>
         </View>
 
