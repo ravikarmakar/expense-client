@@ -1,44 +1,85 @@
 import React from 'react';
-import { ActivityIndicator, View } from 'react-native';
-import { useRouter, useRootNavigationState } from 'expo-router';
+import { View, StyleSheet, Animated } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
+import { useRouter, useNavigationContainerRef, type Href } from 'expo-router';
 import { useMe } from '@workspace/api';
-import { COLORS } from '../../../constants/theme';
+import { BrandedLaunchScreen } from '../../../components/BrandedLaunchScreen';
 
 /**
  * AuthGuard — centralised authentication gate for the app.
  *
- * Reads the current `useMe()` query and, once the root navigator is ready,
- * redirects to the correct stack:
- *   • Authenticated + unverified email  →  OTP screen
- *   • Authenticated + verified          →  Tab stack
- *   • Unauthenticated                   →  Login screen
+ * ALWAYS renders `children` (the root <Stack>) underneath so that
+ * Expo Router's navigator is mounted on render 1 (preventing layout mounting errors).
  *
- * A `lastRouteRef` prevents duplicate navigations when reactive deps like
- * `rootNavigationState.key` change after a redirect has already fired (this
- * was the source of the "double login-page navigation" bug on logout).
+ * While auth is resolving, an absolute-positioned SplitShare splash screen covers
+ * the screen. Once auth resolves, it navigates to the correct target route:
+ *   • Authenticated + unverified email  →  /(auth)/otp
+ *   • Authenticated + verified          →  /(tabs)
+ *   • Unauthenticated                   →  /(auth)/login
  */
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { data: user, isLoading } = useMe();
   const router = useRouter();
-  const rootNavigationState = useRootNavigationState();
-  const isNavigationReady = React.useMemo(
-    () => !!rootNavigationState?.key,
-    [rootNavigationState?.key]
-  );
+  const navigationRef = useNavigationContainerRef();
+  const [isNavigationReady, setIsNavigationReady] = React.useState(false);
 
-  // Track the last route we navigated to so we never fire the same
-  // redirect twice in a row (prevents the double-navigation bug).
+  // Logo spring & opacity animations
+  const logoScale = React.useRef(new Animated.Value(0.8)).current;
+  const logoOpacity = React.useRef(new Animated.Value(0)).current;
   const lastRouteRef = React.useRef<string | null>(null);
+  const splashHiddenRef = React.useRef(false);
 
+  // Animate logo on mount
   React.useEffect(() => {
-    // Wait until the query has settled AND the navigator is mounted.
+    Animated.parallel([
+      Animated.spring(logoScale, {
+        toValue: 1,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(logoOpacity, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [logoOpacity, logoScale]);
+
+  // Hide Expo native splash once our React Native tree has painted
+  React.useEffect(() => {
+    if (!splashHiddenRef.current) {
+      splashHiddenRef.current = true;
+      SplashScreen.hideAsync();
+    }
+  }, []);
+
+  // Listen for navigation container ready state
+  React.useEffect(() => {
+    if (navigationRef?.isReady()) {
+      setIsNavigationReady(true);
+    }
+
+    const unsubscribe = navigationRef?.addListener?.('state', () => {
+      if (navigationRef?.isReady()) {
+        setIsNavigationReady(true);
+      }
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [navigationRef]);
+
+  // Navigate once auth is resolved AND navigation is ready
+  React.useEffect(() => {
     if (isLoading || !isNavigationReady) return;
 
     let targetRoute: string;
 
     if (user) {
       if (user.emailVerified === false) {
-        targetRoute = `/(auth)/otp?email=${user.email}`;
+        targetRoute = `/(auth)/otp?email=${encodeURIComponent(user.email)}`;
       } else {
         targetRoute = '/(tabs)';
       }
@@ -46,38 +87,33 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       targetRoute = '/(auth)/login';
     }
 
-    // Only navigate if we haven't already redirected to this route.
     if (lastRouteRef.current !== targetRoute) {
       lastRouteRef.current = targetRoute;
-
-      if (user && user.emailVerified === false) {
-        router.replace({
-          pathname: '/(auth)/otp',
-          params: { email: user.email },
-        });
-      } else if (user) {
-        router.replace('/(tabs)');
-      } else {
-        router.replace('/(auth)/login');
-      }
+      router.replace(targetRoute as Href);
     }
-  }, [user, isLoading, isNavigationReady]);
+  }, [user, isLoading, isNavigationReady, router]);
 
-  // Show a loading spinner while the auth state is being resolved.
-  if (isLoading) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: COLORS.background,
-        }}
-      >
-        <ActivityIndicator size="large" color={COLORS.secondary} />
-      </View>
-    );
-  }
+  return (
+    <View style={styles.container}>
+      {/* 1. Always render children (<Stack>) so Root Navigator is ALWAYS mounted */}
+      {children}
 
-  return <>{children}</>;
+      {/* 2. Show premium branded splash overlay ON TOP while auth state is resolving */}
+      {isLoading && (
+        <View style={styles.splashOverlay}>
+          <BrandedLaunchScreen logoOpacity={logoOpacity} logoScale={logoScale} />
+        </View>
+      )}
+    </View>
+  );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  splashOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 99999,
+  },
+});

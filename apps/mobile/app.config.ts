@@ -7,6 +7,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   version: process.env.EXPO_PUBLIC_APP_VERSION || '1.0.0',
   orientation: 'portrait',
   userInterfaceStyle: 'light',
+  splash: {
+    backgroundColor: '#006948',
+    resizeMode: 'contain',
+  },
   androidNavigationBar: {
     backgroundColor: '#00000000',
     barStyle: 'dark-content',
@@ -26,5 +30,5 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   web: {
     bundler: 'metro',
   },
-  plugins: ['expo-router', 'expo-secure-store'],
+  plugins: ['expo-router', 'expo-secure-store', 'expo-splash-screen'],
 });

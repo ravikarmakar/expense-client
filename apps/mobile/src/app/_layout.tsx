@@ -1,19 +1,21 @@
 import React from 'react';
 import { AppState } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import {
-  QueryClientProvider,
-  useQueryClient,
-  focusManager,
-  onlineManager,
-} from '@tanstack/react-query';
+import { useQueryClient, focusManager, onlineManager } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createApiClient, createQueryClient, onAuthError } from '@workspace/api';
 import NetInfo from '@react-native-community/netinfo';
 import { COLORS } from '../constants/theme';
 import { env } from '../env';
 import { AuthGuard } from '../module/auth/components/AuthGuard';
+
+// ── Keep splash screen visible until we're ready ────────────────────────────
+SplashScreen.preventAutoHideAsync();
 
 // Configure TanStack Query onlineManager for React Native NetInfo connection changes
 onlineManager.setEventListener((setOnline) => {
@@ -57,9 +59,17 @@ import { CustomAlertDialog } from '../components/CustomAlertDialog';
 // Create QueryClient outside component to avoid re-creation on re-renders
 const queryClient = createQueryClient();
 
+// ── Persist query cache to AsyncStorage for instant loads ────────────────────
+const asyncStoragePersister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+  // Only persist queries that are successful and not stale
+  throttleTime: 1000,
+});
+
 // ── Root nav — switches between auth and tab stacks ───────────────────────
 function RootLayoutNav() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [authAlertVisible, setAuthAlertVisible] = React.useState(false);
 
   // ── Listen for 401 events from the axios interceptor ──
@@ -67,9 +77,10 @@ function RootLayoutNav() {
     const cleanup = onAuthError(() => {
       queryClient.setQueryData(['auth', 'me'], null);
       setAuthAlertVisible(true);
+      router.replace('/(auth)/login');
     });
     return cleanup;
-  }, [queryClient]);
+  }, [queryClient, router]);
 
   return (
     <>
@@ -100,10 +111,26 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
+        <PersistQueryClientProvider
+          client={queryClient}
+          persistOptions={{
+            persister: asyncStoragePersister,
+            // Max age for persisted cache: 24 hours
+            maxAge: 1000 * 60 * 60 * 24,
+            // Don't persist auth queries (they should always be fresh)
+            dehydrateOptions: {
+              shouldDehydrateQuery: (query) => {
+                // Skip persisting auth queries and failed queries
+                const isAuthQuery = query.queryKey[0] === 'auth';
+                const isSuccess = query.state.status === 'success';
+                return isSuccess && !isAuthQuery;
+              },
+            },
+          }}
+        >
           <RootLayoutNav />
           <StatusBar style="dark" />
-        </QueryClientProvider>
+        </PersistQueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
   );

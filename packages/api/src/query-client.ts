@@ -6,7 +6,7 @@ export const createQueryClient = (): QueryClient =>
     defaultOptions: {
       queries: {
         staleTime: 5 * 60 * 1000, // 5 minutes
-        gcTime: 15 * 60 * 1000, // 15 minutes default garbage collection time
+        gcTime: 1000 * 60 * 60 * 24, // 24 hours — keep cache alive for persistence
         retry: (failureCount, error: unknown) => {
           // Do not retry authentication errors (401/403) or server errors (500+)
           if (error instanceof AxiosError) {
