@@ -770,7 +770,7 @@ export function useAddGroupExpenseController({
     setTitle('');
     setNotes('');
     setDate(getLocalTodayString());
-    setSplitMemberIds([]);
+    setSplitMemberIds(groupMembers.map((m) => m.userId));
     setCustomSplits({});
     setSplitMode('equal');
     setErrorMessage('');
@@ -852,6 +852,11 @@ export function useAddGroupExpenseController({
       }
 
       customSplitsPayload = splitsArray;
+    }
+
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      setErrorMessage('Please select a valid date (YYYY-MM-DD)');
+      return;
     }
 
     const validation = clientCreateExpenseSchema.safeParse({

@@ -17,6 +17,7 @@ interface FormInputProps {
   keyboardType?: KeyboardTypeOptions;
   secureTextEntry?: boolean;
   variant?: 'light' | 'dark';
+  editable?: boolean;
 }
 
 export const FormInput = React.memo(function FormInput({
@@ -33,6 +34,7 @@ export const FormInput = React.memo(function FormInput({
   keyboardType = 'default',
   secureTextEntry = false,
   variant = 'light',
+  editable = true,
 }: FormInputProps) {
   const isDark = variant === 'dark';
   const [isFocused, setIsFocused] = useState(false);
@@ -75,6 +77,7 @@ export const FormInput = React.memo(function FormInput({
           autoFocus={autoFocus}
           keyboardType={keyboardType}
           secureTextEntry={secureTextEntry}
+          editable={editable}
           autoCapitalize={keyboardType === 'email-address' ? 'none' : undefined}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
@@ -13,6 +13,7 @@ import { SkeletonLoader } from '../../../components/SkeletonLoader';
 import { TactileButton } from '../../../components/TactileButton';
 import { LinearGradient } from 'expo-linear-gradient';
 import { formatRupees } from '../../../utils/format';
+import { DatePickerModal } from '../../../components/DatePickerModal';
 import { ExpenseSuccessView } from '../../../components/ExpenseSuccessView';
 
 interface AddGroupExpenseModalProps {
@@ -23,6 +24,9 @@ interface AddGroupExpenseModalProps {
   onSuccess?: (isWallet?: boolean) => void;
   variant?: 'light' | 'dark';
   standalone?: boolean;
+  modeSwitcher?: React.ReactNode;
+  initialAmount?: string;
+  onAmountChange?: (amount: string) => void;
 }
 
 export function AddGroupExpenseModal({
@@ -33,8 +37,12 @@ export function AddGroupExpenseModal({
   onSuccess,
   variant = 'light',
   standalone = false,
+  modeSwitcher,
+  initialAmount,
+  onAmountChange,
 }: AddGroupExpenseModalProps) {
   const isDark = variant === 'dark';
+  const [isDatePickerVisible, setIsDatePickerVisible] = useState(false);
   const {
     selectedGroupId,
     isGroupDropdownOpen,
@@ -87,11 +95,18 @@ export function AddGroupExpenseModal({
     onSuccess,
   });
 
+  React.useEffect(() => {
+    if (visible && initialAmount !== undefined && initialAmount !== amount) {
+      setAmount(initialAmount);
+    }
+  }, [visible, initialAmount]);
+
   const handleAmountChange = (text: string) => {
     setErrorMessage('');
     const formatted = formatRupees(text);
     if (formatted !== null) {
       setAmount(formatted);
+      onAmountChange?.(formatted);
     }
   };
 
@@ -128,9 +143,10 @@ export function AddGroupExpenseModal({
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: 60 }}
       >
         <View style={styles.formContainer}>
+          {modeSwitcher}
           <View
             style={[
               localStyles.amountCard,
@@ -140,7 +156,7 @@ export function AddGroupExpenseModal({
                 borderWidth: 0,
                 padding: 0,
                 overflow: 'hidden',
-                marginTop: 16,
+                marginTop: 8,
               },
             ]}
           >
@@ -163,7 +179,6 @@ export function AddGroupExpenseModal({
                     placeholder="0.00"
                     placeholderTextColor="rgba(255, 255, 255, 0.55)"
                     keyboardType="decimal-pad"
-                    autoFocus
                     selectionColor="#10B981"
                   />
                 </View>
@@ -182,7 +197,6 @@ export function AddGroupExpenseModal({
                     placeholder="0.00"
                     placeholderTextColor={COLORS.outlineVariant}
                     keyboardType="decimal-pad"
-                    autoFocus
                     selectionColor={COLORS.primary}
                   />
                 </View>
@@ -370,6 +384,33 @@ export function AddGroupExpenseModal({
             variant={variant}
           />
 
+          <TouchableOpacity onPress={() => setIsDatePickerVisible(true)} activeOpacity={0.8}>
+            <View pointerEvents="none">
+              <FormInput
+                label="Date *"
+                placeholder="YYYY-MM-DD"
+                value={date}
+                onChangeText={(t) => {
+                  setErrorMessage('');
+                  setDate(t);
+                }}
+                icon="calendar-outline"
+                variant={variant}
+                editable={false}
+              />
+            </View>
+          </TouchableOpacity>
+
+          <DatePickerModal
+            visible={isDatePickerVisible}
+            onClose={() => setIsDatePickerVisible(false)}
+            selectedDate={date}
+            onSelectDate={(newDate) => {
+              setErrorMessage('');
+              setDate(newDate);
+            }}
+          />
+
           <FormInput
             label="Notes"
             placeholder="Add more details (optional)"
@@ -378,18 +419,6 @@ export function AddGroupExpenseModal({
             icon="create-outline"
             multiline
             numberOfLines={3}
-            variant={variant}
-          />
-
-          <FormInput
-            label="Date *"
-            placeholder="YYYY-MM-DD"
-            value={date}
-            onChangeText={(t) => {
-              setErrorMessage('');
-              setDate(t);
-            }}
-            icon="calendar-outline"
             variant={variant}
           />
 

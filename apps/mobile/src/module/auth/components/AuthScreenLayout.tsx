@@ -10,6 +10,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../context/ThemeContext';
 
 import { AppBackground } from '../../../components/AppBackground';
@@ -23,6 +24,9 @@ interface AuthScreenLayoutProps {
 
 export function AuthScreenLayout({ title, subtitle, onBack, children }: AuthScreenLayoutProps) {
   const { isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+  const paddingTop =
+    Math.max(insets.top, Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 20) + 8;
 
   return (
     <AppBackground style={styles.container}>
@@ -37,7 +41,7 @@ export function AuthScreenLayout({ title, subtitle, onBack, children }: AuthScre
         style={styles.keyboardView}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingTop }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           bounces={false}

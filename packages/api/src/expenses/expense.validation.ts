@@ -15,7 +15,10 @@ export const clientCreateExpenseSchema = z.object({
     .positive('Amount must be greater than 0')
     .max(1_000_000, 'Amount is too large'),
   category: z.string().min(1, 'Please select a category'),
-  date: z.string().min(1, 'Date is required'),
+  date: z
+    .string()
+    .min(1, 'Date is required')
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Please select a valid date (YYYY-MM-DD)'),
   notes: z.string().max(500, 'Notes must be at most 500 characters').optional(),
   groupId: z.string().optional(),
   useWallet: z.boolean().optional(),

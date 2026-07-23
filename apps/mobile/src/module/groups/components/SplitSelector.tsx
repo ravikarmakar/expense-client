@@ -141,91 +141,123 @@ export const SplitSelector = React.memo(function SplitSelector({
 
       {splitMemberIds.length > 0 && (
         <View style={styles.splitModeContainer}>
-          <Text style={[styles.inputLabel, isDark && { color: '#74817B' }]}>Split Option</Text>
+          <Text
+            style={[styles.inputLabel, isDark ? { color: '#A8B3AE' } : { color: COLORS.outline }]}
+          >
+            Split Option
+          </Text>
           <View
             style={[
               styles.splitModeToggleRow,
-              isDark && {
-                backgroundColor: '#101917',
-                borderWidth: 1,
-                borderColor: 'rgba(255, 255, 255, 0.12)',
-                position: 'relative',
-              },
+              isDark
+                ? {
+                    backgroundColor: '#101917',
+                    borderColor: 'rgba(255, 255, 255, 0.08)',
+                    borderWidth: 1,
+                  }
+                : { backgroundColor: '#f3f4f6', borderColor: '#e5e7eb', borderWidth: 1 },
             ]}
           >
-            {isDark && (
-              <Animated.View
-                style={{
-                  position: 'absolute',
-                  top: 3,
-                  bottom: 3,
-                  left: 4,
-                  width: (containerWidth - 8) / 2,
-                  borderRadius: 8,
-                  backgroundColor: '#131D1A',
-                  borderWidth: 1,
-                  borderColor: 'rgba(255, 255, 255, 0.12)',
-                  transform: [{ translateX: activeTabTranslateX }],
-                }}
-              />
-            )}
             <TouchableOpacity
-              style={styles.splitModeTab}
+              style={[
+                styles.splitModeTab,
+                splitMode === 'equal' &&
+                  (isDark
+                    ? {
+                        backgroundColor: '#131D1A',
+                        borderWidth: 1,
+                        borderColor: 'rgba(16, 185, 129, 0.3)',
+                      }
+                    : {
+                        backgroundColor: '#ffffff',
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: 0.08,
+                        shadowRadius: 2,
+                        elevation: 2,
+                      }),
+              ]}
               onPress={() => setSplitMode('equal')}
               activeOpacity={0.8}
             >
               <Ionicons
-                name="pie-chart-outline"
+                name="pie-chart"
                 size={16}
                 color={
                   splitMode === 'equal'
                     ? isDark
                       ? '#10B981'
-                      : '#fff'
+                      : '#059669'
                     : isDark
-                      ? 'rgba(255, 255, 255, 0.65)'
-                      : COLORS.onSurfaceVariant
+                      ? '#74817B'
+                      : '#6B7280'
                 }
               />
               <Text
                 style={[
                   styles.splitModeTabText,
-                  isDark && {
-                    color: splitMode === 'equal' ? '#10B981' : 'rgba(255, 255, 255, 0.65)',
-                  },
-                  splitMode === 'equal' && !isDark && styles.splitModeTabTextActive,
-                  splitMode === 'equal' && isDark && { fontWeight: '700' },
+                  splitMode === 'equal'
+                    ? {
+                        color: isDark ? '#10B981' : '#059669',
+                        fontWeight: '800',
+                      }
+                    : {
+                        color: isDark ? '#74817B' : '#6B7280',
+                        fontWeight: '600',
+                      },
                 ]}
               >
                 Split Equally
               </Text>
             </TouchableOpacity>
+
             <TouchableOpacity
-              style={styles.splitModeTab}
+              style={[
+                styles.splitModeTab,
+                splitMode === 'exact' &&
+                  (isDark
+                    ? {
+                        backgroundColor: '#131D1A',
+                        borderWidth: 1,
+                        borderColor: 'rgba(16, 185, 129, 0.3)',
+                      }
+                    : {
+                        backgroundColor: '#ffffff',
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: 0.08,
+                        shadowRadius: 2,
+                        elevation: 2,
+                      }),
+              ]}
               onPress={() => setSplitMode('exact')}
               activeOpacity={0.8}
             >
               <Ionicons
-                name="cash-outline"
+                name="cash"
                 size={16}
                 color={
                   splitMode === 'exact'
                     ? isDark
                       ? '#10B981'
-                      : '#fff'
+                      : '#059669'
                     : isDark
-                      ? 'rgba(255, 255, 255, 0.65)'
-                      : COLORS.onSurfaceVariant
+                      ? '#74817B'
+                      : '#6B7280'
                 }
               />
               <Text
                 style={[
                   styles.splitModeTabText,
-                  isDark && {
-                    color: splitMode === 'exact' ? '#10B981' : 'rgba(255, 255, 255, 0.65)',
-                  },
-                  splitMode === 'exact' && !isDark && styles.splitModeTabTextActive,
-                  splitMode === 'exact' && isDark && { fontWeight: '700' },
+                  splitMode === 'exact'
+                    ? {
+                        color: isDark ? '#10B981' : '#059669',
+                        fontWeight: '800',
+                      }
+                    : {
+                        color: isDark ? '#74817B' : '#6B7280',
+                        fontWeight: '600',
+                      },
                 ]}
               >
                 Exact Shares

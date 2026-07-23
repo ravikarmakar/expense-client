@@ -19,8 +19,8 @@ import { useSettingsController } from '@workspace/api';
 import { hapticFeedback } from '../../utils/haptics';
 import { useTheme } from '../../context/ThemeContext';
 
-import { ModalContainer } from '../../components/ModalContainer';
-import { LoadingButton } from '../../components/LoadingButton';
+import { BottomSheetModal } from '../../components/BottomSheetModal';
+import { TactileButton } from '../../components/TactileButton';
 import { feedbackStyles } from '../../styles/feedbackStyles';
 
 export default function SettingsTabScreen() {
@@ -115,9 +115,9 @@ export default function SettingsTabScreen() {
           </View>
         </View>
 
-        {/* Settings Options */}
+        {/* ── Section 1: Account & Security ── */}
         <View style={styles.settingsSection}>
-          <Text style={styles.settingsGroupTitle}>Account Settings</Text>
+          <Text style={styles.settingsGroupTitle}>Account & Security</Text>
 
           <TouchableOpacity
             style={styles.settingsItem}
@@ -133,29 +133,52 @@ export default function SettingsTabScreen() {
             <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.settingsItem}
+            activeOpacity={0.7}
+            onPress={() => router.push('/change-password')}
+          >
             <View style={styles.settingsItemLeft}>
-              <View style={[styles.iconBadge, { backgroundColor: '#e6f4ea' }]}>
-                <Ionicons name="card" size={18} color="#137333" />
+              <View style={[styles.iconBadge, { backgroundColor: '#fce8e6' }]}>
+                <Ionicons name="key" size={18} color="#c5221f" />
               </View>
-              <Text style={styles.settingsItemLabel}>Payment Methods</Text>
+              <Text style={styles.settingsItemLabel}>Change Password</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.settingsItem}
+            activeOpacity={0.7}
+            onPress={() => router.push('/categories')}
+          >
             <View style={styles.settingsItemLeft}>
-              <View style={[styles.iconBadge, { backgroundColor: '#fef7e0' }]}>
-                <Ionicons name="notifications" size={18} color="#b06000" />
+              <View style={[styles.iconBadge, { backgroundColor: '#e2f2ff' }]}>
+                <Ionicons name="grid" size={18} color="#0066cc" />
               </View>
-              <Text style={styles.settingsItemLabel}>Notification Preferences</Text>
+              <Text style={styles.settingsItemLabel}>Manage Categories</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.settingsItem}
+            activeOpacity={0.7}
+            onPress={() => router.push('/personal-wallet')}
+          >
+            <View style={styles.settingsItemLeft}>
+              <View style={[styles.iconBadge, { backgroundColor: '#e6f4ea' }]}>
+                <Ionicons name="wallet" size={18} color="#137333" />
+              </View>
+              <Text style={styles.settingsItemLabel}>Personal Wallet</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
           </TouchableOpacity>
         </View>
 
+        {/* ── Section 2: Preferences & Appearance ── */}
         <View style={styles.settingsSection}>
-          <Text style={styles.settingsGroupTitle}>Preferences & Safety</Text>
+          <Text style={styles.settingsGroupTitle}>Preferences & Appearance</Text>
 
           <View style={styles.settingsItem}>
             <View style={styles.settingsItemLeft}>
@@ -227,38 +250,10 @@ export default function SettingsTabScreen() {
 
           <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7}>
             <View style={styles.settingsItemLeft}>
-              <View style={[styles.iconBadge, { backgroundColor: '#e6f4ea' }]}>
-                <Ionicons name="shield-checkmark" size={18} color="#137333" />
+              <View style={[styles.iconBadge, { backgroundColor: '#fef7e0' }]}>
+                <Ionicons name="notifications" size={18} color="#b06000" />
               </View>
-              <Text style={styles.settingsItemLabel}>Security & PIN</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.settingsItem}
-            activeOpacity={0.7}
-            onPress={() => router.push('/change-password')}
-          >
-            <View style={styles.settingsItemLeft}>
-              <View style={[styles.iconBadge, { backgroundColor: '#fce8e6' }]}>
-                <Ionicons name="key" size={18} color="#c5221f" />
-              </View>
-              <Text style={styles.settingsItemLabel}>Change Password</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.settingsItem}
-            activeOpacity={0.7}
-            onPress={() => router.push('/categories')}
-          >
-            <View style={styles.settingsItemLeft}>
-              <View style={[styles.iconBadge, { backgroundColor: '#e2f2ff' }]}>
-                <Ionicons name="grid" size={18} color="#0066cc" />
-              </View>
-              <Text style={styles.settingsItemLabel}>Manage Categories</Text>
+              <Text style={styles.settingsItemLabel}>Notifications</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
           </TouchableOpacity>
@@ -274,9 +269,30 @@ export default function SettingsTabScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* About & Legal Section */}
+        {/* ── Section 3: Support & Legal ── */}
         <View style={styles.settingsSection}>
-          <Text style={styles.settingsGroupTitle}>About & Legal</Text>
+          <Text style={styles.settingsGroupTitle}>Support & Legal</Text>
+
+          <TouchableOpacity
+            style={styles.settingsItem}
+            activeOpacity={0.7}
+            onPress={() => {
+              hapticFeedback.selection();
+              Alert.alert(
+                'Send Feedback',
+                'We would love to hear your thoughts! Send your feedback or feature suggestions to support@splitshare.app.',
+                [{ text: 'OK' }]
+              );
+            }}
+          >
+            <View style={styles.settingsItemLeft}>
+              <View style={[styles.iconBadge, { backgroundColor: '#e0f2fe' }]}>
+                <Ionicons name="chatbubble-ellipses" size={18} color="#0284c7" />
+              </View>
+              <Text style={styles.settingsItemLabel}>Send Feedback</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
+          </TouchableOpacity>
 
           <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7}>
             <View style={styles.settingsItemLeft}>
@@ -309,21 +325,33 @@ export default function SettingsTabScreen() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={[styles.logoutButton, isLoggingOut && { opacity: 0.5 }]}
-          activeOpacity={0.85}
-          onPress={handleLogout}
-          disabled={isLoggingOut}
-        >
-          {isLoggingOut ? (
-            <ActivityIndicator size="small" color={COLORS.error} />
-          ) : (
-            <>
-              <Ionicons name="log-out" size={20} color={COLORS.error} style={{ marginRight: 2 }} />
-              <Text style={styles.logoutButtonText}>Log Out of Account</Text>
-            </>
-          )}
-        </TouchableOpacity>
+        {/* ── Section 4: Session & Danger Zone ── */}
+        <View style={[styles.settingsSection, { marginBottom: 20 }]}>
+          <TouchableOpacity
+            style={[
+              styles.settingsItem,
+              { borderBottomWidth: 0 },
+              isLoggingOut && { opacity: 0.5 },
+            ]}
+            activeOpacity={0.7}
+            onPress={handleLogout}
+            disabled={isLoggingOut}
+          >
+            <View style={styles.settingsItemLeft}>
+              <View style={[styles.iconBadge, { backgroundColor: '#fde8e8' }]}>
+                <Ionicons name="log-out" size={18} color={COLORS.error} />
+              </View>
+              <Text style={[styles.settingsItemLabel, { color: COLORS.error, fontWeight: '700' }]}>
+                Log Out of Account
+              </Text>
+            </View>
+            {isLoggingOut ? (
+              <ActivityIndicator size="small" color={COLORS.error} />
+            ) : (
+              <Ionicons name="chevron-forward" size={18} color={COLORS.error} />
+            )}
+          </TouchableOpacity>
+        </View>
 
         {/* Application Version Footer */}
         <View style={styles.footerContainer}>
@@ -334,52 +362,80 @@ export default function SettingsTabScreen() {
       </ScrollView>
 
       {/* ── Modal: Edit Profile ── */}
-      <ModalContainer
+      <BottomSheetModal
         visible={profileModalVisible}
         onClose={() => setProfileModalVisible(false)}
         title="Edit Profile"
-        loading={isUpdatingProfile}
+        variant={themeMode === 'dark' ? 'dark' : 'light'}
       >
-        {profileErrorMessage ? (
-          <View style={feedbackStyles.errorContainer}>
-            <Ionicons name="alert-circle" size={18} color={COLORS.error} />
-            <Text style={feedbackStyles.errorText}>{profileErrorMessage}</Text>
-          </View>
-        ) : null}
+        <ScrollView
+          style={{ width: '100%' }}
+          contentContainerStyle={styles.modalForm}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="always"
+        >
+          {profileErrorMessage ? (
+            <View style={feedbackStyles.errorContainer}>
+              <Ionicons name="alert-circle" size={18} color={COLORS.error} />
+              <Text style={feedbackStyles.errorText}>{profileErrorMessage}</Text>
+            </View>
+          ) : null}
 
-        <View style={styles.modalForm}>
           {/* Current Avatar Preview */}
           <View style={styles.avatarPreviewContainer}>
             <Image
               source={{ uri: resolveAvatar(selectedAvatar) }}
               style={styles.largeAvatarPreview}
             />
-            <Text style={styles.avatarPreviewLabel}>Selected Avatar</Text>
+            <Text style={[styles.avatarPreviewLabel, themeMode === 'dark' && { color: '#9CA3AF' }]}>
+              Selected Avatar
+            </Text>
           </View>
 
           {/* Name Input */}
-          <Text style={styles.inputLabel}>Full Name</Text>
-          <View style={[styles.inputContainer, isUpdatingProfile && { opacity: 0.6 }]}>
+          <Text style={[styles.inputLabel, themeMode === 'dark' && { color: '#FFFFFF' }]}>
+            Full Name
+          </Text>
+          <View
+            style={[
+              styles.inputContainer,
+              themeMode === 'dark' && {
+                backgroundColor: '#101917',
+                borderColor: 'rgba(255, 255, 255, 0.08)',
+              },
+              isUpdatingProfile && { opacity: 0.6 },
+            ]}
+          >
             <Ionicons
               name="person-outline"
               size={20}
-              color={COLORS.outline}
+              color={themeMode === 'dark' ? '#10B981' : COLORS.primary}
               style={styles.inputIcon}
             />
             <TextInput
               value={editName}
               onChangeText={setEditName}
               placeholder="Enter your name"
-              placeholderTextColor={COLORS.outlineVariant}
-              style={styles.textInput}
+              placeholderTextColor={themeMode === 'dark' ? '#74817B' : COLORS.outlineVariant}
+              style={[styles.textInput, themeMode === 'dark' && { color: '#FFFFFF' }]}
               editable={!isUpdatingProfile}
               maxLength={40}
             />
           </View>
 
           {/* Avatar Grid Selection inside a Scrollable Box */}
-          <Text style={styles.inputLabel}>Choose Avatar</Text>
-          <View style={styles.avatarScrollContainer}>
+          <Text style={[styles.inputLabel, themeMode === 'dark' && { color: '#FFFFFF' }]}>
+            Choose Avatar
+          </Text>
+          <View
+            style={[
+              styles.avatarScrollContainer,
+              themeMode === 'dark' && {
+                backgroundColor: '#101917',
+                borderColor: 'rgba(255, 255, 255, 0.08)',
+              },
+            ]}
+          >
             <ScrollView
               nestedScrollEnabled={true}
               showsVerticalScrollIndicator={true}
@@ -391,14 +447,23 @@ export default function SettingsTabScreen() {
                 return (
                   <TouchableOpacity
                     key={idx}
-                    style={[styles.avatarGridItem, isSelected && styles.avatarGridItemActive]}
+                    style={[
+                      styles.avatarGridItem,
+                      isSelected && styles.avatarGridItemActive,
+                      isSelected && themeMode === 'dark' && { borderColor: '#10B981' },
+                    ]}
                     onPress={() => setSelectedAvatar(avatarUrl)}
                     activeOpacity={0.7}
                     disabled={isUpdatingProfile}
                   >
                     <Image source={{ uri: avatarUrl }} style={styles.gridAvatarImage} />
                     {isSelected && (
-                      <View style={styles.checkBadge}>
+                      <View
+                        style={[
+                          styles.checkBadge,
+                          themeMode === 'dark' && { backgroundColor: '#10B981' },
+                        ]}
+                      >
                         <Ionicons name="checkmark" size={10} color="#fff" />
                       </View>
                     )}
@@ -408,14 +473,17 @@ export default function SettingsTabScreen() {
             </ScrollView>
           </View>
 
-          <LoadingButton
+          <TactileButton
             title="Save Changes"
+            icon="checkmark-circle"
+            provider="emerald"
             onPress={handleSaveProfile}
             loading={isUpdatingProfile}
             disabled={!editName.trim()}
+            style={styles.saveProfileBtn}
           />
-        </View>
-      </ModalContainer>
+        </ScrollView>
+      </BottomSheetModal>
     </View>
   );
 }
@@ -616,15 +684,18 @@ const styles = StyleSheet.create({
   },
   modalForm: {
     width: '100%',
+    paddingHorizontal: 20,
+    paddingBottom: 24,
   },
   inputLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.outline,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 6,
-    paddingLeft: 4,
+    fontSize: 13,
+    fontWeight: '800',
+    color: COLORS.onSurface,
+    marginBottom: 8,
+    paddingLeft: 2,
+  },
+  saveProfileBtn: {
+    height: 52,
   },
   inputContainer: {
     flexDirection: 'row',

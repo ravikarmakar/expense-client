@@ -44,7 +44,7 @@ export function ModalContainer({
   useHideTabBar(visible);
 
   const renderContent = () => (
-    <View style={[styles.content, { paddingBottom: Math.max(insets.bottom, 24) + 8 }]}>
+    <View style={[styles.content, { paddingBottom: Math.max(insets.bottom, 16) }]}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>

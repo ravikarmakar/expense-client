@@ -47,16 +47,18 @@ export function GroupOverflowMenuModal({ onAddCategoryPress }: GroupOverflowMenu
             <Text style={styles.menuItemText}>Analytics</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.menuItem, styles.menuItemBorder]}
-            onPress={() => {
-              handleClose();
-              onAddCategoryPress();
-            }}
-          >
-            <Ionicons name="grid-outline" size={20} color={COLORS.onSurface} />
-            <Text style={styles.menuItemText}>Add Category</Text>
-          </TouchableOpacity>
+          {isAdmin && (
+            <TouchableOpacity
+              style={[styles.menuItem, styles.menuItemBorder]}
+              onPress={() => {
+                handleClose();
+                onAddCategoryPress();
+              }}
+            >
+              <Ionicons name="grid-outline" size={20} color={COLORS.onSurface} />
+              <Text style={styles.menuItemText}>Add Category</Text>
+            </TouchableOpacity>
+          )}
 
           {isAdmin && (
             <>

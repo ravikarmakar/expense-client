@@ -24,6 +24,7 @@ interface BottomSheetModalProps {
   keyboardVerticalOffset?: number;
   variant?: 'light' | 'dark';
   headerRight?: React.ReactNode;
+  closeButtonPosition?: 'left' | 'right';
 }
 
 export const BottomSheetModal = React.memo(function BottomSheetModal({
@@ -35,12 +36,41 @@ export const BottomSheetModal = React.memo(function BottomSheetModal({
   keyboardVerticalOffset = 0,
   variant = 'light',
   headerRight,
+  closeButtonPosition = 'right',
 }: BottomSheetModalProps) {
   const keyboardHeight = useKeyboardHeight();
   const insets = useSafeAreaInsets();
   useHideTabBar(visible);
 
   const isDark = variant === 'dark';
+  const isCloseLeft = closeButtonPosition === 'left';
+
+  const renderCloseButton = (marginStyle?: object) => (
+    <TouchableOpacity
+      onPress={onClose}
+      style={[
+        styles.closeBtn,
+        {
+          backgroundColor: isDark ? '#101917' : '#f3f4f5',
+          borderWidth: 0,
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        marginStyle,
+      ]}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      activeOpacity={0.7}
+    >
+      <Ionicons
+        name="close"
+        size={20}
+        color={isDark ? 'rgba(255, 255, 255, 0.65)' : COLORS.onSurface}
+      />
+    </TouchableOpacity>
+  );
 
   return (
     <Modal
@@ -89,36 +119,13 @@ export const BottomSheetModal = React.memo(function BottomSheetModal({
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.headerLeft}>
-                <TouchableOpacity
-                  onPress={onClose}
-                  style={[
-                    styles.closeBtn,
-                    {
-                      backgroundColor: isDark ? '#101917' : '#f3f4f5',
-                      borderWidth: 0,
-                      width: 36,
-                      height: 36,
-                      borderRadius: 18,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    },
-                  ]}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name="close"
-                    size={20}
-                    color={isDark ? 'rgba(255, 255, 255, 0.65)' : COLORS.onSurface}
-                  />
-                </TouchableOpacity>
-                <Text
-                  style={[styles.sheetTitle, { marginLeft: 12 }, isDark && { color: '#FFFFFF' }]}
-                >
-                  {title}
-                </Text>
+                {isCloseLeft && renderCloseButton({ marginRight: 12 })}
+                <Text style={[styles.sheetTitle, isDark && { color: '#FFFFFF' }]}>{title}</Text>
               </View>
-              {headerRight && <View style={styles.headerRight}>{headerRight}</View>}
+              <View style={styles.headerRight}>
+                {headerRight}
+                {!isCloseLeft && renderCloseButton({ marginLeft: 8 })}
+              </View>
             </View>
 
             {children}
@@ -158,36 +165,13 @@ export const BottomSheetModal = React.memo(function BottomSheetModal({
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.headerLeft}>
-                <TouchableOpacity
-                  onPress={onClose}
-                  style={[
-                    styles.closeBtn,
-                    {
-                      backgroundColor: isDark ? '#101917' : '#f3f4f5',
-                      borderWidth: 0,
-                      width: 36,
-                      height: 36,
-                      borderRadius: 18,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    },
-                  ]}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name="close"
-                    size={20}
-                    color={isDark ? 'rgba(255, 255, 255, 0.65)' : COLORS.onSurface}
-                  />
-                </TouchableOpacity>
-                <Text
-                  style={[styles.sheetTitle, { marginLeft: 12 }, isDark && { color: '#FFFFFF' }]}
-                >
-                  {title}
-                </Text>
+                {isCloseLeft && renderCloseButton({ marginRight: 12 })}
+                <Text style={[styles.sheetTitle, isDark && { color: '#FFFFFF' }]}>{title}</Text>
               </View>
-              {headerRight && <View style={styles.headerRight}>{headerRight}</View>}
+              <View style={styles.headerRight}>
+                {headerRight}
+                {!isCloseLeft && renderCloseButton({ marginLeft: 8 })}
+              </View>
             </View>
 
             {children}
@@ -247,8 +231,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sheetTitle: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '800',
     color: COLORS.onSurface,
   },
   closeBtn: {

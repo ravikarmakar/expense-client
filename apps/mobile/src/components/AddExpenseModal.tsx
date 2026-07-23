@@ -16,7 +16,7 @@ import {
   getErrorMessage,
   type ExpenseCategory,
 } from '@workspace/api';
-import { BottomSheetModal } from './BottomSheetModal';
+import { DatePickerModal } from './DatePickerModal';
 import { FormInput } from './FormInput';
 import { AddGroupExpenseModal } from '../module/groups/components/AddGroupExpenseModal';
 import { TactileButton } from './TactileButton';
@@ -24,6 +24,7 @@ import { CategoryDropdown } from '../module/groups/components/CategoryDropdown';
 import { formatRupees } from '../utils/format';
 import { ExpenseSuccessView } from './ExpenseSuccessView';
 import { hapticFeedback } from '../utils/haptics';
+import { BottomSheetModal } from './BottomSheetModal';
 
 interface AddExpenseModalProps {
   visible: boolean;
@@ -88,117 +89,82 @@ export function AddExpenseModal({
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
 
-  const renderHeaderRight = () => {
+  const renderModeSwitcher = () => {
     if (groupId || initialExpenseType) return null;
     return (
       <View
         style={[
-          styles.segmentedWrapper,
-          {
-            width: headerSwitcherWidth,
-            height: 36,
-            borderRadius: 8,
-            padding: 2,
-            marginHorizontal: 0,
-            marginBottom: 0,
-          },
-          isDark && {
-            backgroundColor: '#101917',
-            borderWidth: 0,
-            position: 'relative',
-          },
+          styles.fullWidthSegmentedWrapper,
+          isDark ? styles.fullWidthSegmentedDark : styles.fullWidthSegmentedLight,
         ]}
       >
-        {isDark && (
-          <Animated.View
-            style={{
-              position: 'absolute',
-              top: 2,
-              bottom: 2,
-              left: 2,
-              width: (headerSwitcherWidth - 6) / 2,
-              borderRadius: 6,
-              backgroundColor: '#10B981',
-              borderWidth: 0,
-              transform: [{ translateX: activeTabTranslateX }],
-            }}
-          />
-        )}
         <TouchableOpacity
-          style={[
-            styles.segmentedTab,
-            { height: '100%', paddingVertical: 0, gap: 4 },
-            !isDark && expenseType === 'PERSONAL' && styles.segmentedTabActive,
-            !isDark && { borderRadius: 6 },
-          ]}
+          activeOpacity={0.8}
           onPress={() => {
             hapticFeedback.selection();
             setExpenseType('PERSONAL');
           }}
-          activeOpacity={0.8}
+          style={[
+            styles.fullWidthTab,
+            expenseType === 'PERSONAL' &&
+              (isDark ? styles.fullWidthTabActiveDark : styles.fullWidthTabActiveLight),
+          ]}
         >
           <Ionicons
-            name="person-outline"
-            size={12}
+            name="person"
+            size={14}
             color={
               expenseType === 'PERSONAL'
                 ? isDark
-                  ? '#FFFFFF'
-                  : '#fff'
+                  ? '#10B981'
+                  : '#006948'
                 : isDark
-                  ? 'rgba(255, 255, 255, 0.65)'
-                  : COLORS.onSurfaceVariant
+                  ? '#74817B'
+                  : '#4B5563'
             }
           />
           <Text
             style={[
-              styles.segmentedText,
-              { fontSize: 11 },
-              isDark && {
-                color: expenseType === 'PERSONAL' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)',
-              },
-              expenseType === 'PERSONAL' && !isDark && { color: '#fff', fontWeight: '700' },
-              expenseType === 'PERSONAL' && isDark && { fontWeight: '700' },
+              styles.fullWidthTabText,
+              expenseType === 'PERSONAL'
+                ? { color: isDark ? '#10B981' : '#006948', fontWeight: '800' }
+                : { color: isDark ? '#74817B' : '#4B5563' },
             ]}
           >
             Personal
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[
-            styles.segmentedTab,
-            { height: '100%', paddingVertical: 0, gap: 4 },
-            !isDark && expenseType === 'GROUP' && styles.segmentedTabActive,
-            !isDark && { borderRadius: 6 },
-          ]}
+          activeOpacity={0.8}
           onPress={() => {
             hapticFeedback.selection();
             setExpenseType('GROUP');
           }}
-          activeOpacity={0.8}
+          style={[
+            styles.fullWidthTab,
+            expenseType === 'GROUP' &&
+              (isDark ? styles.fullWidthTabActiveDark : styles.fullWidthTabActiveLight),
+          ]}
         >
           <Ionicons
-            name="people-outline"
-            size={13}
+            name="people"
+            size={15}
             color={
               expenseType === 'GROUP'
                 ? isDark
-                  ? '#FFFFFF'
-                  : '#fff'
+                  ? '#10B981'
+                  : '#006948'
                 : isDark
-                  ? 'rgba(255, 255, 255, 0.65)'
-                  : COLORS.onSurfaceVariant
+                  ? '#74817B'
+                  : '#4B5563'
             }
           />
           <Text
             style={[
-              styles.segmentedText,
-              { fontSize: 11 },
-              isDark && {
-                color: expenseType === 'GROUP' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)',
-              },
-              expenseType === 'GROUP' && !isDark && { color: '#fff', fontWeight: '700' },
-              expenseType === 'GROUP' && isDark && { fontWeight: '700' },
+              styles.fullWidthTabText,
+              expenseType === 'GROUP'
+                ? { color: isDark ? '#10B981' : '#006948', fontWeight: '800' }
+                : { color: isDark ? '#74817B' : '#4B5563' },
             ]}
           >
             Group
@@ -207,6 +173,8 @@ export function AddExpenseModal({
       </View>
     );
   };
+
+  const renderHeaderRight = () => null;
 
   const getLocalTodayString = () => {
     const d = new Date();
@@ -217,6 +185,7 @@ export function AddExpenseModal({
   };
 
   const [date, setDate] = useState(getLocalTodayString);
+  const [isDatePickerVisible, setIsDatePickerVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [addedExpenseInfo, setAddedExpenseInfo] = useState<{
@@ -277,6 +246,11 @@ export function AddExpenseModal({
       return;
     }
 
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      setErrorMessage('Please select a valid date (YYYY-MM-DD)');
+      return;
+    }
+
     const validation = clientCreateExpenseSchema.safeParse({
       title: title.trim(),
       amount: parsed,
@@ -312,9 +286,16 @@ export function AddExpenseModal({
     <BottomSheetModal
       visible={visible}
       onClose={handleClose}
-      title={groupId ? 'Add Group Expense' : 'Add Expense'}
+      title={
+        groupId
+          ? 'Add Group Expense'
+          : expenseType === 'GROUP'
+            ? 'Add Group Expense'
+            : 'Add Personal Expense'
+      }
       variant={variant}
       headerRight={renderHeaderRight()}
+      closeButtonPosition="right"
     >
       {errorMessage ? (
         <View
@@ -349,6 +330,9 @@ export function AddExpenseModal({
           onSuccess={onSuccess}
           variant={variant}
           standalone={false}
+          modeSwitcher={renderModeSwitcher()}
+          initialAmount={amount}
+          onAmountChange={setAmount}
         />
       ) : (
         <ScrollView
@@ -357,6 +341,8 @@ export function AddExpenseModal({
           contentContainerStyle={{ paddingBottom: 40 }}
         >
           <View style={styles.formContainer}>
+            {renderModeSwitcher()}
+
             <View
               style={[
                 styles.amountCard,
@@ -366,7 +352,7 @@ export function AddExpenseModal({
                   borderWidth: 0,
                   padding: 0,
                   overflow: 'hidden',
-                  marginTop: 16,
+                  marginTop: 8,
                 },
               ]}
             >
@@ -389,7 +375,6 @@ export function AddExpenseModal({
                       placeholder="0.00"
                       placeholderTextColor="rgba(255, 255, 255, 0.55)"
                       keyboardType="decimal-pad"
-                      autoFocus
                       selectionColor="#10B981"
                     />
                   </View>
@@ -408,7 +393,6 @@ export function AddExpenseModal({
                       placeholder="0.00"
                       placeholderTextColor={COLORS.outlineVariant}
                       keyboardType="decimal-pad"
-                      autoFocus
                       selectionColor={COLORS.primary}
                     />
                   </View>
@@ -437,6 +421,33 @@ export function AddExpenseModal({
               variant={variant}
             />
 
+            <TouchableOpacity onPress={() => setIsDatePickerVisible(true)} activeOpacity={0.8}>
+              <View pointerEvents="none">
+                <FormInput
+                  label="Date *"
+                  placeholder="YYYY-MM-DD"
+                  value={date}
+                  onChangeText={(t) => {
+                    setErrorMessage('');
+                    setDate(t);
+                  }}
+                  icon="calendar-outline"
+                  variant={variant}
+                  editable={false}
+                />
+              </View>
+            </TouchableOpacity>
+
+            <DatePickerModal
+              visible={isDatePickerVisible}
+              onClose={() => setIsDatePickerVisible(false)}
+              selectedDate={date}
+              onSelectDate={(newDate) => {
+                setErrorMessage('');
+                setDate(newDate);
+              }}
+            />
+
             <FormInput
               label="Notes"
               placeholder="Add more details (optional)"
@@ -445,18 +456,6 @@ export function AddExpenseModal({
               icon="create-outline"
               multiline
               numberOfLines={3}
-              variant={variant}
-            />
-
-            <FormInput
-              label="Date *"
-              placeholder="YYYY-MM-DD"
-              value={date}
-              onChangeText={(t) => {
-                setErrorMessage('');
-                setDate(t);
-              }}
-              icon="calendar-outline"
               variant={variant}
             />
 
@@ -621,6 +620,48 @@ const styles = StyleSheet.create({
   formContainer: {
     paddingHorizontal: 24,
     paddingBottom: 20,
+  },
+  fullWidthSegmentedWrapper: {
+    flexDirection: 'row',
+    borderRadius: 16,
+    padding: 4,
+    marginTop: 12,
+    marginBottom: 18,
+    borderWidth: 1,
+  },
+  fullWidthSegmentedLight: {
+    backgroundColor: '#f3f4f6',
+    borderColor: '#e5e7eb',
+  },
+  fullWidthSegmentedDark: {
+    backgroundColor: '#101917',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  fullWidthTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 6,
+  },
+  fullWidthTabActiveLight: {
+    backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  fullWidthTabActiveDark: {
+    backgroundColor: '#131D1A',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  fullWidthTabText: {
+    fontSize: 14,
+    fontWeight: '800',
   },
   amountCard: {
     padding: 16,
