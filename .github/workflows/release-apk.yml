@@ -113,13 +113,6 @@ jobs:
           echo "EXPO_PUBLIC_APP_VERSION=${{ env.APP_VERSION }}" >> $GITHUB_ENV
           echo "EXPO_PUBLIC_BUILD_NUMBER=${{ env.EXPO_PUBLIC_BUILD_NUMBER }}" >> $GITHUB_ENV
 
-      - name: Debug Environment Variables
-        run: |
-          echo "=== Debug Versioning Environment Variables ==="
-          echo "APP_VERSION: $APP_VERSION"
-          echo "EXPO_PUBLIC_BUILD_NUMBER: $EXPO_PUBLIC_BUILD_NUMBER"
-          echo "EXPO_PUBLIC_APP_VERSION: $EXPO_PUBLIC_APP_VERSION"
-
       - name: Inject Version and Build Number into eas.json
         run: |
           node -e "
@@ -130,7 +123,6 @@ jobs:
             eas.build.production.env.EXPO_PUBLIC_APP_VERSION = '${{ env.APP_VERSION }}';
             eas.build.production.env.EXPO_PUBLIC_BUILD_NUMBER = '${{ env.EXPO_PUBLIC_BUILD_NUMBER }}';
             fs.writeFileSync(easPath, JSON.stringify(eas, null, 2));
-            console.log('Successfully injected environment variables into eas.json');
           "
 
       - name: Debug and Validate Expo Config
@@ -286,13 +278,38 @@ jobs:
             // Write current version manifest
             fs.writeFileSync('./version.json', JSON.stringify(manifest, null, 2));
             
-            // Append to releases history
+            // Append to releases history and keep ONLY the latest 3 releases
             let history = [];
             try {
               history = JSON.parse(fs.readFileSync('./releases-history.json', 'utf8'));
             } catch (err) {}
-            history.unshift(manifest);
-            fs.writeFileSync('./releases-history.json', JSON.stringify(history, null, 2));
+            
+            // Collect old releases to purge (anything beyond top 3)
+            const prunedHistory = [manifest, ...history];
+            const keptHistory = prunedHistory.slice(0, 3);
+            const expiredReleases = prunedHistory.slice(3);
+            
+            fs.writeFileSync('./releases-history.json', JSON.stringify(keptHistory, null, 2));
+            fs.writeFileSync('./expired-releases.json', JSON.stringify(expiredReleases, null, 2));
+          "
+
+      - name: Auto-Purge Expired Old APKs from Cloudflare R2
+        run: |
+          node -e "
+            const fs = require('fs');
+            const { execSync } = require('child_process');
+            try {
+              const expired = JSON.parse(fs.readFileSync('./expired-releases.json', 'utf8'));
+              for (const rel of expired) {
+                if (rel.version) {
+                  const key = 'expense-release-files/releases/app-v' + rel.version + '.apk';
+                  console.log('🗑️ Purging expired old release from R2:', key);
+                  execSync('aws s3 rm s3://${{ secrets.R2_BUCKET_NAME }}/' + key + ' --endpoint-url https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com', { stdio: 'inherit' });
+                }
+              }
+            } catch (err) {
+              console.error('Error during old APK cleanup:', err);
+            }
           "
 
       - name: Publish Version Manifests to Cloudflare R2

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 
 // Shared branding color definitions matching the mobile application
 const COLORS = {
@@ -433,7 +434,7 @@ export default function HomePage() {
   return (
     <div style={styles.landingPage}>
       {/* Header / Navbar */}
-      <header style={styles.header}>
+      <header className="header-container" style={styles.header}>
         <div style={styles.logoContainer}>
           <span
             className="material-symbols-outlined"
@@ -443,7 +444,7 @@ export default function HomePage() {
           </span>
           <span style={styles.logoText}>SplitShare</span>
         </div>
-        <nav style={styles.navLinks}>
+        <nav className="desktop-nav-links" style={styles.navLinks}>
           <a href="#features" style={styles.navLink}>
             Features
           </a>
@@ -453,18 +454,18 @@ export default function HomePage() {
           <a href="#calculator" style={styles.navLink}>
             Split Calculator
           </a>
-          <a href="#download" style={styles.downloadBtn}>
+          <Link href="/download" style={styles.downloadBtn}>
             Download App
-          </a>
+          </Link>
         </nav>
       </header>
 
       {/* Hero Section */}
-      <section style={styles.heroSection}>
-        <div style={styles.heroLayout}>
+      <section className="hero-section" style={styles.heroSection}>
+        <div className="hero-layout" style={styles.heroLayout}>
           <div style={styles.heroTextCol}>
             <div style={styles.heroTag}>✨ Unified Expenses Platform</div>
-            <h1 style={styles.heroTitle}>
+            <h1 className="hero-title" style={styles.heroTitle}>
               Group Expenses,
               <br />
               Settle Up,
@@ -477,33 +478,37 @@ export default function HomePage() {
             </p>
 
             {/* Store Download CTA */}
-            <div style={styles.storeCtaRow}>
-              <a href="#download" style={styles.storeBadge}>
-                <div style={styles.storeBadgeIcon}>🍏</div>
-                <div style={{ textAlign: 'left' }}>
-                  <span
-                    style={{
-                      fontSize: '9px',
-                      color: '#9cb3ff',
-                      textTransform: 'uppercase',
-                      display: 'block',
-                      fontWeight: '600',
-                    }}
-                  >
-                    Download on the
-                  </span>
-                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#fff' }}>
-                    App Store
-                  </span>
-                </div>
-              </a>
-              <a href="#download" style={styles.storeBadge}>
+            <div className="store-cta-row" style={styles.storeCtaRow}>
+              <Link
+                href="/download"
+                className="store-badge"
+                style={{ ...styles.storeBadge, borderColor: COLORS.primary }}
+              >
                 <div style={styles.storeBadgeIcon}>🤖</div>
                 <div style={{ textAlign: 'left' }}>
                   <span
                     style={{
                       fontSize: '9px',
-                      color: '#85f8c4',
+                      color: COLORS.primaryFixed,
+                      textTransform: 'uppercase',
+                      display: 'block',
+                      fontWeight: '700',
+                    }}
+                  >
+                    Direct Android Installer
+                  </span>
+                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#fff' }}>
+                    Download APK
+                  </span>
+                </div>
+              </Link>
+              <Link href="/download" className="store-badge" style={styles.storeBadge}>
+                <div style={styles.storeBadgeIcon}>▶️</div>
+                <div style={{ textAlign: 'left' }}>
+                  <span
+                    style={{
+                      fontSize: '9px',
+                      color: COLORS.onSurfaceVariant,
                       textTransform: 'uppercase',
                       display: 'block',
                       fontWeight: '600',
@@ -515,18 +520,23 @@ export default function HomePage() {
                     Google Play
                   </span>
                 </div>
-              </a>
+              </Link>
             </div>
 
-            <div style={styles.heroMetrics}>
+            <div className="hero-metrics" style={styles.heroMetrics}>
               <div style={styles.metricItem}>
                 <span style={styles.metricVal}>4.9★</span>
-                <span style={styles.metricLabel}>App rating</span>
+                <span style={styles.metricLabel}>Android App Rating</span>
               </div>
               <div style={styles.dividerVertical} />
               <div style={styles.metricItem}>
                 <span style={styles.metricVal}>10M+</span>
-                <span style={styles.metricLabel}>Transactions split</span>
+                <span style={styles.metricLabel}>Expenses Split</span>
+              </div>
+              <div style={styles.dividerVertical} />
+              <div style={styles.metricItem}>
+                <span style={styles.metricVal}>100%</span>
+                <span style={styles.metricLabel}>Android Optimized</span>
               </div>
             </div>
           </div>
@@ -535,8 +545,8 @@ export default function HomePage() {
           <div style={styles.heroSimCol} id="preview">
             <div style={styles.phoneOuterShadow} />
             <div style={styles.phoneContainer}>
-              {/* Ear Speaker Speaker / Camera cutout */}
-              <div style={styles.phoneSpeaker} />
+              {/* Camera cutout (Android hole-punch) */}
+              <div style={styles.phoneCameraPunch} />
 
               {/* Phone Status Bar */}
               <div style={styles.phoneStatusBar}>
@@ -631,23 +641,23 @@ export default function HomePage() {
               </div>
             </div>
             <div style={styles.simTip}>
-              💡 Tap the navigation bar items to preview different mobile tabs live!
+              💡 Tap navigation items to interact with our Android mobile experience!
             </div>
           </div>
         </div>
       </section>
 
       {/* Features Bento Grid */}
-      <section style={styles.featuresSection} id="features">
+      <section className="features-section" style={styles.featuresSection} id="features">
         <div style={styles.sectionHeaderCol}>
-          <span style={styles.sectionTag}>Features</span>
-          <h2 style={styles.sectionTitleText}>Tailored for Social Sharing</h2>
+          <span style={styles.sectionTag}>Built For Android</span>
+          <h2 style={styles.sectionTitleText}>Packed with Powerful Features</h2>
           <p style={styles.sectionSubtitleText}>
-            Everything you need to eliminate debt awkwardness and track split expenses.
+            From smart OCR receipt scanning to group debt simplification and instant settlements.
           </p>
         </div>
 
-        <div style={styles.featuresGrid}>
+        <div className="features-grid" style={styles.featuresGrid}>
           {/* Feature 1 */}
           <div style={styles.featureCard}>
             <div style={{ ...styles.featureIconContainer, backgroundColor: 'rgba(0,168,112,0.1)' }}>
@@ -660,8 +670,8 @@ export default function HomePage() {
             </div>
             <h3 style={styles.featureTitle}>AI Receipt Scanner</h3>
             <p style={styles.featureDesc}>
-              Just take a photo of your paper receipt. Our smart layout parser scans the lines,
-              matches taxes, and allocates amounts to different users in seconds.
+              Snap a photo with your Android camera. Intelligent AI extracts items, taxes, and
+              splits amounts automatically.
             </p>
           </div>
 
@@ -677,10 +687,10 @@ export default function HomePage() {
                 group
               </span>
             </div>
-            <h3 style={styles.featureTitle}>Group Consolidation</h3>
+            <h3 style={styles.featureTitle}>Group Expense Hub</h3>
             <p style={styles.featureDesc}>
-              Set up dedicated groups for roommate bills, vacations, or dinners. SplitShare tracks
-              who paid for what and consolidates it all into a single net balance.
+              Manage roommate bills, trips, and social events. SplitShare calculates minimum payment
+              balances automatically.
             </p>
           </div>
 
@@ -693,21 +703,76 @@ export default function HomePage() {
                 className="material-symbols-outlined"
                 style={{ fontSize: '28px', color: COLORS.tertiary }}
               >
-                bolt
+                analytics
               </span>
             </div>
-            <h3 style={styles.featureTitle}>Instant Settle Up</h3>
+            <h3 style={styles.featureTitle}>Spending Analytics</h3>
             <p style={styles.featureDesc}>
-              Ready to settle balances? Pay directly inside the app with integrated secure gateways,
-              or log manual cash transactions to wipe the slate clean.
+              Gain deep insight into your monthly spending, group trends, and category breakdowns
+              with interactive charts.
+            </p>
+          </div>
+
+          {/* Feature 4 */}
+          <div style={styles.featureCard}>
+            <div style={{ ...styles.featureIconContainer, backgroundColor: 'rgba(0,168,112,0.1)' }}>
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: '28px', color: COLORS.primary }}
+              >
+                account_balance_wallet
+              </span>
+            </div>
+            <h3 style={styles.featureTitle}>In-App Wallet & Payments</h3>
+            <p style={styles.featureDesc}>
+              Seamlessly settle balances using direct UPI/bank options or log cash transactions in
+              seconds.
+            </p>
+          </div>
+
+          {/* Feature 5 */}
+          <div style={styles.featureCard}>
+            <div
+              style={{ ...styles.featureIconContainer, backgroundColor: 'rgba(99,102,241,0.1)' }}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: '28px', color: COLORS.secondary }}
+              >
+                notifications_active
+              </span>
+            </div>
+            <h3 style={styles.featureTitle}>Instant Reminders</h3>
+            <p style={styles.featureDesc}>
+              Send polite settlement reminders to friends with custom notifications and payment
+              links.
+            </p>
+          </div>
+
+          {/* Feature 6 */}
+          <div style={styles.featureCard}>
+            <div
+              style={{ ...styles.featureIconContainer, backgroundColor: 'rgba(245,158,11,0.1)' }}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: '28px', color: COLORS.tertiary }}
+              >
+                system_update
+              </span>
+            </div>
+            <h3 style={styles.featureTitle}>Direct APK & OTA Updates</h3>
+            <p style={styles.featureDesc}>
+              Get seamless background updates and direct Android APK installation with built-in
+              version checking.
             </p>
           </div>
         </div>
       </section>
 
       {/* Interactive Bill Splitting Calculator */}
-      <section style={styles.calculatorSection} id="calculator">
-        <div style={styles.calcLayout}>
+      <section className="calculator-section" style={styles.calculatorSection} id="calculator">
+        <div className="calc-layout" style={styles.calcLayout}>
           <div style={styles.calcCopyCol}>
             <span style={styles.sectionTag}>Try it Live</span>
             <h2 style={styles.sectionTitleText}>Calculate splits instantly</h2>
@@ -739,7 +804,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div style={styles.calcCardContainer}>
+          <div className="calc-card-container" style={styles.calcCardContainer}>
             <div style={styles.calcInputGroup}>
               <label style={styles.calcLabel}>Bill Amount ($)</label>
               <input
@@ -804,10 +869,10 @@ export default function HomePage() {
       </section>
 
       {/* Download Section */}
-      <section style={styles.downloadSection} id="download">
+      <section className="download-section" style={styles.downloadSection} id="download">
         <div style={styles.downloadBgGradient} />
         <h2 style={{ fontSize: '32px', fontWeight: '800', margin: '0 0 12px 0' }}>
-          Get SplitShare today
+          Get SplitShare for Android Today
         </h2>
         <p
           style={{
@@ -819,60 +884,33 @@ export default function HomePage() {
           }}
         >
           Stop worrying about group expenses and spreadsheets. Settle up effortlessly with friends,
-          roommates, and travel buddies.
+          roommates, and travel buddies on Android.
         </p>
 
-        <div style={{ ...styles.storeCtaRow, justifyContent: 'center' }}>
-          <a
-            href="#"
-            style={styles.storeBadge}
-            onClick={(e) => {
-              e.preventDefault();
-              alert('SplitShare iOS App downloading...');
-            }}
-          >
-            <div style={styles.storeBadgeIcon}>🍏</div>
-            <div style={{ textAlign: 'left' }}>
-              <span
-                style={{
-                  fontSize: '9px',
-                  color: '#9cb3ff',
-                  textTransform: 'uppercase',
-                  display: 'block',
-                  fontWeight: '600',
-                }}
-              >
-                Download on the
-              </span>
-              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#fff' }}>App Store</span>
-            </div>
-          </a>
-          <a
-            href="#"
-            style={styles.storeBadge}
-            onClick={(e) => {
-              e.preventDefault();
-              alert('SplitShare Android App downloading...');
-            }}
+        <div className="store-cta-row" style={{ ...styles.storeCtaRow, justifyContent: 'center' }}>
+          <Link
+            href="/download"
+            className="store-badge"
+            style={{ ...styles.storeBadge, borderColor: COLORS.primary }}
           >
             <div style={styles.storeBadgeIcon}>🤖</div>
             <div style={{ textAlign: 'left' }}>
               <span
                 style={{
                   fontSize: '9px',
-                  color: '#85f8c4',
+                  color: COLORS.primaryFixed,
                   textTransform: 'uppercase',
                   display: 'block',
-                  fontWeight: '600',
+                  fontWeight: '700',
                 }}
               >
-                Get it on
+                Direct Download
               </span>
               <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#fff' }}>
-                Google Play
+                Download Android APK
               </span>
             </div>
-          </a>
+          </Link>
         </div>
       </section>
 
@@ -1070,17 +1108,17 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: '0 25px 50px -12px rgba(0,0,0,0.7)',
     zIndex: 2,
   },
-  phoneSpeaker: {
-    width: '100px',
-    height: '24px',
-    backgroundColor: '#222530',
+  phoneCameraPunch: {
+    width: '12px',
+    height: '12px',
+    backgroundColor: '#000000',
+    borderRadius: '50%',
     position: 'absolute' as const,
-    top: 0,
+    top: '10px',
     left: '50%',
     transform: 'translateX(-50%)',
-    borderBottomLeftRadius: '16px',
-    borderBottomRightRadius: '16px',
     zIndex: 10,
+    border: '1px solid #222530',
   },
   phoneStatusBar: {
     height: '36px',

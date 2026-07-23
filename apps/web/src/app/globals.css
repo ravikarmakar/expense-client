@@ -1,0 +1,70 @@
+/* Responsive utilities and media queries */
+@media (max-width: 1024px) {
+  .hero-layout,
+  .calc-layout,
+  .download-content-layout {
+    grid-template-columns: 1fr !important;
+    gap: 40px !important;
+  }
+
+  .features-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .desktop-nav-links {
+    display: none !important;
+  }
+
+  .mobile-menu-btn {
+    display: flex !important;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .hero-title {
+    font-size: 36px !important;
+  }
+
+  .download-page-title {
+    font-size: 32px !important;
+  }
+
+  .hero-section,
+  .features-section,
+  .calculator-section,
+  .download-section {
+    padding: 60px 20px !important;
+  }
+
+  .header-container {
+    padding: 0 20px !important;
+  }
+
+  .download-container {
+    padding: 40px 20px !important;
+  }
+
+  .store-cta-row {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
+  .store-badge {
+    justify-content: center !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .hero-metrics {
+    flex-wrap: wrap !important;
+    gap: 16px !important;
+  }
+
+  .calc-card-container {
+    padding: 20px !important;
+  }
+}

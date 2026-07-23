@@ -110,7 +110,7 @@ export default function DownloadPage() {
       </header>
 
       {/* Main Container */}
-      <main style={styles.container}>
+      <main className="download-container" style={styles.container}>
         {isLoading ? (
           <div style={styles.loaderContainer}>
             <div style={styles.spinner}></div>
@@ -131,11 +131,13 @@ export default function DownloadPage() {
             </button>
           </div>
         ) : (
-          <div style={styles.contentLayout}>
+          <div className="download-content-layout" style={styles.contentLayout}>
             {/* Left Column: CTA & Details */}
             <div style={styles.infoCol}>
               <div style={styles.badge}>🚀 Production Ready</div>
-              <h1 style={styles.pageTitle}>Get SplitShare for Android</h1>
+              <h1 className="download-page-title" style={styles.pageTitle}>
+                Get SplitShare for Android
+              </h1>
               <p style={styles.pageSubtitle}>
                 Download the standalone package directly to your Android device to start splitting,
                 tracking, and settling shared expenses without Play Store limitations.
@@ -229,12 +231,12 @@ export default function DownloadPage() {
                 </div>
               )}
 
-              {/* Version History */}
+              {/* Version History (Only show up to 2 previous releases, 3 total including latest) */}
               {releases.length > 1 && (
                 <div style={styles.historyCard}>
                   <h3 style={styles.cardSectionTitle}>Version History</h3>
                   <div style={styles.historyList}>
-                    {releases.slice(1).map((release, index) => (
+                    {releases.slice(1, 3).map((release, index) => (
                       <div key={index} style={styles.historyRow}>
                         <div>
                           <div
