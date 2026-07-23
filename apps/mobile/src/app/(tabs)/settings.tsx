@@ -16,6 +16,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, PREDEFINED_AVATARS, resolveAvatar } from '../../constants/theme';
 import { globalStyles } from '../../styles/globalStyles';
 import { useSettingsController } from '@workspace/api';
+import { hapticFeedback } from '../../utils/haptics';
+import { useTheme } from '../../context/ThemeContext';
 
 import { ModalContainer } from '../../components/ModalContainer';
 import { LoadingButton } from '../../components/LoadingButton';
@@ -49,6 +51,12 @@ export default function SettingsTabScreen() {
   });
 
   const insets = useSafeAreaInsets();
+  const { themeMode, setThemeMode } = useTheme();
+
+  const handleSelectTheme = (mode: 'light' | 'dark') => {
+    hapticFeedback.selection();
+    setThemeMode(mode);
+  };
 
   return (
     <View style={styles.container}>
@@ -148,6 +156,74 @@ export default function SettingsTabScreen() {
 
         <View style={styles.settingsSection}>
           <Text style={styles.settingsGroupTitle}>Preferences & Safety</Text>
+
+          <View style={styles.settingsItem}>
+            <View style={styles.settingsItemLeft}>
+              <View
+                style={[
+                  styles.iconBadge,
+                  {
+                    backgroundColor: themeMode === 'dark' ? 'rgba(52, 211, 153, 0.15)' : '#fff3e0',
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={themeMode === 'dark' ? 'moon' : 'sunny'}
+                  size={18}
+                  color={themeMode === 'dark' ? '#34d399' : '#f59e0b'}
+                />
+              </View>
+              <Text style={styles.settingsItemLabel}>Appearance</Text>
+            </View>
+
+            <View style={styles.themeTogglePill}>
+              <TouchableOpacity
+                style={[
+                  styles.themeOptionBtn,
+                  themeMode === 'light' && styles.themeOptionActiveLight,
+                ]}
+                activeOpacity={0.8}
+                onPress={() => handleSelectTheme('light')}
+              >
+                <Ionicons
+                  name="sunny-outline"
+                  size={12}
+                  color={themeMode === 'light' ? '#1e293b' : COLORS.outline}
+                />
+                <Text
+                  style={[
+                    styles.themeOptionText,
+                    themeMode === 'light' && styles.themeOptionTextActiveLight,
+                  ]}
+                >
+                  Light
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.themeOptionBtn,
+                  themeMode === 'dark' && styles.themeOptionActiveDark,
+                ]}
+                activeOpacity={0.8}
+                onPress={() => handleSelectTheme('dark')}
+              >
+                <Ionicons
+                  name="moon-outline"
+                  size={12}
+                  color={themeMode === 'dark' ? '#10B981' : COLORS.outline}
+                />
+                <Text
+                  style={[
+                    styles.themeOptionText,
+                    themeMode === 'dark' && styles.themeOptionTextActiveDark,
+                  ]}
+                >
+                  Dark
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
           <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7}>
             <View style={styles.settingsItemLeft}>
@@ -634,5 +710,49 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  themeTogglePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surfaceContainerLow,
+    borderRadius: 20,
+    padding: 3,
+    gap: 2,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
+  },
+  themeOptionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    gap: 4,
+  },
+  themeOptionActiveLight: {
+    backgroundColor: '#ffffff',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  themeOptionActiveDark: {
+    backgroundColor: '#101917',
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.3)',
+  },
+  themeOptionText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.outline,
+  },
+  themeOptionTextActiveLight: {
+    color: '#1e293b',
+    fontWeight: '700',
+  },
+  themeOptionTextActiveDark: {
+    color: '#10B981',
+    fontWeight: '700',
   },
 });

@@ -5,24 +5,25 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
   TextInput,
-  Modal,
+  Animated,
 } from 'react-native';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, CURRENCY_SYMBOL } from '../constants/theme';
 import {
   useCreateExpense,
   clientCreateExpenseSchema,
   getErrorMessage,
-  useCategories,
   type ExpenseCategory,
 } from '@workspace/api';
 import { BottomSheetModal } from './BottomSheetModal';
 import { FormInput } from './FormInput';
 import { AddGroupExpenseModal } from '../module/groups/components/AddGroupExpenseModal';
+import { TactileButton } from './TactileButton';
 import { CategoryDropdown } from '../module/groups/components/CategoryDropdown';
-import { getCategoryVisuals } from '../constants/categories';
+import { formatRupees } from '../utils/format';
+import { ExpenseSuccessView } from './ExpenseSuccessView';
+import { hapticFeedback } from '../utils/haptics';
 
 interface AddExpenseModalProps {
   visible: boolean;
@@ -31,6 +32,7 @@ interface AddExpenseModalProps {
   groupName?: string;
   initialExpenseType?: 'PERSONAL' | 'GROUP';
   onSuccess?: (isWallet?: boolean) => void;
+  variant?: 'light' | 'dark';
 }
 
 export function AddExpenseModal({
@@ -40,17 +42,171 @@ export function AddExpenseModal({
   groupName,
   initialExpenseType,
   onSuccess,
+  variant = 'light',
 }: AddExpenseModalProps) {
-  const [expenseType, setExpenseType] = useState<'PERSONAL' | 'GROUP' | null>(
-    groupId ? 'GROUP' : (initialExpenseType ?? null)
+  const isDark = variant === 'dark';
+  const [expenseType, setExpenseType] = useState<'PERSONAL' | 'GROUP'>(
+    groupId ? 'GROUP' : (initialExpenseType ?? 'PERSONAL')
   );
+
+  const headerSwitcherWidth = 150;
+  const activeTabTranslateX = React.useRef(
+    new Animated.Value(expenseType === 'PERSONAL' ? 0 : (headerSwitcherWidth - 6) / 2)
+  ).current;
+
+  React.useEffect(() => {
+    if (visible) {
+      resetForm();
+      const defaultType = groupId ? 'GROUP' : (initialExpenseType ?? 'PERSONAL');
+      const initialVal = defaultType === 'PERSONAL' ? 0 : (headerSwitcherWidth - 6) / 2;
+      activeTabTranslateX.setValue(initialVal);
+    }
+  }, [visible, groupId, initialExpenseType]);
+
+  React.useEffect(() => {
+    const targetValue = expenseType === 'PERSONAL' ? 0 : (headerSwitcherWidth - 6) / 2;
+    Animated.timing(activeTabTranslateX, {
+      toValue: targetValue,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [expenseType]);
 
   const [category, setCategory] = useState<ExpenseCategory | null>(null);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
 
   const [amount, setAmount] = useState('');
+
+  const handleAmountChange = (text: string) => {
+    setErrorMessage('');
+    const formatted = formatRupees(text);
+    if (formatted !== null) {
+      setAmount(formatted);
+    }
+  };
+
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
+
+  const renderHeaderRight = () => {
+    if (groupId || initialExpenseType) return null;
+    return (
+      <View
+        style={[
+          styles.segmentedWrapper,
+          {
+            width: headerSwitcherWidth,
+            height: 36,
+            borderRadius: 8,
+            padding: 2,
+            marginHorizontal: 0,
+            marginBottom: 0,
+          },
+          isDark && {
+            backgroundColor: '#101917',
+            borderWidth: 0,
+            position: 'relative',
+          },
+        ]}
+      >
+        {isDark && (
+          <Animated.View
+            style={{
+              position: 'absolute',
+              top: 2,
+              bottom: 2,
+              left: 2,
+              width: (headerSwitcherWidth - 6) / 2,
+              borderRadius: 6,
+              backgroundColor: '#10B981',
+              borderWidth: 0,
+              transform: [{ translateX: activeTabTranslateX }],
+            }}
+          />
+        )}
+        <TouchableOpacity
+          style={[
+            styles.segmentedTab,
+            { height: '100%', paddingVertical: 0, gap: 4 },
+            !isDark && expenseType === 'PERSONAL' && styles.segmentedTabActive,
+            !isDark && { borderRadius: 6 },
+          ]}
+          onPress={() => {
+            hapticFeedback.selection();
+            setExpenseType('PERSONAL');
+          }}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="person-outline"
+            size={12}
+            color={
+              expenseType === 'PERSONAL'
+                ? isDark
+                  ? '#FFFFFF'
+                  : '#fff'
+                : isDark
+                  ? 'rgba(255, 255, 255, 0.65)'
+                  : COLORS.onSurfaceVariant
+            }
+          />
+          <Text
+            style={[
+              styles.segmentedText,
+              { fontSize: 11 },
+              isDark && {
+                color: expenseType === 'PERSONAL' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)',
+              },
+              expenseType === 'PERSONAL' && !isDark && { color: '#fff', fontWeight: '700' },
+              expenseType === 'PERSONAL' && isDark && { fontWeight: '700' },
+            ]}
+          >
+            Personal
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.segmentedTab,
+            { height: '100%', paddingVertical: 0, gap: 4 },
+            !isDark && expenseType === 'GROUP' && styles.segmentedTabActive,
+            !isDark && { borderRadius: 6 },
+          ]}
+          onPress={() => {
+            hapticFeedback.selection();
+            setExpenseType('GROUP');
+          }}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="people-outline"
+            size={13}
+            color={
+              expenseType === 'GROUP'
+                ? isDark
+                  ? '#FFFFFF'
+                  : '#fff'
+                : isDark
+                  ? 'rgba(255, 255, 255, 0.65)'
+                  : COLORS.onSurfaceVariant
+            }
+          />
+          <Text
+            style={[
+              styles.segmentedText,
+              { fontSize: 11 },
+              isDark && {
+                color: expenseType === 'GROUP' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)',
+              },
+              expenseType === 'GROUP' && !isDark && { color: '#fff', fontWeight: '700' },
+              expenseType === 'GROUP' && isDark && { fontWeight: '700' },
+            ]}
+          >
+            Group
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   const getLocalTodayString = () => {
     const d = new Date();
@@ -70,7 +226,6 @@ export function AddExpenseModal({
   } | null>(null);
 
   const createExpense = useCreateExpense();
-  const { data: categoriesData } = useCategories();
 
   const handleToggleCategoryDropdown = React.useCallback(() => {
     setIsCategoryDropdownOpen((prev) => !prev);
@@ -86,7 +241,7 @@ export function AddExpenseModal({
   );
 
   const resetForm = () => {
-    setExpenseType(groupId ? 'GROUP' : (initialExpenseType ?? null));
+    setExpenseType(groupId ? 'GROUP' : (initialExpenseType ?? 'PERSONAL'));
     setCategory(null);
     setIsCategoryDropdownOpen(false);
     setAmount('');
@@ -105,7 +260,7 @@ export function AddExpenseModal({
 
   const handleSubmit = () => {
     setErrorMessage('');
-    const parsed = parseFloat(amount.replace(',', '.'));
+    const parsed = parseFloat(amount.replace(/,/g, '').replace(',', '.'));
 
     if (!amount || isNaN(parsed) || parsed <= 0) {
       setErrorMessage('Please enter a valid amount greater than 0');
@@ -151,215 +306,173 @@ export function AddExpenseModal({
     });
   };
 
-  // Delegate rendering to AddGroupExpenseModal if in GROUP mode
-  if (expenseType === 'GROUP' || groupId || initialExpenseType === 'GROUP') {
-    return (
-      <AddGroupExpenseModal
-        visible={visible}
-        onClose={() => {
-          setExpenseType(null);
-          onClose();
-        }}
-        groupId={groupId}
-        groupName={groupName}
-        onSuccess={onSuccess}
-      />
-    );
-  }
+  // Render AddExpenseModal form fields
 
   return (
-    <>
-      {isSuccess && addedExpenseInfo ? (
-        <Modal
-          visible={visible}
-          transparent
-          animationType="fade"
-          onRequestClose={handleClose}
-          statusBarTranslucent={true}
+    <BottomSheetModal
+      visible={visible}
+      onClose={handleClose}
+      title={groupId ? 'Add Group Expense' : 'Add Expense'}
+      variant={variant}
+      headerRight={renderHeaderRight()}
+    >
+      {errorMessage ? (
+        <View
+          style={[
+            styles.errorBanner,
+            isDark && {
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              borderColor: 'rgba(239, 68, 68, 0.2)',
+              borderWidth: 1,
+            },
+          ]}
         >
-          <View style={styles.modalOverlay}>
-            <View style={styles.successDialog}>
-              <View style={styles.successBadge}>
-                <Ionicons name="checkmark-circle" size={72} color={COLORS.primary} />
-              </View>
+          <Ionicons name="alert-circle" size={16} color={isDark ? '#EF4444' : COLORS.error} />
+          <Text style={[styles.errorText, isDark && { color: '#EF4444' }]}>{errorMessage}</Text>
+        </View>
+      ) : null}
 
-              <Text style={styles.successTitle}>Expense Added!</Text>
-              <Text style={styles.successSubtitle}>
-                Your transaction has been recorded successfully.
-              </Text>
-
-              <View style={styles.successCard}>
-                <View style={styles.successCardRow}>
-                  {(() => {
-                    const customCategories = categoriesData?.custom || [];
-                    const config = getCategoryVisuals(addedExpenseInfo.category, customCategories);
-                    return (
-                      <View style={[styles.successIconBg, { backgroundColor: config.bg }]}>
-                        {config.lib === 'Ionicons' ? (
-                          <Ionicons name={config.icon as never} size={20} color={config.color} />
-                        ) : (
-                          <MaterialIcons
-                            name={config.icon as never}
-                            size={20}
-                            color={config.color}
-                          />
-                        )}
-                      </View>
-                    );
-                  })()}
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.successExpenseTitle} numberOfLines={1}>
-                      {addedExpenseInfo.title}
-                    </Text>
-                    <Text style={styles.successExpenseCategory}>{addedExpenseInfo.category}</Text>
-                  </View>
-                  <Text style={styles.successExpenseAmount}>
-                    {CURRENCY_SYMBOL}
-                    {addedExpenseInfo.amount.toFixed(2)}
-                  </Text>
-                </View>
-              </View>
-
-              <TouchableOpacity
-                style={styles.successButton}
-                onPress={handleClose}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.successButtonText}>Done</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-      ) : (
-        <BottomSheetModal
+      {isSuccess && addedExpenseInfo ? (
+        <ExpenseSuccessView
+          title={addedExpenseInfo.title}
+          amount={addedExpenseInfo.amount}
+          category={addedExpenseInfo.category}
+          onDone={handleClose}
+          variant={variant}
+        />
+      ) : expenseType === 'GROUP' ? (
+        <AddGroupExpenseModal
           visible={visible}
           onClose={handleClose}
-          title={!expenseType ? 'Select Expense Type' : 'Add Expense'}
+          groupId={groupId}
+          groupName={groupName}
+          onSuccess={onSuccess}
+          variant={variant}
+          standalone={false}
+        />
+      ) : (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: 40 }}
         >
-          {errorMessage ? (
-            <View style={styles.errorBanner}>
-              <Ionicons name="alert-circle" size={16} color={COLORS.error} />
-              <Text style={styles.errorText}>{errorMessage}</Text>
+          <View style={styles.formContainer}>
+            <View
+              style={[
+                styles.amountCard,
+                isDark && {
+                  backgroundColor: 'transparent',
+                  borderColor: 'transparent',
+                  borderWidth: 0,
+                  padding: 0,
+                  overflow: 'hidden',
+                  marginTop: 16,
+                },
+              ]}
+            >
+              {isDark ? (
+                <View style={{ padding: 16, width: '100%', alignItems: 'center' }}>
+                  <Text style={[styles.amountLabel, { color: 'rgba(255, 255, 255, 0.65)' }]}>
+                    Amount
+                  </Text>
+                  <View style={styles.amountRow}>
+                    <Text
+                      style={[styles.currencySymbol, { color: '#10B981', marginRight: 6 }]}
+                      numberOfLines={1}
+                    >
+                      {CURRENCY_SYMBOL}
+                    </Text>
+                    <TextInput
+                      style={[styles.amountInput, { color: '#FFFFFF' }]}
+                      value={amount}
+                      onChangeText={handleAmountChange}
+                      placeholder="0.00"
+                      placeholderTextColor="rgba(255, 255, 255, 0.55)"
+                      keyboardType="decimal-pad"
+                      autoFocus
+                      selectionColor="#10B981"
+                    />
+                  </View>
+                </View>
+              ) : (
+                <>
+                  <Text style={styles.amountLabel}>Amount</Text>
+                  <View style={styles.amountRow}>
+                    <Text style={styles.currencySymbol} numberOfLines={1}>
+                      {CURRENCY_SYMBOL}
+                    </Text>
+                    <TextInput
+                      style={styles.amountInput}
+                      value={amount}
+                      onChangeText={handleAmountChange}
+                      placeholder="0.00"
+                      placeholderTextColor={COLORS.outlineVariant}
+                      keyboardType="decimal-pad"
+                      autoFocus
+                      selectionColor={COLORS.primary}
+                    />
+                  </View>
+                </>
+              )}
             </View>
-          ) : null}
 
-          {!expenseType ? (
-            <View style={styles.typeSelectionContainer}>
-              <TouchableOpacity
-                style={styles.typeBtn}
-                onPress={() => setExpenseType('PERSONAL')}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.typeIconBg, { backgroundColor: COLORS.primaryFixed }]}>
-                  <Ionicons name="person" size={28} color={COLORS.primary} />
-                </View>
-                <View style={styles.typeBtnTextWrapper}>
-                  <Text style={styles.typeBtnTitle}>Personal Expense</Text>
-                  <Text style={styles.typeBtnSub}>Just for you, not shared.</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={24} color={COLORS.outline} />
-              </TouchableOpacity>
+            <CategoryDropdown
+              isOpen={isCategoryDropdownOpen}
+              onToggle={handleToggleCategoryDropdown}
+              category={category}
+              onSelect={handleSelectCategory}
+              groupId={groupId}
+              variant={variant}
+            />
 
-              <TouchableOpacity
-                style={styles.typeBtn}
-                onPress={() => setExpenseType('GROUP')}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.typeIconBg, { backgroundColor: COLORS.secondaryFixed }]}>
-                  <Ionicons name="people" size={28} color={COLORS.secondary} />
-                </View>
-                <View style={styles.typeBtnTextWrapper}>
-                  <Text style={styles.typeBtnTitle}>Group Expense</Text>
-                  <Text style={styles.typeBtnSub}>Split with friends or family.</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={24} color={COLORS.outline} />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <View style={styles.formContainer}>
-                <View style={styles.amountContainer}>
-                  <Text style={styles.currencySymbol}>{CURRENCY_SYMBOL}</Text>
-                  <TextInput
-                    style={styles.amountInput}
-                    value={amount}
-                    onChangeText={(t) => {
-                      setErrorMessage('');
-                      if (/^\d*\.?\d{0,2}$/.test(t)) setAmount(t);
-                    }}
-                    placeholder="0.00"
-                    placeholderTextColor={COLORS.outlineVariant}
-                    keyboardType="decimal-pad"
-                    autoFocus
-                  />
-                </View>
+            <FormInput
+              label="Title *"
+              placeholder="What was this expense for?"
+              value={title}
+              onChangeText={(t) => {
+                setErrorMessage('');
+                setTitle(t);
+              }}
+              icon="document-text-outline"
+              variant={variant}
+            />
 
-                <CategoryDropdown
-                  isOpen={isCategoryDropdownOpen}
-                  onToggle={handleToggleCategoryDropdown}
-                  category={category}
-                  onSelect={handleSelectCategory}
-                  groupId={groupId}
-                />
+            <FormInput
+              label="Notes"
+              placeholder="Add more details (optional)"
+              value={notes}
+              onChangeText={setNotes}
+              icon="create-outline"
+              multiline
+              numberOfLines={3}
+              variant={variant}
+            />
 
-                <FormInput
-                  label="Title *"
-                  placeholder="What was this expense for?"
-                  value={title}
-                  onChangeText={(t) => {
-                    setErrorMessage('');
-                    setTitle(t);
-                  }}
-                  icon="document-text-outline"
-                />
+            <FormInput
+              label="Date *"
+              placeholder="YYYY-MM-DD"
+              value={date}
+              onChangeText={(t) => {
+                setErrorMessage('');
+                setDate(t);
+              }}
+              icon="calendar-outline"
+              variant={variant}
+            />
 
-                <FormInput
-                  label="Notes"
-                  placeholder="Add more details (optional)"
-                  value={notes}
-                  onChangeText={setNotes}
-                  icon="create-outline"
-                  multiline
-                  numberOfLines={3}
-                />
-
-                <FormInput
-                  label="Date *"
-                  placeholder="YYYY-MM-DD"
-                  value={date}
-                  onChangeText={(t) => {
-                    setErrorMessage('');
-                    setDate(t);
-                  }}
-                  icon="calendar-outline"
-                />
-
-                <TouchableOpacity
-                  style={[
-                    styles.primaryBtn,
-                    styles.submitBtn,
-                    (!title.trim() || !category || !amount || createExpense.isPending) &&
-                      styles.primaryBtnDisabled,
-                  ]}
-                  onPress={handleSubmit}
-                  disabled={!title.trim() || !category || !amount || createExpense.isPending}
-                  activeOpacity={0.85}
-                >
-                  {createExpense.isPending ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <>
-                      <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                      <Text style={[styles.primaryBtnText, { marginLeft: 8 }]}>Add Expense</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          )}
-        </BottomSheetModal>
+            <TactileButton
+              title="Add Expense"
+              icon="checkmark-circle"
+              variant="emerald"
+              onPress={handleSubmit}
+              loading={createExpense.isPending}
+              disabled={!title.trim() || !category || !amount}
+              style={styles.submitBtn}
+            />
+          </View>
+        </ScrollView>
       )}
-    </>
+    </BottomSheetModal>
   );
 }
 
@@ -509,26 +622,74 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 20,
   },
-  amountContainer: {
+  amountCard: {
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: COLORS.surfaceContainerLow,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
+    marginBottom: 24,
+    width: '100%',
+    alignItems: 'center',
+  },
+  amountLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.outline,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+  amountRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 32,
   },
   currencySymbol: {
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: '700',
     color: COLORS.outline,
-    marginBottom: 4,
-    marginRight: 8,
+    marginBottom: 2,
   },
   amountInput: {
-    fontSize: 56,
+    fontSize: 48,
     fontWeight: '800',
     color: COLORS.onSurface,
     textAlign: 'center',
     letterSpacing: -1,
     minWidth: 160,
+    paddingVertical: 0,
+  },
+  segmentedWrapper: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.surfaceContainerLow,
+    borderRadius: 14,
+    padding: 4,
+    marginHorizontal: 24,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
+  },
+  segmentedTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 10,
+    gap: 6,
+  },
+  segmentedTabActive: {
+    backgroundColor: COLORS.primary,
+  },
+  segmentedText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.onSurfaceVariant,
+  },
+  segmentedTextActive: {
+    color: '#ffffff',
+    fontWeight: '700',
   },
   dropdownWrapper: {
     marginBottom: 16,

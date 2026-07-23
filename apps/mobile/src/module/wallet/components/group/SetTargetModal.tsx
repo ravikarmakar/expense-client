@@ -84,7 +84,11 @@ export function SetTargetModal({
                   <TextInput
                     style={styles.textInput}
                     value={newTarget}
-                    onChangeText={setNewTarget}
+                    onChangeText={(val) => {
+                      if (/^\d{0,7}\.?\d{0,2}$/.test(val)) {
+                        setNewTarget(val);
+                      }
+                    }}
                     keyboardType="decimal-pad"
                     placeholder="e.g. 500"
                     placeholderTextColor={COLORS.outlineVariant}

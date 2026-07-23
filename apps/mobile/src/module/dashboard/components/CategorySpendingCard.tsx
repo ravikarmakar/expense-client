@@ -34,28 +34,59 @@ interface CategorySpendingCardProps {
     categorySpent: CategorySpentItem[];
   } | null;
   totalSpent: number;
+  variant?: 'light' | 'dark';
 }
 
 export const CategorySpendingCard = React.memo(function CategorySpendingCard({
   summary,
   totalSpent,
+  variant = 'light',
 }: CategorySpendingCardProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { data: categoriesData } = useCategories();
   const customCategories = categoriesData?.custom || [];
+  const isDark = variant === 'dark';
 
   if (!summary?.categorySpent || summary.categorySpent.length === 0) {
     return (
       <View style={[globalStyles.sectionContainer, styles.pbHighlight]}>
         <View style={styles.categoryCardHeader}>
-          <Text style={[globalStyles.sectionTitle, styles.sectionTitle]}>Spending Breakdown</Text>
+          <Text
+            style={[globalStyles.sectionTitle, styles.sectionTitle, isDark && { color: '#ffffff' }]}
+          >
+            Spending Breakdown
+          </Text>
         </View>
-        <View style={styles.emptyCard}>
-          <View style={styles.emptyIconBg}>
-            <Ionicons name="analytics" size={28} color={COLORS.outline} />
+        <View
+          style={[
+            styles.emptyCard,
+            isDark && {
+              backgroundColor: 'rgba(255, 255, 255, 0.02)',
+              borderColor: 'rgba(255, 255, 255, 0.05)',
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.emptyIconBg,
+              isDark && {
+                backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                borderColor: 'rgba(255, 255, 255, 0.08)',
+              },
+            ]}
+          >
+            <Ionicons
+              name="analytics"
+              size={28}
+              color={isDark ? 'rgba(255, 255, 255, 0.5)' : COLORS.outline}
+            />
           </View>
-          <Text style={styles.emptyCardTitle}>No spending recorded</Text>
-          <Text style={styles.emptyCardSubtitle}>
+          <Text style={[styles.emptyCardTitle, isDark && { color: '#ffffff' }]}>
+            No spending recorded
+          </Text>
+          <Text
+            style={[styles.emptyCardSubtitle, isDark && { color: 'rgba(255, 255, 255, 0.45)' }]}
+          >
             Add expenses with categories to see your monthly spending breakdown here.
           </Text>
         </View>
@@ -92,23 +123,32 @@ export const CategorySpendingCard = React.memo(function CategorySpendingCard({
           <Text style={[styles.centerLabelTitle, { color: activeConfig.color }]} numberOfLines={1}>
             {activeCategory.category}
           </Text>
-          <Text style={styles.centerLabelAmount} numberOfLines={1}>
+          <Text
+            style={[styles.centerLabelAmount, isDark && { color: '#ffffff' }]}
+            numberOfLines={1}
+          >
             {CURRENCY_SYMBOL}
             {activeCategory.amount.toFixed(0)}
           </Text>
-          <Text style={styles.centerLabelSub}>{percentage.toFixed(0)}% of total</Text>
+          <Text style={[styles.centerLabelSub, isDark && { color: 'rgba(255,255,255,0.4)' }]}>
+            {percentage.toFixed(0)}% of total
+          </Text>
         </View>
       );
     }
 
     return (
       <View style={styles.centerLabelContainer}>
-        <Text style={styles.centerLabelTitle}>Total Spent</Text>
-        <Text style={styles.centerLabelAmount} numberOfLines={1}>
+        <Text style={[styles.centerLabelTitle, isDark && { color: 'rgba(255,255,255,0.5)' }]}>
+          Total Spent
+        </Text>
+        <Text style={[styles.centerLabelAmount, isDark && { color: '#ffffff' }]} numberOfLines={1}>
           {CURRENCY_SYMBOL}
           {totalSpent.toFixed(0)}
         </Text>
-        <Text style={styles.centerLabelSub}>This Month</Text>
+        <Text style={[styles.centerLabelSub, isDark && { color: 'rgba(255,255,255,0.4)' }]}>
+          This Month
+        </Text>
       </View>
     );
   };
@@ -116,28 +156,53 @@ export const CategorySpendingCard = React.memo(function CategorySpendingCard({
   return (
     <View style={[globalStyles.sectionContainer, styles.pbHighlight]}>
       <View style={styles.categoryCardHeader}>
-        <Text style={[globalStyles.sectionTitle, styles.sectionTitle]}>Spending Breakdown</Text>
+        <Text
+          style={[globalStyles.sectionTitle, styles.sectionTitle, isDark && { color: '#ffffff' }]}
+        >
+          Spending Breakdown
+        </Text>
         {selectedCategory && (
           <TouchableOpacity
-            style={styles.clearSelectionBtn}
+            style={[
+              styles.clearSelectionBtn,
+              isDark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+            ]}
             onPress={() => setSelectedCategory(null)}
             activeOpacity={0.7}
           >
-            <Text style={styles.clearSelectionText}>Reset Zoom</Text>
-            <Ionicons name="refresh" size={12} color={COLORS.primary} />
+            <Text style={[styles.clearSelectionText, isDark && { color: '#10B981' }]}>
+              Reset Zoom
+            </Text>
+            <Ionicons name="refresh" size={12} color={isDark ? '#10B981' : COLORS.primary} />
           </TouchableOpacity>
         )}
       </View>
 
-      <View style={styles.cardContainer}>
+      <View
+        style={[
+          styles.cardContainer,
+          isDark && {
+            backgroundColor: '#131D1A',
+            borderColor: 'rgba(255, 255, 255, 0.08)',
+            borderRadius: 20,
+            elevation: 0,
+            shadowOpacity: 0,
+          },
+        ]}
+      >
         {/* Donut Chart Block */}
-        <View style={styles.chartWrapper}>
+        <View
+          style={[
+            styles.chartWrapper,
+            isDark && { borderBottomColor: 'rgba(255, 255, 255, 0.05)' },
+          ]}
+        >
           <PieChart
             data={pieData}
             donut
             radius={85}
             innerRadius={62}
-            innerCircleColor={COLORS.surface}
+            innerCircleColor={isDark ? '#08110F' : COLORS.surface}
             centerLabelComponent={renderCenterLabel}
           />
         </View>
@@ -152,13 +217,28 @@ export const CategorySpendingCard = React.memo(function CategorySpendingCard({
             return (
               <TouchableOpacity
                 key={item.category}
-                style={[styles.categoryCardRow, isSelected && styles.categoryCardRowActive]}
+                style={[
+                  styles.categoryCardRow,
+                  isDark && { backgroundColor: '#101917' },
+                  isSelected && !isDark && styles.categoryCardRowActive,
+                  isSelected &&
+                    isDark && {
+                      backgroundColor: '#08110F',
+                      borderColor: 'rgba(16, 185, 129, 0.25)',
+                      borderWidth: 1.5,
+                    },
+                ]}
                 onPress={() => setSelectedCategory(isSelected ? null : item.category)}
                 activeOpacity={0.8}
               >
                 <View style={styles.categoryHeader}>
                   <View style={styles.categoryInfo}>
-                    <View style={[styles.categoryIconBg, { backgroundColor: config.bg }]}>
+                    <View
+                      style={[
+                        styles.categoryIconBg,
+                        { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : config.bg },
+                      ]}
+                    >
                       <CategoryIcon
                         name={config.icon}
                         lib={config.lib}
@@ -167,23 +247,37 @@ export const CategorySpendingCard = React.memo(function CategorySpendingCard({
                       />
                     </View>
                     <View style={styles.categoryTextWrapper}>
-                      <Text style={styles.categoryName}>{item.category}</Text>
-                      <Text style={styles.categorySubtext}>{percentage.toFixed(0)}% of total</Text>
+                      <Text style={[styles.categoryName, isDark && { color: '#ffffff' }]}>
+                        {item.category}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.categorySubtext,
+                          isDark && { color: 'rgba(255, 255, 255, 0.45)' },
+                        ]}
+                      >
+                        {percentage.toFixed(0)}% of total
+                      </Text>
                     </View>
                   </View>
-                  <Text style={styles.categoryAmountText}>
+                  <Text style={[styles.categoryAmountText, isDark && { color: '#ffffff' }]}>
                     {CURRENCY_SYMBOL}
                     {item.amount.toFixed(2)}
                   </Text>
                 </View>
 
-                <View style={styles.progressTrack}>
+                <View
+                  style={[
+                    styles.progressTrack,
+                    isDark && { backgroundColor: 'rgba(255, 255, 255, 0.05)' },
+                  ]}
+                >
                   <View
                     style={[
                       styles.progressFill,
                       {
                         width: `${percentage}%`,
-                        backgroundColor: config.color,
+                        backgroundColor: isDark ? '#10B981' : config.color,
                       },
                     ]}
                   />
@@ -206,7 +300,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 16,
-    paddingHorizontal: 16,
+    paddingHorizontal: 4,
   },
   sectionTitle: {
     fontSize: 20,
@@ -237,7 +331,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.surfaceContainer,
     padding: 16,
-    marginHorizontal: 16,
+    marginHorizontal: 0,
     elevation: 2,
     shadowColor: COLORS.onSurface,
     shadowOffset: { width: 0, height: 2 },
@@ -348,7 +442,7 @@ const styles = StyleSheet.create({
     padding: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 16,
+    marginHorizontal: 0,
     gap: 8,
   },
   emptyIconBg: {

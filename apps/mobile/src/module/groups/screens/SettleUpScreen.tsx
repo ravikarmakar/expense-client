@@ -173,7 +173,7 @@ export default function SettleUpScreen() {
               placeholderTextColor={COLORS.outline}
               value={settleAmount}
               onChangeText={(val) => {
-                if (/^\d*\.?\d{0,2}$/.test(val)) {
+                if (/^\d{0,7}\.?\d{0,2}$/.test(val)) {
                   setSettleAmount(val);
                 }
               }}

@@ -37,11 +37,11 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    paddingVertical: 18,
-    paddingHorizontal: 16,
+    backgroundColor: 'transparent',
+    paddingVertical: 14,
+    paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f3f4',
+    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
   },
   middleSection: {
     flex: 1,

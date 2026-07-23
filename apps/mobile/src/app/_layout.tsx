@@ -13,6 +13,11 @@ import NetInfo from '@react-native-community/netinfo';
 import { COLORS } from '../constants/theme';
 import { env } from '../env';
 import { AuthGuard } from '../module/auth/components/AuthGuard';
+import { ThemeProvider, useTheme } from '../context/ThemeContext';
+
+import { enableFreeze } from 'react-native-screens';
+
+enableFreeze(true);
 
 // ── Keep splash screen visible until we're ready ────────────────────────────
 SplashScreen.preventAutoHideAsync();
@@ -71,6 +76,7 @@ function RootLayoutNav() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const [authAlertVisible, setAuthAlertVisible] = React.useState(false);
+  const { isDark } = useTheme();
 
   // ── Listen for 401 events from the axios interceptor ──
   React.useEffect(() => {
@@ -84,11 +90,12 @@ function RootLayoutNav() {
 
   return (
     <>
+      <StatusBar style={isDark ? 'light' : 'dark'} translucent />
       <AuthGuard>
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: '#08110F' },
+            contentStyle: { backgroundColor: isDark ? '#08110F' : COLORS.background },
           }}
         >
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
@@ -116,26 +123,27 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-        <PersistQueryClientProvider
-          client={queryClient}
-          persistOptions={{
-            persister: asyncStoragePersister,
-            // Max age for persisted cache: 24 hours
-            maxAge: 1000 * 60 * 60 * 24,
-            // Don't persist auth queries (they should always be fresh)
-            dehydrateOptions: {
-              shouldDehydrateQuery: (query) => {
-                // Skip persisting auth queries and failed queries
-                const isAuthQuery = query.queryKey[0] === 'auth';
-                const isSuccess = query.state.status === 'success';
-                return isSuccess && !isAuthQuery;
+        <ThemeProvider>
+          <PersistQueryClientProvider
+            client={queryClient}
+            persistOptions={{
+              persister: asyncStoragePersister,
+              // Max age for persisted cache: 24 hours
+              maxAge: 1000 * 60 * 60 * 24,
+              // Don't persist auth queries (they should always be fresh)
+              dehydrateOptions: {
+                shouldDehydrateQuery: (query) => {
+                  // Skip persisting auth queries and failed queries
+                  const isAuthQuery = query.queryKey[0] === 'auth';
+                  const isSuccess = query.state.status === 'success';
+                  return isSuccess && !isAuthQuery;
+                },
               },
-            },
-          }}
-        >
-          <RootLayoutNav />
-          <StatusBar style="dark" />
-        </PersistQueryClientProvider>
+            }}
+          >
+            <RootLayoutNav />
+          </PersistQueryClientProvider>
+        </ThemeProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
   );

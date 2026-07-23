@@ -1,16 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { COLORS, CURRENCY_SYMBOL } from '../constants/theme';
 import { type Expense, useCategories } from '@workspace/api';
 import { getCategoryVisuals } from '../constants/categories';
+import { ScalePressable } from './ScalePressable';
 
 interface TransactionItemProps {
   expense: Expense;
   currentUserId?: string;
   onPress?: () => void;
   isSettled?: boolean;
+  variant?: 'light' | 'dark';
 }
 
 export const ExpenseItem = React.memo(function TransactionItem({
@@ -18,8 +20,10 @@ export const ExpenseItem = React.memo(function TransactionItem({
   currentUserId,
   onPress,
   isSettled,
+  variant = 'light',
 }: TransactionItemProps) {
   const defaultOnPress = () => router.push(`/expense/${expense.id}`);
+  const isDark = variant === 'dark';
 
   const finalIsSettled = isSettled !== undefined ? isSettled : expense.isSettled || false;
 
@@ -66,33 +70,71 @@ export const ExpenseItem = React.memo(function TransactionItem({
         : 0;
       if (othersOwe > 0) {
         balanceLabel = `Owed ${CURRENCY_SYMBOL}${othersOwe.toFixed(2)}`;
-        balanceColor = finalIsSettled ? '#70757a' : '#1b5e20';
+        balanceColor = finalIsSettled
+          ? isDark
+            ? 'rgba(255,255,255,0.4)'
+            : '#70757a'
+          : isDark
+            ? '#34d399'
+            : '#1b5e20';
       } else {
         balanceLabel = 'Settled';
-        balanceColor = '#137333';
+        balanceColor = isDark ? '#34d399' : '#137333';
       }
     } else {
       const mySplit = expense.splits?.find((s) => s.userId === currentUserId);
       if (mySplit) {
         if (mySplit.paid) {
           balanceLabel = 'Settled';
-          balanceColor = '#137333';
+          balanceColor = isDark ? '#34d399' : '#137333';
         } else {
           balanceLabel = `Owe ${CURRENCY_SYMBOL}${mySplit.amount.toFixed(2)}`;
-          balanceColor = finalIsSettled ? '#70757a' : '#c62828';
+          balanceColor = finalIsSettled
+            ? isDark
+              ? 'rgba(255,255,255,0.4)'
+              : '#70757a'
+            : isDark
+              ? '#f87171'
+              : '#c62828';
         }
       }
     }
   }
 
   return (
-    <TouchableOpacity
-      style={styles.container}
+    <ScalePressable
+      style={[
+        styles.container,
+        !isDark && {
+          backgroundColor: '#ffffff',
+          paddingVertical: 14,
+          paddingHorizontal: 20,
+          borderBottomWidth: 1,
+          borderBottomColor: '#f1f3f4',
+        },
+        isDark && {
+          backgroundColor: 'transparent',
+          paddingVertical: 14,
+          paddingHorizontal: 20,
+          borderBottomWidth: 1,
+          borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+        },
+      ]}
       onPress={onPress ?? defaultOnPress}
-      activeOpacity={0.6}
+      hapticType="none"
     >
       {/* Left: Category Icon Avatar */}
-      <View style={[styles.avatarCircle, { backgroundColor: cfg.bg }]}>
+      <View
+        style={[
+          styles.avatarCircle,
+          { backgroundColor: cfg.bg },
+          isDark && {
+            backgroundColor: '#101917',
+            borderWidth: 1,
+            borderColor: 'rgba(255, 255, 255, 0.06)',
+          },
+        ]}
+      >
         {cfg.lib === 'Ionicons' ? (
           <Ionicons name={cfg.icon as never} size={22} color={cfg.color} />
         ) : (
@@ -102,26 +144,40 @@ export const ExpenseItem = React.memo(function TransactionItem({
 
       {/* Middle: Title, Payment Subtitle, Date */}
       <View style={styles.middleSection}>
-        <Text style={styles.sourceText} numberOfLines={1}>
+        <Text
+          style={[styles.sourceText, isDark && { color: 'rgba(255, 255, 255, 0.45)' }]}
+          numberOfLines={1}
+        >
           {sourceSubtitle}
         </Text>
-        <Text style={styles.titleText} numberOfLines={1}>
+        <Text style={[styles.titleText, isDark && { color: '#ffffff' }]} numberOfLines={1}>
           {expense.title}
         </Text>
-        <Text style={styles.dateText}>{fullDateTimeStr}</Text>
+        <Text style={[styles.dateText, isDark && { color: 'rgba(255, 255, 255, 0.4)' }]}>
+          {fullDateTimeStr}
+        </Text>
       </View>
 
       {/* Right: Amount & Chevron */}
       <View style={styles.rightSection}>
         <View style={styles.amountContainer}>
-          <Text style={[styles.amountText, styles.amountDebit]}>
+          <Text style={[styles.amountText, styles.amountDebit, isDark && { color: '#ffffff' }]}>
             {CURRENCY_SYMBOL}
             {expense.amount.toFixed(2)}
           </Text>
           {expense.isWalletPayment ? (
-            <View style={styles.walletPaidBadge}>
-              <Ionicons name="wallet" size={9} color={COLORS.primary} />
-              <Text style={styles.walletPaidBadgeText}>Wallet</Text>
+            <View
+              style={[
+                styles.walletPaidBadge,
+                isDark && {
+                  backgroundColor: 'rgba(52, 211, 153, 0.15)',
+                },
+              ]}
+            >
+              <Ionicons name="wallet" size={9} color={isDark ? '#34d399' : COLORS.primary} />
+              <Text style={[styles.walletPaidBadgeText, isDark && { color: '#34d399' }]}>
+                Wallet
+              </Text>
             </View>
           ) : (
             <>
@@ -131,16 +187,35 @@ export const ExpenseItem = React.memo(function TransactionItem({
                 </Text>
               ) : null}
               {finalIsSettled ? (
-                <View style={styles.settledBadgeContainer}>
-                  <Text style={styles.settledBadgeText}>Covered by settlement</Text>
+                <View
+                  style={[
+                    styles.settledBadgeContainer,
+                    isDark && {
+                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.settledBadgeText,
+                      isDark && { color: 'rgba(255, 255, 255, 0.6)' },
+                    ]}
+                  >
+                    Covered by settlement
+                  </Text>
                 </View>
               ) : null}
             </>
           )}
         </View>
-        <Ionicons name="chevron-forward" size={16} color="#000000" style={styles.chevron} />
+        <Ionicons
+          name="chevron-forward"
+          size={16}
+          color={isDark ? 'rgba(255, 255, 255, 0.3)' : '#000000'}
+          style={styles.chevron}
+        />
       </View>
-    </TouchableOpacity>
+    </ScalePressable>
   );
 });
 

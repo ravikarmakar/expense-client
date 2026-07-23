@@ -3,42 +3,34 @@ import { View, Text, StyleSheet, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useTheme } from '../context/ThemeContext';
+
 interface BrandedLaunchScreenProps {
   logoOpacity?: Animated.Value;
   logoScale?: Animated.Value;
 }
 
-/**
- * Premium SplitShare Branded Launch / Splash Screen (#08110F).
- * Matches the exact dark matte background theme with top spotlight gradient
- * and edge vignette used throughout the app.
- */
 export function BrandedLaunchScreen({ logoOpacity, logoScale }: BrandedLaunchScreenProps) {
-  // Default values if animation values are not passed
   const defaultOpacity = React.useRef(new Animated.Value(1)).current;
   const defaultScale = React.useRef(new Animated.Value(1)).current;
+  const { isDark } = useTheme();
 
   const opacity = logoOpacity ?? defaultOpacity;
   const scale = logoScale ?? defaultScale;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, !isDark && { backgroundColor: '#f8f9fa' }]}>
       {/* Top Spotlight Gradient */}
       <LinearGradient
-        colors={['rgba(20, 42, 33, 0.45)', 'rgba(12, 26, 20, 0.2)', '#08110F']}
+        colors={
+          isDark
+            ? ['rgba(20, 42, 33, 0.45)', 'rgba(12, 26, 20, 0.2)', '#08110F']
+            : ['rgba(232, 240, 254, 0.6)', 'rgba(248, 249, 250, 0.3)', '#f8f9fa']
+        }
         locations={[0, 0.38, 1]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         style={StyleSheet.absoluteFillObject}
-      />
-
-      {/* Faint Edge Vignette */}
-      <LinearGradient
-        colors={['rgba(4, 9, 8, 0.25)', 'transparent', 'rgba(4, 9, 8, 0.5)']}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
-        pointerEvents="none"
       />
 
       {/* Main Logo Section */}
@@ -52,18 +44,29 @@ export function BrandedLaunchScreen({ logoOpacity, logoScale }: BrandedLaunchScr
         ]}
       >
         <View style={styles.iconGlowWrapper}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="wallet" size={42} color="#34d399" />
+          <View
+            style={[
+              styles.iconCircle,
+              !isDark && {
+                backgroundColor: 'rgba(0, 105, 72, 0.1)',
+                borderColor: 'rgba(0, 105, 72, 0.2)',
+                shadowColor: '#006948',
+              },
+            ]}
+          >
+            <Ionicons name="wallet" size={42} color={isDark ? '#34d399' : '#006948'} />
           </View>
         </View>
 
-        <Text style={styles.appName}>SplitShare</Text>
-        <Text style={styles.tagline}>Splitting bills made easy and beautiful</Text>
+        <Text style={[styles.appName, !isDark && { color: '#191c1d' }]}>SplitShare</Text>
+        <Text style={[styles.tagline, !isDark && { color: '#6d7a72' }]}>
+          Splitting bills made easy and beautiful
+        </Text>
       </Animated.View>
 
       {/* Bottom Section with Animated Loading Dots */}
       <View style={styles.bottomSection}>
-        <LoadingDots />
+        <LoadingDots isDark={isDark} />
       </View>
     </View>
   );
@@ -72,7 +75,7 @@ export function BrandedLaunchScreen({ logoOpacity, logoScale }: BrandedLaunchScr
 /**
  * Smooth Animated Pulse Dots
  */
-function LoadingDots() {
+function LoadingDots({ isDark }: { isDark: boolean }) {
   const dot1 = React.useRef(new Animated.Value(0.3)).current;
   const dot2 = React.useRef(new Animated.Value(0.3)).current;
   const dot3 = React.useRef(new Animated.Value(0.3)).current;
@@ -112,9 +115,15 @@ function LoadingDots() {
 
   return (
     <View style={styles.dotsRow}>
-      <Animated.View style={[styles.dot, { opacity: dot1 }]} />
-      <Animated.View style={[styles.dot, { opacity: dot2 }]} />
-      <Animated.View style={[styles.dot, { opacity: dot3 }]} />
+      <Animated.View
+        style={[styles.dot, !isDark && { backgroundColor: '#006948' }, { opacity: dot1 }]}
+      />
+      <Animated.View
+        style={[styles.dot, !isDark && { backgroundColor: '#006948' }, { opacity: dot2 }]}
+      />
+      <Animated.View
+        style={[styles.dot, !isDark && { backgroundColor: '#006948' }, { opacity: dot3 }]}
+      />
     </View>
   );
 }

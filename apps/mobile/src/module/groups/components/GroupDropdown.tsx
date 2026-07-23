@@ -23,6 +23,7 @@ interface GroupDropdownProps {
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
   isLoading?: boolean;
+  variant?: 'light' | 'dark';
 }
 
 const isCloseToBottom = (event: NativeScrollEvent) => {
@@ -42,11 +43,23 @@ export const GroupDropdown = React.memo(function GroupDropdown({
   hasNextPage,
   isFetchingNextPage,
   isLoading,
+  variant = 'light',
 }: GroupDropdownProps) {
+  const isDark = variant === 'dark';
+
   return (
     <>
-      <Text style={styles.inputLabel}>Group *</Text>
-      <View style={styles.dropdownWrapper}>
+      <Text style={[styles.inputLabel, isDark && { color: '#74817B' }]}>Group *</Text>
+      <View
+        style={[
+          styles.dropdownWrapper,
+          isDark && {
+            backgroundColor: '#101917',
+            borderColor: 'rgba(255, 255, 255, 0.12)',
+            borderWidth: 1,
+          },
+        ]}
+      >
         <TouchableOpacity style={styles.dropdownHeader} onPress={onToggle} activeOpacity={0.8}>
           <View style={styles.dropdownHeaderLeft}>
             {selectedGroupId ? (
@@ -56,7 +69,7 @@ export const GroupDropdown = React.memo(function GroupDropdown({
                 >
                   <Ionicons name="people" size={18} color={COLORS.secondary} />
                 </View>
-                <Text style={styles.dropdownHeaderText}>
+                <Text style={[styles.dropdownHeaderText, isDark && { color: '#FFFFFF' }]}>
                   {selectedGroupName ||
                     userGroups.find((g) => g.id === selectedGroupId)?.name ||
                     'Selected Group'}
@@ -67,12 +80,21 @@ export const GroupDropdown = React.memo(function GroupDropdown({
                 <View
                   style={[
                     styles.dropdownHeaderIcon,
-                    { backgroundColor: COLORS.surfaceContainerLow },
+                    { backgroundColor: isDark ? '#131D1A' : COLORS.surfaceContainerLow },
                   ]}
                 >
-                  <Ionicons name="people-outline" size={18} color={COLORS.outline} />
+                  <Ionicons
+                    name="people-outline"
+                    size={18}
+                    color={isDark ? 'rgba(255, 255, 255, 0.65)' : COLORS.outline}
+                  />
                 </View>
-                <Text style={[styles.dropdownHeaderText, { color: COLORS.outlineVariant }]}>
+                <Text
+                  style={[
+                    styles.dropdownHeaderText,
+                    { color: isDark ? 'rgba(255, 255, 255, 0.55)' : COLORS.outlineVariant },
+                  ]}
+                >
                   Select Group
                 </Text>
               </>
@@ -81,13 +103,20 @@ export const GroupDropdown = React.memo(function GroupDropdown({
           <Ionicons
             name={isOpen ? 'chevron-up' : 'chevron-down'}
             size={20}
-            color={COLORS.outline}
+            color={isDark ? 'rgba(255, 255, 255, 0.65)' : COLORS.outline}
           />
         </TouchableOpacity>
 
         {isOpen && (
           <ScrollView
-            style={[styles.dropdownList, styles.categoryScroll]}
+            style={[
+              styles.dropdownList,
+              styles.categoryScroll,
+              isDark && {
+                backgroundColor: '#101917',
+                borderTopColor: 'rgba(255, 255, 255, 0.16)',
+              },
+            ]}
             nestedScrollEnabled={true}
             showsVerticalScrollIndicator={true}
             keyboardShouldPersistTaps="handled"
@@ -113,7 +142,13 @@ export const GroupDropdown = React.memo(function GroupDropdown({
               </View>
             ) : userGroups.length === 0 ? (
               <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-                <Text style={{ color: COLORS.outline, fontSize: 13, fontWeight: '500' }}>
+                <Text
+                  style={{
+                    color: isDark ? 'rgba(255, 255, 255, 0.65)' : COLORS.outline,
+                    fontSize: 13,
+                    fontWeight: '500',
+                  }}
+                >
                   No groups found
                 </Text>
               </View>
@@ -123,7 +158,14 @@ export const GroupDropdown = React.memo(function GroupDropdown({
                 return (
                   <TouchableOpacity
                     key={grp.id}
-                    style={[styles.dropdownItem, isSelected && styles.dropdownItemActive]}
+                    style={[
+                      styles.dropdownItem,
+                      isDark && { borderBottomColor: 'rgba(255, 255, 255, 0.04)' },
+                      isSelected &&
+                        (isDark
+                          ? { backgroundColor: 'rgba(16, 185, 129, 0.15)' }
+                          : styles.dropdownItemActive),
+                    ]}
                     onPress={() => onSelect(grp.id)}
                     activeOpacity={0.8}
                   >
@@ -139,14 +181,22 @@ export const GroupDropdown = React.memo(function GroupDropdown({
                       <Text
                         style={[
                           styles.dropdownItemLabel,
-                          isSelected && styles.dropdownItemLabelActive,
+                          isDark && { color: '#ffffff' },
+                          isSelected &&
+                            (isDark
+                              ? { color: '#10B981', fontWeight: '700' }
+                              : styles.dropdownItemLabelActive),
                         ]}
                       >
                         {grp.name}
                       </Text>
                     </View>
                     {isSelected && (
-                      <Ionicons name="checkmark-sharp" size={18} color={COLORS.primary} />
+                      <Ionicons
+                        name="checkmark-sharp"
+                        size={18}
+                        color={isDark ? '#10B981' : COLORS.primary}
+                      />
                     )}
                   </TouchableOpacity>
                 );
@@ -154,7 +204,7 @@ export const GroupDropdown = React.memo(function GroupDropdown({
             )}
             {isFetchingNextPage && (
               <View style={{ paddingVertical: 12, alignItems: 'center' }}>
-                <ActivityIndicator size="small" color={COLORS.primary} />
+                <ActivityIndicator size="small" color={isDark ? '#10B981' : COLORS.primary} />
               </View>
             )}
           </ScrollView>

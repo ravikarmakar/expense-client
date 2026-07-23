@@ -14,7 +14,10 @@ import { COLORS } from '../../../constants/theme';
 import { useOtpController } from '@workspace/api';
 import { useRouteParams, otpParamsSchema } from '../../../hooks/useRouteParams';
 import { AuthScreenLayout } from '../components/AuthScreenLayout';
+import { TactileButton } from '../../../components/TactileButton';
 import { authStyles } from '../styles/auth.styles';
+
+import { useTheme } from '../../../context/ThemeContext';
 
 const CODE_LENGTH = 6;
 
@@ -25,6 +28,7 @@ const formatCooldown = (seconds: number) => {
 };
 
 export default function OtpScreen() {
+  const { isDark } = useTheme();
   const params = useRouteParams(otpParamsSchema);
   const inputRefs = useRef<(TextInput | null)[]>(Array(CODE_LENGTH).fill(null));
   const cooldownEndTimeRef = useRef<number>(0);
@@ -129,7 +133,16 @@ export default function OtpScreen() {
             key={idx}
             style={[
               authStyles.otpBoxContainer,
-              digit ? authStyles.otpBoxFilled : null,
+              !isDark && {
+                backgroundColor: '#f3f4f5',
+                borderColor: '#e2ece6',
+              },
+              digit && isDark && authStyles.otpBoxFilled,
+              digit &&
+                !isDark && {
+                  backgroundColor: '#e6f4ea',
+                  borderColor: '#006948',
+                },
               (loading || resendLoading) && { opacity: 0.6 },
             ]}
           >
@@ -147,14 +160,15 @@ export default function OtpScreen() {
                 )
               }
               placeholder="•"
-              placeholderTextColor={COLORS.outlineVariant}
+              placeholderTextColor={isDark ? 'rgba(255, 255, 255, 0.3)' : '#bccac0'}
               keyboardType="number-pad"
               maxLength={CODE_LENGTH}
               selectTextOnFocus
-              style={authStyles.otpInput}
+              style={[authStyles.otpInput, !isDark && { color: '#191c1d' }]}
               editable={!(loading || resendLoading || isLockedOut)}
               textContentType="oneTimeCode"
               autoComplete="one-time-code"
+              selectionColor={isDark ? '#10b981' : '#006948'}
             />
           </View>
         ))}
@@ -162,16 +176,24 @@ export default function OtpScreen() {
 
       {/* Resend Action */}
       <View style={authStyles.resendContainer}>
-        <Text style={authStyles.resendText}>{"Didn't receive the code? "}</Text>
+        <Text style={[authStyles.resendText, !isDark && { color: '#6d7a72' }]}>
+          {"Didn't receive the code? "}
+        </Text>
         <TouchableOpacity
           onPress={handleResend}
           activeOpacity={0.7}
           disabled={resendLoading || cooldown > 0}
         >
           {resendLoading ? (
-            <ActivityIndicator size="small" color={COLORS.secondary} />
+            <ActivityIndicator size="small" color={isDark ? '#34d399' : '#006948'} />
           ) : (
-            <Text style={[authStyles.resendLink, cooldown > 0 && authStyles.disabledLink]}>
+            <Text
+              style={[
+                authStyles.resendLink,
+                !isDark && { color: '#006948' },
+                cooldown > 0 && (isDark ? authStyles.disabledLink : { color: '#bccac0' }),
+              ]}
+            >
               {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend Code'}
             </Text>
           )}
@@ -179,23 +201,15 @@ export default function OtpScreen() {
       </View>
 
       {/* Verify Button */}
-      <TouchableOpacity
+      <TactileButton
+        title={isLockedOut ? `Locked out (${formatCooldown(cooldown)})` : 'Verify & Continue'}
+        icon="shield-checkmark-outline"
+        variant="emerald"
         onPress={handleVerify}
-        style={[
-          authStyles.primaryButton,
-          (isSubmitDisabled || isLockedOut) && authStyles.disabledButton,
-        ]}
-        activeOpacity={0.8}
+        loading={loading}
         disabled={isSubmitDisabled || isLockedOut}
-      >
-        {loading ? (
-          <ActivityIndicator color="#ffffff" />
-        ) : (
-          <Text style={authStyles.primaryButtonText}>
-            {isLockedOut ? `Locked out (${formatCooldown(cooldown)})` : 'Verify & Continue'}
-          </Text>
-        )}
-      </TouchableOpacity>
+        style={{ marginTop: 8 }}
+      />
     </AuthScreenLayout>
   );
 }

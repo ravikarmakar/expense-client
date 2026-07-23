@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useRouter, useNavigationContainerRef, type Href } from 'expo-router';
 import { useMe } from '@workspace/api';
@@ -17,43 +17,19 @@ import { BrandedLaunchScreen } from '../../../components/BrandedLaunchScreen';
  *   • Authenticated + verified          →  /(tabs)
  *   • Unauthenticated                   →  /(auth)/login
  */
+import { useTheme } from '../../../context/ThemeContext';
+import { COLORS } from '../../../constants/theme';
+
 export function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { isDark } = useTheme();
   const { data: user, isLoading } = useMe();
   const router = useRouter();
   const navigationRef = useNavigationContainerRef();
   const [isNavigationReady, setIsNavigationReady] = React.useState(false);
   const [isInitialRedirectDone, setIsInitialRedirectDone] = React.useState(false);
 
-  // Logo spring & opacity animations
-  const logoScale = React.useRef(new Animated.Value(0.8)).current;
-  const logoOpacity = React.useRef(new Animated.Value(0)).current;
   const lastRouteRef = React.useRef<string | null>(null);
   const splashHiddenRef = React.useRef(false);
-
-  // Animate logo on mount
-  React.useEffect(() => {
-    Animated.parallel([
-      Animated.spring(logoScale, {
-        toValue: 1,
-        friction: 8,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-      Animated.timing(logoOpacity, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [logoOpacity, logoScale]);
-
-  // Hide Expo native splash once our React Native tree has painted
-  React.useEffect(() => {
-    if (!splashHiddenRef.current) {
-      splashHiddenRef.current = true;
-      SplashScreen.hideAsync();
-    }
-  }, []);
 
   // Listen for navigation container ready state
   React.useEffect(() => {
@@ -96,25 +72,27 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       router.replace(targetRoute as Href);
     }
 
-    // Delay hiding the splash overlay until Expo Router completes the background route transition
-    const timer = setTimeout(() => {
-      setIsInitialRedirectDone(true);
-    }, 150);
+    setIsInitialRedirectDone(true);
 
-    return () => clearTimeout(timer);
+    if (!splashHiddenRef.current) {
+      splashHiddenRef.current = true;
+      SplashScreen.hideAsync().catch(() => {});
+    }
   }, [user, isLoading, isNavigationReady, router]);
 
   const showSplashOverlay = isLoading || !isInitialRedirectDone;
 
   return (
-    <View style={styles.container}>
-      {/* 1. Always render children (<Stack>) so Root Navigator is ALWAYS mounted */}
+    <View style={[styles.container, { backgroundColor: isDark ? '#08110F' : COLORS.background }]}>
+      {/* 1. Always render children (<Stack>) so Root Navigator is ALWAYS mounted and navigationRef initializes */}
       {children}
 
-      {/* 2. Show premium branded splash overlay ON TOP until initial route transition completes */}
+      {/* 2. Show branded splash overlay ON TOP until initial route transition completes, then unmount completely */}
       {showSplashOverlay && (
-        <View style={styles.splashOverlay}>
-          <BrandedLaunchScreen logoOpacity={logoOpacity} logoScale={logoScale} />
+        <View
+          style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? '#08110F' : '#f8f9fa' }]}
+        >
+          <BrandedLaunchScreen />
         </View>
       )}
     </View>
@@ -124,10 +102,5 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#08110F',
-  },
-  splashOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 99999,
   },
 });

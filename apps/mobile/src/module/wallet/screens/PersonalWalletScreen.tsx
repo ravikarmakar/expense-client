@@ -262,7 +262,11 @@ export default function PersonalWalletScreen() {
                   placeholder="0.00"
                   placeholderTextColor={COLORS.outline}
                   value={inputAmount}
-                  onChangeText={setInputAmount}
+                  onChangeText={(val) => {
+                    if (/^\d{0,7}\.?\d{0,2}$/.test(val)) {
+                      setInputAmount(val);
+                    }
+                  }}
                   autoFocus={true}
                 />
               </View>

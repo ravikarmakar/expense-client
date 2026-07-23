@@ -11,6 +11,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { TactileButton } from '../../../../components/TactileButton';
 import { authStyles } from '../../styles/auth.styles';
 
+import { useTheme } from '../../../../context/ThemeContext';
+
 const CODE_LENGTH = 6;
 
 const formatCooldown = (seconds: number) => {
@@ -44,6 +46,7 @@ export function VerifyStep({
   errorMessage,
   successMessage,
 }: VerifyStepProps) {
+  const { isDark } = useTheme();
   const inputRefs = useRef<(TextInput | null)[]>(Array(CODE_LENGTH).fill(null));
   const isLockedOut = cooldown > 60;
 
@@ -98,27 +101,52 @@ export function VerifyStep({
   return (
     <View style={{ width: '100%' }}>
       {errorMessage ? (
-        <View style={authStyles.errorContainer}>
-          <Ionicons name="alert-circle" size={18} color="#fca5a5" />
-          <Text style={authStyles.errorText}>{errorMessage}</Text>
+        <View
+          style={[
+            authStyles.errorContainer,
+            !isDark && { backgroundColor: '#fee2e2', borderColor: '#fca5a5' },
+          ]}
+        >
+          <Ionicons name="alert-circle" size={18} color={isDark ? '#fca5a5' : '#dc2626'} />
+          <Text style={[authStyles.errorText, !isDark && { color: '#dc2626' }]}>
+            {errorMessage}
+          </Text>
         </View>
       ) : null}
 
       {successMessage ? (
-        <View style={authStyles.successContainer}>
-          <Ionicons name="checkmark-circle" size={18} color="#6ee7b7" />
-          <Text style={authStyles.successText}>{successMessage}</Text>
+        <View
+          style={[
+            authStyles.successContainer,
+            !isDark && { backgroundColor: '#d1fae5', borderColor: '#6ee7b7' },
+          ]}
+        >
+          <Ionicons name="checkmark-circle" size={18} color={isDark ? '#6ee7b7' : '#059669'} />
+          <Text style={[authStyles.successText, !isDark && { color: '#059669' }]}>
+            {successMessage}
+          </Text>
         </View>
       ) : null}
 
-      <Text style={authStyles.inputLabel}>Verification Code</Text>
+      <Text style={[authStyles.inputLabel, !isDark && { color: '#6d7a72' }]}>
+        Verification Code
+      </Text>
       <View style={authStyles.otpGrid}>
         {code.map((digit, idx) => (
           <View
             key={idx}
             style={[
               authStyles.otpBoxContainer,
-              digit ? authStyles.otpBoxFilled : null,
+              !isDark && {
+                backgroundColor: '#f3f4f5',
+                borderColor: '#e2ece6',
+              },
+              digit && isDark && authStyles.otpBoxFilled,
+              digit &&
+                !isDark && {
+                  backgroundColor: '#e6f4ea',
+                  borderColor: '#006948',
+                },
               loading && { opacity: 0.6 },
             ]}
           >
@@ -130,14 +158,15 @@ export function VerifyStep({
               onChangeText={(text) => handleTextChange(text, idx)}
               onKeyPress={(e) => handleKeyPress(e, idx)}
               placeholder="•"
-              placeholderTextColor="rgba(255, 255, 255, 0.3)"
+              placeholderTextColor={isDark ? 'rgba(255, 255, 255, 0.3)' : '#bccac0'}
               keyboardType="number-pad"
               maxLength={CODE_LENGTH}
               selectTextOnFocus
-              style={authStyles.otpInput}
+              style={[authStyles.otpInput, !isDark && { color: '#191c1d' }]}
               editable={!loading && !isLockedOut}
               textContentType="oneTimeCode"
               autoComplete="one-time-code"
+              selectionColor={isDark ? '#10b981' : '#006948'}
             />
           </View>
         ))}
@@ -145,16 +174,24 @@ export function VerifyStep({
 
       {/* Resend Action */}
       <View style={authStyles.resendContainer}>
-        <Text style={authStyles.resendText}>{"Didn't receive the code? "}</Text>
+        <Text style={[authStyles.resendText, !isDark && { color: '#6d7a72' }]}>
+          {"Didn't receive the code? "}
+        </Text>
         <TouchableOpacity
           onPress={onResendOtp}
           activeOpacity={0.7}
           disabled={resendLoading || cooldown > 0}
         >
           {resendLoading ? (
-            <ActivityIndicator size="small" color="#34d399" />
+            <ActivityIndicator size="small" color={isDark ? '#34d399' : '#006948'} />
           ) : (
-            <Text style={[authStyles.resendLink, cooldown > 0 && authStyles.disabledLink]}>
+            <Text
+              style={[
+                authStyles.resendLink,
+                !isDark && { color: '#006948' },
+                cooldown > 0 && (isDark ? authStyles.disabledLink : { color: '#bccac0' }),
+              ]}
+            >
               {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend Code'}
             </Text>
           )}
@@ -172,8 +209,9 @@ export function VerifyStep({
       />
 
       {/* Helper description note placed below the button */}
-      <Text style={styles.footerNote}>
-        We sent a 6-digit reset code to <Text style={styles.emailHighlight}>{email}</Text>
+      <Text style={[styles.footerNote, !isDark && { color: '#6d7a72' }]}>
+        We sent a 6-digit reset code to{' '}
+        <Text style={[styles.emailHighlight, !isDark && { color: '#191c1d' }]}>{email}</Text>
       </Text>
     </View>
   );

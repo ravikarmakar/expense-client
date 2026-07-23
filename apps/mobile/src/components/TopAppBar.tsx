@@ -13,6 +13,7 @@ interface TopAppBarProps {
   unreadCount?: number;
   rightActionIcon?: keyof typeof Ionicons.glyphMap;
   onRightActionPress?: () => void;
+  variant?: 'light' | 'dark';
 }
 
 export function TopAppBar({
@@ -24,32 +25,52 @@ export function TopAppBar({
   unreadCount,
   rightActionIcon,
   onRightActionPress,
+  variant = 'light',
 }: TopAppBarProps) {
   const insets = useSafeAreaInsets();
+  const isDark = variant === 'dark';
+  const textColor = isDark ? '#ffffff' : COLORS.onSurface;
+  const iconColor = isDark ? '#ffffff' : COLORS.onSurface;
 
   return (
     <View
       style={[
         styles.headerContainer,
-        { paddingTop: insets.top, backgroundColor: COLORS.background },
+        isDark ? { borderBottomWidth: 0 } : undefined,
+        {
+          paddingTop: insets.top,
+          backgroundColor: isDark ? 'transparent' : COLORS.background,
+        },
       ]}
     >
       <View style={styles.header}>
         {showBack ? (
           <TouchableOpacity onPress={onBack} style={styles.iconButton}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.onSurface} />
+            <Ionicons name="arrow-back" size={24} color={textColor} />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.headerLogoContainer} activeOpacity={0.75}>
-            <View style={styles.logoIconBadge}>
-              <MaterialIcons name="account-balance-wallet" size={22} color={COLORS.primary} />
+            <View
+              style={[
+                styles.logoIconBadge,
+                isDark && {
+                  backgroundColor: 'rgba(52, 211, 153, 0.12)',
+                  borderColor: 'rgba(52, 211, 153, 0.28)',
+                },
+              ]}
+            >
+              <MaterialIcons
+                name="account-balance-wallet"
+                size={22}
+                color={isDark ? '#34d399' : COLORS.primary}
+              />
             </View>
-            <Text style={styles.headerTitle}>SplitShare</Text>
+            <Text style={[styles.headerTitle, { color: textColor }]}>SplitShare</Text>
           </TouchableOpacity>
         )}
 
         {title && showBack && (
-          <Text style={styles.centerTitle} numberOfLines={1}>
+          <Text style={[styles.centerTitle, { color: textColor }]} numberOfLines={1}>
             {title}
           </Text>
         )}
@@ -61,7 +82,7 @@ export function TopAppBar({
               style={styles.iconButton}
               activeOpacity={0.7}
             >
-              <Ionicons name={rightActionIcon} size={24} color={COLORS.onSurface} />
+              <Ionicons name={rightActionIcon} size={24} color={iconColor} />
             </TouchableOpacity>
           ) : (
             <View style={{ width: 40 }} />
@@ -74,7 +95,7 @@ export function TopAppBar({
               activeOpacity={0.7}
               onPress={onAddFriendPress}
             >
-              <Ionicons name="person-add" size={24} color={COLORS.onSurface} />
+              <Ionicons name="person-add" size={24} color={iconColor} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButton}
@@ -82,9 +103,9 @@ export function TopAppBar({
               onPress={onNotificationPress}
             >
               <View style={styles.iconWrapper}>
-                <Ionicons name="notifications" size={25} color={COLORS.onSurface} />
+                <Ionicons name="notifications" size={25} color={iconColor} />
                 {!!unreadCount && unreadCount > 0 && (
-                  <View style={styles.notificationBadge}>
+                  <View style={[styles.notificationBadge, isDark && { borderColor: '#08110F' }]}>
                     <Text style={styles.notificationBadgeText}>
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </Text>

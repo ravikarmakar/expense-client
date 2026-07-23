@@ -780,6 +780,12 @@ export function useAddGroupExpenseController({
     setAddedExpenseInfo(null);
   };
 
+  useEffect(() => {
+    if (visible) {
+      resetForm();
+    }
+  }, [visible]);
+
   const handleClose = () => {
     resetForm();
     onClose();
@@ -787,7 +793,7 @@ export function useAddGroupExpenseController({
 
   const handleSubmit = () => {
     setErrorMessage('');
-    const parsed = parseFloat(amount.replace(',', '.'));
+    const parsed = parseFloat(amount.replace(/,/g, '').replace(',', '.'));
 
     if (!amount || isNaN(parsed) || parsed <= 0) {
       setErrorMessage('Please enter a valid amount greater than 0');

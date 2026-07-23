@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, resolveAvatar } from '../../../constants/theme';
+import { hapticFeedback } from '../../../utils/haptics';
 
 export interface SelectorGroupMember {
   userId: string;
@@ -17,6 +18,7 @@ interface MembersSelectorProps {
   splitMemberIds: string[];
   currentUser: { id: string } | null | undefined;
   onToggleMember: (userId: string) => void;
+  variant?: 'light' | 'dark';
 }
 
 export const MembersSelector = React.memo(function MembersSelector({
@@ -25,12 +27,15 @@ export const MembersSelector = React.memo(function MembersSelector({
   splitMemberIds,
   currentUser,
   onToggleMember,
+  variant = 'light',
 }: MembersSelectorProps) {
+  const isDark = variant === 'dark';
+
   return (
     <>
       <View style={styles.splitHeaderRow}>
-        <Text style={styles.inputLabel}>Split among</Text>
-        <Text style={styles.splitCount}>
+        <Text style={[styles.inputLabel, isDark && { color: '#74817B' }]}>Split among</Text>
+        <Text style={[styles.splitCount, isDark && { color: '#10B981' }]}>
           {splitMemberIds.length} / {groupMembers.length}
         </Text>
       </View>
@@ -51,18 +56,35 @@ export const MembersSelector = React.memo(function MembersSelector({
                 isSelected && styles.memberItemActive,
                 isCurrentUser && { opacity: 0.8 },
               ]}
-              onPress={() => onToggleMember(member.userId)}
+              onPress={() => {
+                hapticFeedback.selection();
+                onToggleMember(member.userId);
+              }}
               activeOpacity={isCurrentUser ? 1 : 0.8}
               disabled={isCurrentUser}
             >
               <View style={styles.memberAvatarContainer}>
                 <Image source={{ uri: resolveAvatar(member.image) }} style={styles.memberAvatar} />
-                <View style={[styles.memberCheck, isSelected && styles.memberCheckActive]}>
+                <View
+                  style={[
+                    styles.memberCheck,
+                    isDark && {
+                      borderColor: 'rgba(255, 255, 255, 0.16)',
+                      backgroundColor: '#08110F',
+                    },
+                    isSelected &&
+                      (isDark ? { backgroundColor: '#10B981' } : styles.memberCheckActive),
+                  ]}
+                >
                   {isSelected && <Ionicons name="checkmark" size={10} color="#fff" />}
                 </View>
               </View>
               <Text
-                style={[styles.memberName, isSelected && styles.memberNameActive]}
+                style={[
+                  styles.memberName,
+                  isDark && { color: 'rgba(255, 255, 255, 0.65)' },
+                  isSelected && (isDark ? { color: '#10B981' } : styles.memberNameActive),
+                ]}
                 numberOfLines={1}
               >
                 {isCurrentUser ? `${member.name.split(' ')[0]} (You)` : member.name.split(' ')[0]}

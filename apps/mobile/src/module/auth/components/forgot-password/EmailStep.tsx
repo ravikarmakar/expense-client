@@ -5,6 +5,8 @@ import { AuthTextInput } from '../AuthTextInput';
 import { TactileButton } from '../../../../components/TactileButton';
 import { authStyles } from '../../styles/auth.styles';
 
+import { useTheme } from '../../../../context/ThemeContext';
+
 interface EmailStepProps {
   email: string;
   setEmail: (email: string) => void;
@@ -14,12 +16,21 @@ interface EmailStepProps {
 }
 
 export function EmailStep({ email, setEmail, onSendOtp, loading, errorMessage }: EmailStepProps) {
+  const { isDark } = useTheme();
+
   return (
     <View style={{ width: '100%' }}>
       {errorMessage ? (
-        <View style={authStyles.errorContainer}>
-          <Ionicons name="alert-circle" size={18} color="#fca5a5" />
-          <Text style={authStyles.errorText}>{errorMessage}</Text>
+        <View
+          style={[
+            authStyles.errorContainer,
+            !isDark && { backgroundColor: '#fee2e2', borderColor: '#fca5a5' },
+          ]}
+        >
+          <Ionicons name="alert-circle" size={18} color={isDark ? '#fca5a5' : '#dc2626'} />
+          <Text style={[authStyles.errorText, !isDark && { color: '#dc2626' }]}>
+            {errorMessage}
+          </Text>
         </View>
       ) : null}
 
@@ -46,7 +57,7 @@ export function EmailStep({ email, setEmail, onSendOtp, loading, errorMessage }:
       />
 
       {/* Helper description note placed below the button */}
-      <Text style={styles.footerNote}>
+      <Text style={[styles.footerNote, !isDark && { color: '#6d7a72' }]}>
         {"Enter your email address and we'll send you an OTP to reset your password."}
       </Text>
     </View>

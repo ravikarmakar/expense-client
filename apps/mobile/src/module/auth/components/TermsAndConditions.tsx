@@ -1,5 +1,6 @@
 import React from 'react';
 import { Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import { useTheme } from '../../../context/ThemeContext';
 
 interface TermsAndConditionsProps {
   action?: 'login' | 'signup';
@@ -8,12 +9,14 @@ interface TermsAndConditionsProps {
 
 /**
  * Terms and Conditions footer link component.
- * Uses clean dark matte typography with crisp white link styling.
+ * Uses clean dark matte typography with crisp link styling.
  */
 export const TermsAndConditions = React.memo(function TermsAndConditions({
   action = 'signup',
   disabled = false,
 }: TermsAndConditionsProps) {
+  const { isDark } = useTheme();
+
   const handlePress = () => {
     Linking.openURL('https://expense-client-web.vercel.app/');
   };
@@ -27,8 +30,13 @@ export const TermsAndConditions = React.memo(function TermsAndConditions({
       style={[styles.termsContainer, disabled && { opacity: 0.4 }]}
       disabled={disabled}
     >
-      <Text style={styles.termsText} numberOfLines={1} adjustsFontSizeToFit>
-        By {actionText}, you agree to our <Text style={styles.termsLink}>Terms & Conditions</Text>
+      <Text
+        style={[styles.termsText, !isDark && { color: '#6d7a72' }]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
+        By {actionText}, you agree to our{' '}
+        <Text style={[styles.termsLink, !isDark && { color: '#006948' }]}>Terms & Conditions</Text>
       </Text>
     </TouchableOpacity>
   );

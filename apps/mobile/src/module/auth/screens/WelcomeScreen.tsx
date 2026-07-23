@@ -5,15 +5,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TactileButton } from '../../../components/TactileButton';
+import { useTheme } from '../../../context/ThemeContext';
 
-/**
- * Premium Dark Matte Welcome Screen (#08110F) inspired by Linear, Arc, Notion & Apple Wallet.
- * Features a subtle top spotlight, 3% opacity emerald blobs, faint vignette, and ultra-clean content focus.
- */
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
 
-  // Dynamic top padding to safely clear status bar, camera notch, and dynamic islands
   const topPadding = Math.max(
     insets.top,
     Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 20
@@ -21,25 +18,24 @@ export default function WelcomeScreen() {
   const bottomPadding = Math.max(insets.bottom, 20);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+    <View style={[styles.container, !isDark && { backgroundColor: '#ffffff' }]}>
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        translucent
+        backgroundColor="transparent"
+      />
 
-      {/* Subtle Top Spotlight Gradient Fading into Dark Matte Charcoal-Green */}
+      {/* Top Spotlight Gradient */}
       <LinearGradient
-        colors={['rgba(20, 42, 33, 0.45)', 'rgba(12, 26, 20, 0.2)', '#08110F']}
+        colors={
+          isDark
+            ? ['rgba(20, 42, 33, 0.45)', 'rgba(12, 26, 20, 0.2)', '#08110F']
+            : ['rgba(232, 240, 254, 0.6)', 'rgba(248, 249, 250, 0.3)', '#ffffff']
+        }
         locations={[0, 0.38, 1]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         style={StyleSheet.absoluteFillObject}
-      />
-
-      {/* Faint Vignette for Calm Depth & Border Softness */}
-      <LinearGradient
-        colors={['rgba(4, 9, 8, 0.25)', 'transparent', 'rgba(4, 9, 8, 0.5)']}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
-        pointerEvents="none"
       />
 
       <View
@@ -51,48 +47,49 @@ export default function WelcomeScreen() {
         {/* Top Header Bar */}
         <View style={styles.header}>
           <View style={styles.brandContainer}>
-            <View style={styles.headerIconCircle}>
-              <Ionicons name="wallet" size={20} color="#34d399" />
+            <View
+              style={[
+                styles.headerIconCircle,
+                !isDark && {
+                  backgroundColor: 'rgba(0, 105, 72, 0.1)',
+                  borderColor: 'rgba(0, 105, 72, 0.2)',
+                },
+              ]}
+            >
+              <Ionicons name="wallet" size={20} color={isDark ? '#34d399' : '#006948'} />
             </View>
-            <Text style={styles.headerBrandText}>SplitShare</Text>
+            <Text style={[styles.headerBrandText, !isDark && { color: '#191c1d' }]}>
+              SplitShare
+            </Text>
           </View>
 
           <TouchableOpacity
             onPress={() => router.push('/(auth)/login')}
             activeOpacity={0.75}
-            style={styles.loginHeaderButton}
+            style={[
+              styles.loginHeaderButton,
+              !isDark && {
+                backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                borderColor: 'rgba(0, 0, 0, 0.1)',
+              },
+            ]}
           >
-            <Text style={styles.loginHeaderText}>Log In</Text>
+            <Text style={[styles.loginHeaderText, !isDark && { color: '#191c1d' }]}>Log In</Text>
           </TouchableOpacity>
         </View>
 
         {/* Center Hero Content */}
         <View style={styles.heroSection}>
-          <Text style={styles.heroTitle}>Split Expenses.{'\n'}Not Friendships.</Text>
-          <Text style={styles.heroSubtitle}>
+          <Text style={[styles.heroTitle, !isDark && { color: '#191c1d' }]}>
+            Split Expenses.{'\n'}Not Friendships.
+          </Text>
+          <Text style={[styles.heroSubtitle, !isDark && { color: '#6d7a72' }]}>
             Track group expenses, manage wallets, and settle up effortlessly with friends.
           </Text>
         </View>
 
         {/* Bottom Actions Section */}
         <View style={styles.actionsSection}>
-          {/*
-            Google Auth - commented out until feature is supported
-            <TactileButton
-              title="Continue with Google"
-              icon="logo-google"
-              variant="google"
-              onPress={() => router.push('/(auth)/login')}
-            />
-
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>OR</Text>
-              <View style={styles.dividerLine} />
-            </View>
-          */}
-
-          {/* Login with Email */}
           <TactileButton
             title="Login with Email"
             icon="mail"
@@ -100,7 +97,6 @@ export default function WelcomeScreen() {
             onPress={() => router.push('/(auth)/login')}
           />
 
-          {/* Create New Account */}
           <TactileButton
             title="Create New Account"
             icon="person-add"

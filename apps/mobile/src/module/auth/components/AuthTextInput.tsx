@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { hapticFeedback } from '../../../utils/haptics';
+import { useTheme } from '../../../context/ThemeContext';
 
 interface AuthTextInputProps extends TextInputProps {
   label: string;
@@ -43,6 +44,7 @@ export const AuthTextInput = React.memo(
       ref
     ) => {
       const [isFocused, setIsFocused] = useState(false);
+      const { isDark } = useTheme();
 
       const handleFocus = useCallback<NonNullable<TextInputProps['onFocus']>>(
         (e) => {
@@ -68,7 +70,8 @@ export const AuthTextInput = React.memo(
           <Text
             style={[
               styles.inputLabel,
-              isFocused && styles.focusedInputLabel,
+              !isDark && { color: '#6d7a72' },
+              isFocused && (isDark ? styles.focusedInputLabel : { color: '#006948' }),
               hasError && styles.errorInputLabel,
             ]}
           >
@@ -78,42 +81,55 @@ export const AuthTextInput = React.memo(
           <View
             style={[
               styles.inputContainer,
+              !isDark && { backgroundColor: '#ffffff', borderColor: '#e7e8e9' },
               loading && { opacity: 0.5 },
-              isFocused && styles.focusedInputContainer,
+              isFocused &&
+                (isDark
+                  ? styles.focusedInputContainer
+                  : { borderColor: '#006948', borderWidth: 1.5 }),
               hasError && styles.errorInputContainer,
             ]}
           >
             <Ionicons
               name={icon}
               size={20}
-              color={hasError ? '#fca5a5' : isFocused ? '#ffffff' : 'rgba(255, 255, 255, 0.4)'}
+              color={
+                hasError
+                  ? '#fca5a5'
+                  : isFocused
+                    ? isDark
+                      ? '#ffffff'
+                      : '#006948'
+                    : isDark
+                      ? 'rgba(255, 255, 255, 0.4)'
+                      : '#6d7a72'
+              }
               style={styles.inputIcon}
             />
             <TextInput
               ref={ref}
               onFocus={handleFocus}
               onBlur={handleBlur}
-              placeholderTextColor="rgba(255, 255, 255, 0.3)"
-              style={[styles.textInput, style]}
+              placeholderTextColor={isDark ? 'rgba(255, 255, 255, 0.3)' : '#bccac0'}
+              style={[styles.textInput, !isDark && { color: '#191c1d' }, style]}
               editable={!loading}
               autoCorrect={false}
               {...props}
             />
-            {rightIcon && (
+            {rightIcon ? (
               <TouchableOpacity
                 onPress={onRightIconPress}
                 activeOpacity={0.7}
-                disabled={loading}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 style={styles.rightIconTouch}
               >
                 <Ionicons
                   name={rightIcon}
                   size={20}
-                  color={hasError ? '#fca5a5' : isFocused ? '#ffffff' : 'rgba(255, 255, 255, 0.4)'}
+                  color={isDark ? 'rgba(255, 255, 255, 0.4)' : '#6d7a72'}
                 />
               </TouchableOpacity>
-            )}
+            ) : null}
           </View>
 
           {/* Real-time Inline Validation Error Row */}

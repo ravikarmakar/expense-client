@@ -21,6 +21,7 @@ import {
 import { BottomSheetModal } from './BottomSheetModal';
 import { FormInput } from './FormInput';
 import { CategoryDropdown } from '../module/groups/components/CategoryDropdown';
+import { formatRupees } from '../utils/format';
 
 interface EditExpenseModalProps {
   visible: boolean;
@@ -64,7 +65,7 @@ export function EditExpenseModal({ visible, onClose, expense, onSuccess }: EditE
 
   const handleSubmit = () => {
     setErrorMessage('');
-    const parsed = parseFloat(amount.replace(',', '.'));
+    const parsed = parseFloat(amount.replace(/,/g, ''));
 
     if (!amount || isNaN(parsed) || parsed <= 0) {
       setErrorMessage('Please enter a valid amount greater than 0');
@@ -131,7 +132,8 @@ export function EditExpenseModal({ visible, onClose, expense, onSuccess }: EditE
               value={amount}
               onChangeText={(t) => {
                 setErrorMessage('');
-                if (/^\d*\.?\d{0,2}$/.test(t)) setAmount(t);
+                const formatted = formatRupees(t);
+                if (formatted !== null) setAmount(formatted);
               }}
               placeholder="0.00"
               placeholderTextColor={COLORS.outlineVariant}

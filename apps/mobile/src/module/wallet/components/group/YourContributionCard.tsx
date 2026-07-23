@@ -59,7 +59,11 @@ export function YourContributionCard({
                   contributeError ? { borderColor: COLORS.error } : null,
                 ]}
                 value={contributeAmount}
-                onChangeText={setContributeAmount}
+                onChangeText={(val) => {
+                  if (/^\d{0,7}\.?\d{0,2}$/.test(val)) {
+                    setContributeAmount(val);
+                  }
+                }}
                 keyboardType="decimal-pad"
                 placeholder="0.00"
                 placeholderTextColor={COLORS.outlineVariant}

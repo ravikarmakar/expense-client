@@ -10,8 +10,9 @@ import {
   StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '../../../context/ThemeContext';
+
+import { AppBackground } from '../../../components/AppBackground';
 
 interface AuthScreenLayoutProps {
   title: string;
@@ -20,36 +21,19 @@ interface AuthScreenLayoutProps {
   children: React.ReactNode;
 }
 
-/**
- * Clean Dark Matte Auth Screen Layout (#08110F).
- * Features top safe area back button aligned with heading, full-width content section,
- * and top spotlight depth.
- */
 export function AuthScreenLayout({ title, subtitle, onBack, children }: AuthScreenLayoutProps) {
+  const { isDark } = useTheme();
+
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-
-      {/* Top Spotlight Gradient */}
-      <LinearGradient
-        colors={['rgba(20, 42, 33, 0.45)', 'rgba(12, 26, 20, 0.2)', '#08110F']}
-        locations={[0, 0.38, 1]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
-      />
-
-      {/* Faint Edge Vignette */}
-      <LinearGradient
-        colors={['rgba(4, 9, 8, 0.25)', 'transparent', 'rgba(4, 9, 8, 0.5)']}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
-        pointerEvents="none"
+    <AppBackground style={styles.container}>
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        translucent
+        backgroundColor="transparent"
       />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
       >
         <ScrollView
@@ -58,7 +42,7 @@ export function AuthScreenLayout({ title, subtitle, onBack, children }: AuthScre
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
-          {/* Top Safe Area Header Bar with Back Arrow and Title in Heading Row */}
+          {/* Top Safe Area Header Bar */}
           <View style={styles.headerSection}>
             <View style={styles.topHeaderRow}>
               {onBack ? (
@@ -68,21 +52,25 @@ export function AuthScreenLayout({ title, subtitle, onBack, children }: AuthScre
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   style={styles.backButton}
                 >
-                  <Ionicons name="arrow-back" size={26} color="#ffffff" />
+                  <Ionicons name="arrow-back" size={26} color={isDark ? '#ffffff' : '#191c1d'} />
                 </TouchableOpacity>
               ) : null}
-              <Text style={styles.headerTitle}>{title}</Text>
+              <Text style={[styles.headerTitle, !isDark && { color: '#191c1d' }]}>{title}</Text>
             </View>
-            {subtitle ? <Text style={styles.headerSubtitle}>{subtitle}</Text> : null}
+            {subtitle ? (
+              <Text style={[styles.headerSubtitle, !isDark && { color: '#6d7a72' }]}>
+                {subtitle}
+              </Text>
+            ) : null}
           </View>
 
-          {/* Full-Size Form Content */}
+          {/* Form Content */}
           <View style={styles.contentSection}>{children}</View>
 
           <View style={styles.spacer} />
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </AppBackground>
   );
 }
 

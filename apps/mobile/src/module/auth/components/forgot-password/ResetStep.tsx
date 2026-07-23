@@ -7,6 +7,8 @@ import { AuthTextInput } from '../AuthTextInput';
 import { TactileButton } from '../../../../components/TactileButton';
 import { authStyles } from '../../styles/auth.styles';
 
+import { useTheme } from '../../../../context/ThemeContext';
+
 const localResetPasswordSchema = z
   .object({
     newPassword: z
@@ -44,6 +46,7 @@ export function ResetStep({
   errorMessage,
   setErrorMessage,
 }: ResetStepProps) {
+  const { isDark } = useTheme();
   const [secureNewPassword, setSecureNewPassword] = useState(true);
   const [secureConfirmPassword, setSecureConfirmPassword] = useState(true);
 
@@ -63,9 +66,16 @@ export function ResetStep({
   return (
     <View style={{ width: '100%' }}>
       {errorMessage ? (
-        <View style={authStyles.errorContainer}>
-          <Ionicons name="alert-circle" size={18} color="#fca5a5" />
-          <Text style={authStyles.errorText}>{errorMessage}</Text>
+        <View
+          style={[
+            authStyles.errorContainer,
+            !isDark && { backgroundColor: '#fee2e2', borderColor: '#fca5a5' },
+          ]}
+        >
+          <Ionicons name="alert-circle" size={18} color={isDark ? '#fca5a5' : '#dc2626'} />
+          <Text style={[authStyles.errorText, !isDark && { color: '#dc2626' }]}>
+            {errorMessage}
+          </Text>
         </View>
       ) : null}
 
@@ -114,7 +124,9 @@ export function ResetStep({
       />
 
       {/* Helper description note placed below the button */}
-      <Text style={styles.footerNote}>Please choose a strong password to secure your account.</Text>
+      <Text style={[styles.footerNote, !isDark && { color: '#6d7a72' }]}>
+        Please choose a strong password to secure your account.
+      </Text>
     </View>
   );
 }

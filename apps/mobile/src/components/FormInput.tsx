@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, KeyboardTypeOptions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
@@ -16,6 +16,7 @@ interface FormInputProps {
   autoFocus?: boolean;
   keyboardType?: KeyboardTypeOptions;
   secureTextEntry?: boolean;
+  variant?: 'light' | 'dark';
 }
 
 export const FormInput = React.memo(function FormInput({
@@ -31,20 +32,43 @@ export const FormInput = React.memo(function FormInput({
   autoFocus = false,
   keyboardType = 'default',
   secureTextEntry = false,
+  variant = 'light',
 }: FormInputProps) {
+  const isDark = variant === 'dark';
+  const [isFocused, setIsFocused] = useState(false);
+
   return (
     <View style={styles.container}>
-      <Text style={styles.inputLabel}>{label}</Text>
-      <View style={[styles.inputRow, multiline && styles.inputRowMultiline]}>
+      <Text style={[styles.inputLabel, isDark && { color: '#74817B' }]}>{label}</Text>
+      <View
+        style={[
+          styles.inputRow,
+          multiline && styles.inputRowMultiline,
+          isDark && {
+            backgroundColor: isFocused ? '#131D1A' : '#101917',
+            borderColor: isFocused ? '#10B981' : 'rgba(255, 255, 255, 0.12)',
+            borderWidth: isFocused ? 1.5 : 1,
+          },
+        ]}
+      >
         {icon && !multiline && (
-          <Ionicons name={icon} size={18} color={COLORS.outline} style={styles.inputIcon} />
+          <Ionicons
+            name={icon}
+            size={18}
+            color={isDark ? (isFocused ? '#ffffff' : 'rgba(255, 255, 255, 0.65)') : COLORS.outline}
+            style={styles.inputIcon}
+          />
         )}
         <TextInput
-          style={[styles.textInput, multiline && styles.textInputMultiline]}
+          style={[
+            styles.textInput,
+            multiline && styles.textInputMultiline,
+            isDark && { color: '#FFFFFF' },
+          ]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={COLORS.outlineVariant}
+          placeholderTextColor={isDark ? 'rgba(255, 255, 255, 0.55)' : COLORS.outlineVariant}
           multiline={multiline}
           numberOfLines={numberOfLines}
           maxLength={maxLength}
@@ -52,9 +76,17 @@ export const FormInput = React.memo(function FormInput({
           keyboardType={keyboardType}
           secureTextEntry={secureTextEntry}
           autoCapitalize={keyboardType === 'email-address' ? 'none' : undefined}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          selectionColor={isDark ? '#10B981' : COLORS.primary}
         />
         {showCharCount && maxLength !== undefined && (
-          <Text style={styles.charCount}>
+          <Text
+            style={[
+              styles.charCount,
+              isDark && { color: isFocused ? '#ffffff' : 'rgba(255, 255, 255, 0.6)' },
+            ]}
+          >
             {value.length}/{maxLength}
           </Text>
         )}

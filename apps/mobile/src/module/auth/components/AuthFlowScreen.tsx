@@ -11,7 +11,6 @@ import {
   ScrollView,
   TextInput,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,6 +22,8 @@ import {
 
 import { TactileButton } from '../../../components/TactileButton';
 import { AuthTextInput } from './AuthTextInput';
+import { useTheme } from '../../../context/ThemeContext';
+
 import { TermsAndConditions } from './TermsAndConditions';
 import { PasswordRequirements } from './PasswordRequirements';
 import { EmailStep } from './forgot-password/EmailStep';
@@ -30,6 +31,8 @@ import { VerifyStep } from './forgot-password/VerifyStep';
 import { ResetStep } from './forgot-password/ResetStep';
 import { SuccessStep } from './forgot-password/SuccessStep';
 import { authStyles } from '../styles/auth.styles';
+
+import { AppBackground } from '../../../components/AppBackground';
 
 export type AuthMode = 'WELCOME' | 'LOGIN' | 'SIGNUP' | 'FORGOT_PASSWORD';
 
@@ -44,6 +47,7 @@ interface AuthFlowScreenProps {
  */
 export function AuthFlowScreen({ initialMode = 'WELCOME' }: AuthFlowScreenProps) {
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
   const [mode, setMode] = useState<AuthMode>(initialMode);
 
   // Smooth fade transition animations for morphing content
@@ -110,29 +114,14 @@ export function AuthFlowScreen({ initialMode = 'WELCOME' }: AuthFlowScreenProps)
   const bottomPadding = Math.max(insets.bottom, 20);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-
-      {/* Persistent Top Spotlight Gradient */}
-      <LinearGradient
-        colors={['rgba(20, 42, 33, 0.45)', 'rgba(12, 26, 20, 0.2)', '#08110F']}
-        locations={[0, 0.38, 1]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
+    <AppBackground style={styles.container}>
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        translucent
+        backgroundColor="transparent"
       />
-
-      {/* Persistent Faint Edge Vignette */}
-      <LinearGradient
-        colors={['rgba(4, 9, 8, 0.25)', 'transparent', 'rgba(4, 9, 8, 0.5)']}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
-        pointerEvents="none"
-      />
-
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
       >
         <ScrollView
@@ -158,25 +147,45 @@ export function AuthFlowScreen({ initialMode = 'WELCOME' }: AuthFlowScreenProps)
                 {/* Header */}
                 <View style={styles.topNavRow}>
                   <View style={styles.brandContainer}>
-                    <View style={styles.headerIconCircle}>
-                      <Ionicons name="wallet" size={20} color="#34d399" />
+                    <View
+                      style={[
+                        styles.headerIconCircle,
+                        !isDark && {
+                          backgroundColor: 'rgba(0, 105, 72, 0.1)',
+                          borderColor: 'rgba(0, 105, 72, 0.2)',
+                        },
+                      ]}
+                    >
+                      <Ionicons name="wallet" size={20} color={isDark ? '#34d399' : '#006948'} />
                     </View>
-                    <Text style={styles.headerBrandText}>SplitShare</Text>
+                    <Text style={[styles.headerBrandText, !isDark && { color: '#191c1d' }]}>
+                      SplitShare
+                    </Text>
                   </View>
 
                   <TouchableOpacity
                     onPress={() => switchMode('LOGIN')}
                     activeOpacity={0.75}
-                    style={styles.loginHeaderButton}
+                    style={[
+                      styles.loginHeaderButton,
+                      !isDark && {
+                        backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                        borderColor: 'rgba(0, 0, 0, 0.1)',
+                      },
+                    ]}
                   >
-                    <Text style={styles.loginHeaderText}>Log In</Text>
+                    <Text style={[styles.loginHeaderText, !isDark && { color: '#191c1d' }]}>
+                      Log In
+                    </Text>
                   </TouchableOpacity>
                 </View>
 
                 {/* Hero Section */}
                 <View style={styles.heroSection}>
-                  <Text style={styles.heroTitle}>Split Expenses.{'\n'}Not Friendships.</Text>
-                  <Text style={styles.heroSubtitle}>
+                  <Text style={[styles.heroTitle, !isDark && { color: '#191c1d' }]}>
+                    Split Expenses.{'\n'}Not Friendships.
+                  </Text>
+                  <Text style={[styles.heroSubtitle, !isDark && { color: '#6d7a72' }]}>
                     Track group expenses, manage wallets, and settle up effortlessly with friends.
                   </Text>
                 </View>
@@ -212,9 +221,15 @@ export function AuthFlowScreen({ initialMode = 'WELCOME' }: AuthFlowScreenProps)
                       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       style={styles.backButton}
                     >
-                      <Ionicons name="arrow-back" size={26} color="#ffffff" />
+                      <Ionicons
+                        name="arrow-back"
+                        size={26}
+                        color={isDark ? '#ffffff' : '#191c1d'}
+                      />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Log In</Text>
+                    <Text style={[styles.headerTitle, !isDark && { color: '#191c1d' }]}>
+                      Log In
+                    </Text>
                   </View>
                 </View>
 
@@ -269,7 +284,9 @@ export function AuthFlowScreen({ initialMode = 'WELCOME' }: AuthFlowScreenProps)
                   activeOpacity={0.7}
                   disabled={login.loading}
                 >
-                  <Text style={authStyles.forgotPasswordText}>Forgot Password?</Text>
+                  <Text style={[authStyles.forgotPasswordText, !isDark && { color: '#006948' }]}>
+                    Forgot Password?
+                  </Text>
                 </TouchableOpacity>
 
                 {/* Primary CTA */}
@@ -284,13 +301,17 @@ export function AuthFlowScreen({ initialMode = 'WELCOME' }: AuthFlowScreenProps)
                 {/* Footer Link */}
                 <View style={authStyles.footerContainer}>
                   <View style={authStyles.footerSection}>
-                    <Text style={authStyles.footerLabel}>{"Don't have an account? "}</Text>
+                    <Text style={[authStyles.footerLabel, !isDark && { color: '#6d7a72' }]}>
+                      {"Don't have an account? "}
+                    </Text>
                     <TouchableOpacity
                       onPress={() => switchMode('SIGNUP')}
                       activeOpacity={0.7}
                       disabled={login.loading}
                     >
-                      <Text style={authStyles.footerLink}>Sign Up</Text>
+                      <Text style={[authStyles.footerLink, !isDark && { color: '#006948' }]}>
+                        Sign Up
+                      </Text>
                     </TouchableOpacity>
                   </View>
                   <TermsAndConditions action="login" disabled={login.loading} />
@@ -310,9 +331,15 @@ export function AuthFlowScreen({ initialMode = 'WELCOME' }: AuthFlowScreenProps)
                       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       style={styles.backButton}
                     >
-                      <Ionicons name="arrow-back" size={26} color="#ffffff" />
+                      <Ionicons
+                        name="arrow-back"
+                        size={26}
+                        color={isDark ? '#ffffff' : '#191c1d'}
+                      />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Create Account</Text>
+                    <Text style={[styles.headerTitle, !isDark && { color: '#191c1d' }]}>
+                      Create Account
+                    </Text>
                   </View>
                 </View>
 
@@ -414,13 +441,17 @@ export function AuthFlowScreen({ initialMode = 'WELCOME' }: AuthFlowScreenProps)
                 {/* Footer Link */}
                 <View style={authStyles.footerContainer}>
                   <View style={authStyles.footerSection}>
-                    <Text style={authStyles.footerLabel}>Already have an account? </Text>
+                    <Text style={[authStyles.footerLabel, !isDark && { color: '#6d7a72' }]}>
+                      Already have an account?{' '}
+                    </Text>
                     <TouchableOpacity
                       onPress={() => switchMode('LOGIN')}
                       activeOpacity={0.7}
                       disabled={signup.loading}
                     >
-                      <Text style={authStyles.footerLink}>Log In</Text>
+                      <Text style={[authStyles.footerLink, !isDark && { color: '#006948' }]}>
+                        Log In
+                      </Text>
                     </TouchableOpacity>
                   </View>
                   <TermsAndConditions action="signup" disabled={signup.loading} />
@@ -440,10 +471,14 @@ export function AuthFlowScreen({ initialMode = 'WELCOME' }: AuthFlowScreenProps)
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         style={styles.backButton}
                       >
-                        <Ionicons name="arrow-back" size={26} color="#ffffff" />
+                        <Ionicons
+                          name="arrow-back"
+                          size={26}
+                          color={isDark ? '#ffffff' : '#191c1d'}
+                        />
                       </TouchableOpacity>
                     )}
-                    <Text style={styles.headerTitle}>
+                    <Text style={[styles.headerTitle, !isDark && { color: '#191c1d' }]}>
                       {forgotPassword.step === 'EMAIL'
                         ? 'Reset Password'
                         : forgotPassword.step === 'VERIFY'
@@ -501,7 +536,7 @@ export function AuthFlowScreen({ initialMode = 'WELCOME' }: AuthFlowScreenProps)
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </AppBackground>
   );
 }
 

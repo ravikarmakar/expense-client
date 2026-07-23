@@ -25,6 +25,7 @@ interface ActiveGroup {
 
 interface ActiveGroupsCardProps {
   recentGroups: ActiveGroup[];
+  variant?: 'light' | 'dark';
 }
 
 function formatLastActive(dateStr?: string | Date) {
@@ -53,30 +54,56 @@ function formatLastActive(dateStr?: string | Date) {
 
 export const ActiveGroupsCard = React.memo(function ActiveGroupsCard({
   recentGroups,
+  variant = 'light',
 }: ActiveGroupsCardProps) {
   if (recentGroups.length === 0) {
     return null;
   }
 
+  const isDark = variant === 'dark';
+
   return (
     <View style={globalStyles.sectionContainer}>
       <View style={[globalStyles.sectionHeaderRow, styles.sectionHeaderRow]}>
-        <Text style={[globalStyles.sectionTitle, styles.sectionTitle]}>Active Groups</Text>
+        <Text
+          style={[globalStyles.sectionTitle, styles.sectionTitle, isDark && { color: '#ffffff' }]}
+        >
+          Active Groups
+        </Text>
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => router.push('/(tabs)/groups')}
           style={styles.seeAllContainer}
         >
-          <Text style={[globalStyles.seeAllText, styles.seeAllText]}>See All</Text>
+          <Text
+            style={[
+              globalStyles.seeAllText,
+              styles.seeAllText,
+              { color: isDark ? '#D1D5DB' : '#4B5563', fontWeight: '700' },
+            ]}
+          >
+            See All
+          </Text>
           <Ionicons
             name="chevron-forward"
             size={14}
-            color={COLORS.secondary}
+            color={isDark ? '#D1D5DB' : '#4B5563'}
             style={styles.seeAllIcon}
           />
         </TouchableOpacity>
       </View>
-      <View style={styles.listContainer}>
+      <View
+        style={[
+          styles.listContainer,
+          !isDark && {
+            backgroundColor: '#ffffff',
+            borderRadius: 20,
+            borderWidth: 1,
+            borderColor: '#edeeef',
+            overflow: 'hidden',
+          },
+        ]}
+      >
         {recentGroups.map((group) => (
           <GroupCard
             key={group.id}
@@ -87,16 +114,45 @@ export const ActiveGroupsCard = React.memo(function ActiveGroupsCard({
             totalMembersCount={group.memberCount}
             balance={group.myBalance}
             onPress={() => router.push(`/groups/${group.id}`)}
+            variant={variant}
           />
         ))}
         {recentGroups.length > 0 && (
           <TouchableOpacity
             onPress={() => router.push('/(tabs)/groups')}
-            style={styles.viewAllBtn}
-            activeOpacity={0.7}
+            style={[
+              styles.viewAllBtn,
+              !isDark && {
+                backgroundColor: '#ffffff',
+                paddingVertical: 14,
+                borderTopWidth: 1,
+                borderTopColor: '#f1f3f4',
+                borderBottomWidth: 0,
+              },
+              isDark && {
+                backgroundColor: '#131D1A',
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.08)',
+                paddingVertical: 16,
+                marginTop: 4,
+                borderBottomWidth: 1,
+                borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+              },
+            ]}
+            activeOpacity={0.75}
           >
-            <Text style={styles.viewAllBtnText}>See All Groups</Text>
-            <Ionicons name="chevron-forward" size={15} color={COLORS.primary} />
+            <Text
+              style={[
+                styles.viewAllBtnText,
+                isDark
+                  ? { color: '#ffffff', fontWeight: '700' }
+                  : { color: '#191c1d', fontWeight: '700' },
+              ]}
+            >
+              See All Groups
+            </Text>
+            <Ionicons name="chevron-forward" size={15} color={isDark ? '#D1D5DB' : '#4B5563'} />
           </TouchableOpacity>
         )}
       </View>
