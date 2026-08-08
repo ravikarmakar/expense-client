@@ -145,9 +145,19 @@ export {
   settleUpResponseSchema,
 } from './settlements/settlements.types';
 
-export { settleUpApi, getGroupSettlementsApi } from './settlements/settlements.api';
+export {
+  settleUpApi,
+  getGroupSettlementsApi,
+  deleteSettlementApi,
+} from './settlements/settlements.api';
 
-export { settlementKeys, useGroupSettlements, useSettleUp } from './settlements/settlements.hooks';
+export {
+  settlementKeys,
+  useGroupSettlements,
+  useSettlements,
+  useSettleUp,
+  useDeleteSettlement,
+} from './settlements/settlements.hooks';
 
 export { useSettleUpScreenController } from './settlements/settlements.controllers';
 
@@ -361,3 +371,13 @@ export {
   useDeleteCategory,
   categoryKeys,
 } from './categories/categories.hooks';
+
+// ── Income module ─────────────────────────────────────
+export type { Income, CreateIncomeInput, UpdateIncomeInput } from './income/income.hooks';
+export {
+  useIncomes,
+  useIncome,
+  useCreateIncome,
+  useUpdateIncome,
+  useDeleteIncome,
+} from './income/income.hooks';

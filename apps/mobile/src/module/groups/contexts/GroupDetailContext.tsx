@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useCallback, useMemo, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -113,12 +114,40 @@ export function GroupDetailProvider({
     },
   });
 
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (controller.activity && controller.activity.length > 0) {
+      queryClient.setQueryData(['groups', 'detail', id, 'activity', 'all'], {
+        pages: [
+          { activity: controller.activity, nextCursor: controller.activityNextCursor ?? null },
+        ],
+        pageParams: [undefined],
+      });
+    }
+  }, [controller.activity, controller.activityNextCursor, id, queryClient]);
+
+  const initialActivity = useMemo(() => {
+    if (controller.activity && controller.activity.length > 0) {
+      return {
+        pages: [
+          { activity: controller.activity, nextCursor: controller.activityNextCursor ?? null },
+        ],
+        pageParams: [undefined as string | undefined],
+      };
+    }
+    return undefined;
+  }, [controller.activity, controller.activityNextCursor]);
+
   const {
     data: activityData,
     isLoading: isLoadingActivity,
     isFetching: isFetchingActivity,
     refetch: refetchActivity,
-  } = useGroupActivity(id);
+  } = useGroupActivity(id, 'all', {
+    initialData: initialActivity,
+    enabled: !controller.isLoading,
+  });
 
   const activityItems = useMemo(() => {
     return activityData?.pages.flatMap((page) => page.activity) || [];

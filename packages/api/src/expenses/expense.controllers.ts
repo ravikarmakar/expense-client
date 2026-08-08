@@ -20,9 +20,7 @@ export function useActivityController() {
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [activeFilter, setActiveFilter] = useState<ExpenseCategory | 'All'>('All');
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
-  const [dateRange, setDateRange] = useState<
-    'all-time' | 'this-month' | 'last-month' | 'last-7-days' | 'last-30-days'
-  >('all-time');
+  const [dateRange, setDateRange] = useState<string>('this-month');
   const [isDateRangeDropdownOpen, setIsDateRangeDropdownOpen] = useState(false);
   const [paidByMe, setPaidByMe] = useState(false);
   const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'amount-asc' | 'amount-desc'>(
@@ -50,14 +48,23 @@ export function useActivityController() {
     let end = new Date();
 
     if (dateRange === 'this-month') {
-      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
     } else if (dateRange === 'last-month') {
-      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
       end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
     } else if (dateRange === 'last-7-days') {
       start.setDate(now.getDate() - 7);
     } else if (dateRange === 'last-30-days') {
       start.setDate(now.getDate() - 30);
+    } else if (dateRange.startsWith('month-')) {
+      const parts = dateRange.replace('month-', '').split('-');
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      if (!isNaN(year) && !isNaN(month)) {
+        start = new Date(year, month, 1, 0, 0, 0, 0);
+        end = new Date(year, month + 1, 0, 23, 59, 59, 999);
+      }
     }
 
     return {
@@ -95,10 +102,14 @@ export function useActivityController() {
   const sortedExpenses = useMemo(() => {
     return [...expenses].sort((a, b) => {
       if (sortBy === 'date-desc') {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
+        const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+        if (dateDiff !== 0) return dateDiff;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       }
       if (sortBy === 'date-asc') {
-        return new Date(a.date).getTime() - new Date(b.date).getTime();
+        const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+        if (dateDiff !== 0) return dateDiff;
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       }
       if (sortBy === 'amount-asc') {
         return a.amount - b.amount;
@@ -112,7 +123,7 @@ export function useActivityController() {
 
   const handleResetAll = useCallback(() => {
     setActiveFilter('All');
-    setDateRange('all-time');
+    setDateRange('this-month');
     setPaidByMe(false);
     setUseWalletOnly(false);
     setSortBy('date-desc');
@@ -178,7 +189,7 @@ export function usePersonalController() {
     isFetchingNextPage,
   } = useExpenses({
     personal: true,
-    ...(selectedCategoryFilter && { category: selectedCategoryFilter as ExpenseCategory }),
+    limit: 100,
   });
 
   const handleRefresh = useCallback(async () => {
@@ -187,14 +198,39 @@ export function usePersonalController() {
     setIsRefreshing(false);
   }, [refetch]);
 
-  const expensesList = useMemo(() => {
-    return expensesData?.pages.flatMap((page) => page.expenses) ?? [];
+  const allExpenses = useMemo(() => {
+    const list = expensesData?.pages.flatMap((page) => page.expenses) ?? [];
+    return [...list].sort((a, b) => {
+      const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+      if (dateDiff !== 0) return dateDiff;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
   }, [expensesData]);
+
+  const expensesList = useMemo(() => {
+    if (!selectedCategoryFilter) return allExpenses;
+    return allExpenses.filter((e) => e.category === selectedCategoryFilter);
+  }, [allExpenses, selectedCategoryFilter]);
 
   // Compute total spent on personal expenses (overall)
   const totalSpent = useMemo(() => {
-    return expensesList.reduce((sum, item) => sum + item.amount, 0);
-  }, [expensesList]);
+    return allExpenses.reduce((sum, item) => sum + item.amount, 0);
+  }, [allExpenses]);
+
+  // Compute total spent on personal expenses (this month)
+  const totalThisMonth = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    return allExpenses.reduce((sum, item) => {
+      const expDate = new Date(item.date);
+      if (expDate.getMonth() === currentMonth && expDate.getFullYear() === currentYear) {
+        return sum + item.amount;
+      }
+      return sum;
+    }, 0);
+  }, [allExpenses]);
 
   // Compute category breakdown totals
   const categoryTotals = useMemo(() => {
@@ -203,7 +239,7 @@ export function usePersonalController() {
       totals[cat] = 0;
     });
 
-    expensesList.forEach((exp) => {
+    allExpenses.forEach((exp) => {
       const cat = exp.category;
       if (cat in totals) {
         totals[cat] += exp.amount;
@@ -216,7 +252,7 @@ export function usePersonalController() {
       name: cat,
       amount: totals[cat] ?? 0,
     }));
-  }, [expensesList]);
+  }, [allExpenses]);
 
   return {
     user,
@@ -227,8 +263,10 @@ export function usePersonalController() {
     selectedCategoryFilter,
     setSelectedCategoryFilter,
     isRefreshing,
+    allExpenses,
     expensesList,
     totalSpent,
+    totalThisMonth,
     categoryTotals,
     isLoading,
     isError,

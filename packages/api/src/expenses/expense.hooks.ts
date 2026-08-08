@@ -71,7 +71,11 @@ export const useExpensesSummary = () =>
 /**
  * Fetch expenses for a specific group (paginated).
  */
-export const useGroupExpenses = (groupId: string, search?: string) =>
+export const useGroupExpenses = (
+  groupId: string,
+  search?: string,
+  options?: { enabled?: boolean }
+) =>
   useInfiniteQuery({
     queryKey: [...expenseKeys.groupExpenses(groupId), { search }] as const,
     queryFn: ({ pageParam }) =>
@@ -79,7 +83,7 @@ export const useGroupExpenses = (groupId: string, search?: string) =>
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: 3 * 60 * 1000,
-    enabled: !!groupId,
+    enabled: options?.enabled !== undefined ? options.enabled : !!groupId,
   });
 
 // ─────────────────────────────────────────────────────

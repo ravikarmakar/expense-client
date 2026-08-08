@@ -23,9 +23,11 @@ export function useDashboardController() {
   const statsLoading = dashboardLoading;
   const expenses = useMemo(() => {
     const list = dashboardData?.recentExpenses ?? [];
-    return [...list].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    return [...list].sort((a, b) => {
+      const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+      if (dateDiff !== 0) return dateDiff;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
   }, [dashboardData?.recentExpenses]);
   const expensesLoading = dashboardLoading;
   const expensesRefetching = dashboardFetching && !dashboardLoading;

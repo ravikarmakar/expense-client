@@ -12,19 +12,18 @@ import {
   Animated,
   Keyboard,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../../../constants/theme';
 import { ExpenseItem } from '../../../components/ExpenseItem';
 import { SettlementItem } from '../components/SettlementItem';
 import { ExpenseItemSkeleton } from '../../../components/ExpenseItemSkeleton';
-import { z } from 'zod';
-import { useRouteParams } from '../../../hooks/useRouteParams';
 import {
   useGroupExpenses,
   useGroupSettlements,
   useGroupActivity,
+  useDeleteSettlement,
   useMe,
   useGroup,
   Settlement,
@@ -33,20 +32,16 @@ import {
 } from '@workspace/api';
 import { getDateHeading } from '../../../utils/date';
 
-const routeSchema = z.object({
-  id: z.string(),
-  name: z.string().optional(),
-  type: z.enum(['expenses', 'settlements', 'activity']).optional().default('expenses'),
-});
-
 export default function GroupExpensesScreen() {
   const insets = useSafeAreaInsets();
-  const { id: groupId, name: groupName, type } = useRouteParams(routeSchema);
-  const { data: userData } = useMe();
-  const { data: group } = useGroup(groupId);
+  const rawParams = useLocalSearchParams<{ id?: string; name?: string; type?: string }>();
+  const groupId = rawParams.id || '';
+  const groupName = rawParams.name;
+  const activeType = rawParams.type || 'expenses';
 
-  const isSettlements = type === 'settlements';
-  const isActivity = type === 'activity';
+  const isSettlements = activeType === 'settlements';
+  const isActivity = activeType === 'activity';
+  const isExpenses = activeType === 'expenses';
 
   const [searchQuery, setSearchQuery] = React.useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = React.useState('');
@@ -93,12 +88,25 @@ export default function GroupExpensesScreen() {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  const expensesQuery = useGroupExpenses(groupId, debouncedSearchQuery);
-  const settlementsQuery = useGroupSettlements(groupId);
+  const { data: userData } = useMe();
+  const { data: group } = useGroup(groupId);
+
+  const expensesQuery = useGroupExpenses(groupId, debouncedSearchQuery, {
+    enabled: isExpenses && !!groupId,
+  });
+  const settlementsQuery = useGroupSettlements(groupId, {
+    enabled: isSettlements && !!groupId,
+  });
   const activityQuery = useGroupActivity(
     groupId,
-    activityFilter === 'wallet' ? 'all' : activityFilter
+    activityFilter === 'wallet' ? 'all' : activityFilter,
+    { enabled: isActivity && !!groupId }
   );
+
+  const deleteSettlementMutation = useDeleteSettlement(groupId);
+  const handleDeleteSettlement = (settlementId: string) => {
+    deleteSettlementMutation.mutate(settlementId);
+  };
 
   const query = isSettlements ? settlementsQuery : isActivity ? activityQuery : expensesQuery;
 
@@ -184,7 +192,50 @@ export default function GroupExpensesScreen() {
 
     // Advanced Filter: Sort By
     const sorted = [...filtered];
-    if (sortBy === 'date_asc') {
+    if (sortBy === 'date_desc') {
+      sorted.sort((a, b) => {
+        let dateA: string, dateB: string;
+        let createdA = 0,
+          createdB = 0;
+
+        if (isActivity) {
+          const actA = a as ActivityItem;
+          dateA =
+            actA.type === 'expense'
+              ? (actA.data as Expense).date
+              : (actA.data as Settlement).createdAt;
+          createdA = new Date(
+            actA.type === 'expense'
+              ? (actA.data as Expense).createdAt
+              : (actA.data as Settlement).createdAt
+          ).getTime();
+          const actB = b as ActivityItem;
+          dateB =
+            actB.type === 'expense'
+              ? (actB.data as Expense).date
+              : (actB.data as Settlement).createdAt;
+          createdB = new Date(
+            actB.type === 'expense'
+              ? (actB.data as Expense).createdAt
+              : (actB.data as Settlement).createdAt
+          ).getTime();
+        } else if (isSettlements) {
+          dateA = (a as Settlement).createdAt;
+          createdA = new Date((a as Settlement).createdAt).getTime();
+          dateB = (b as Settlement).createdAt;
+          createdB = new Date((b as Settlement).createdAt).getTime();
+        } else {
+          dateA = (a as Expense).date;
+          createdA = new Date((a as Expense).createdAt).getTime();
+          dateB = (b as Expense).date;
+          createdB = new Date((b as Expense).createdAt).getTime();
+        }
+
+        const dateDiff = new Date(dateB).getTime() - new Date(dateA).getTime();
+        if (dateDiff !== 0) return dateDiff;
+        return createdB - createdA;
+      });
+    } else if (sortBy === 'date_asc') {
       sorted.sort((a, b) => {
         let dateA: string;
         let dateB: string;
@@ -488,7 +539,11 @@ export default function GroupExpensesScreen() {
               const s = item as Settlement;
               return (
                 <View style={{ marginHorizontal: -16 }}>
-                  <SettlementItem settlement={s} currentUserId={userData?.id} />
+                  <SettlementItem
+                    settlement={s}
+                    currentUserId={userData?.id}
+                    onDelete={handleDeleteSettlement}
+                  />
                 </View>
               );
             }
@@ -524,7 +579,11 @@ export default function GroupExpensesScreen() {
                       isSettled={act.data.isSettled}
                     />
                   ) : (
-                    <SettlementItem settlement={act.data} currentUserId={userData?.id} />
+                    <SettlementItem
+                      settlement={act.data}
+                      currentUserId={userData?.id}
+                      onDelete={handleDeleteSettlement}
+                    />
                   )}
                 </View>
               );

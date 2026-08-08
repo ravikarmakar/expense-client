@@ -7,7 +7,7 @@ import * as Application from 'expo-application';
  */
 
 export const env = {
-  API_URL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000',
+  API_URL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000',
   NODE_ENV: process.env.NODE_ENV || 'development',
   EXPO_PROJECT_ID: Constants.expoConfig?.extra?.eas?.projectId || '',
   APP_VERSION: Application.nativeApplicationVersion || '1.0.0',

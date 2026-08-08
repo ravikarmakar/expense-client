@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { expenseSchema } from '../expenses/expense.types';
 import { settlementSchema, type Settlement } from '../settlements/settlements.types';
+import { activityItemSchema } from './activity.types';
 
 // ─────────────────────────────────────────────────────
 // Group member roles
@@ -117,6 +118,8 @@ export const groupDetailConsolidatedSchema = z.object({
     group: groupSchema,
     expenses: z.array(expenseSchema),
     settlements: z.array(settlementSchema).optional().default([]),
+    activity: z.array(activityItemSchema).optional().default([]),
+    activityNextCursor: z.string().nullable().optional(),
   }),
 });
 

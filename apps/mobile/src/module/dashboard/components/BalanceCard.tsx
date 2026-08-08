@@ -1,5 +1,6 @@
 import React from 'react';
 import { Text, View, TouchableOpacity } from 'react-native';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../styles/dashboard.styles';
 import { SkeletonLoader } from '../../../components/SkeletonLoader';
@@ -8,15 +9,15 @@ import { SparklineChart } from './SparklineChart';
 
 interface BalanceCardProps {
   totalSpent: number;
+  totalIncome?: number;
   totalOwedToMe: number;
   totalIOwe: number;
   netBalance: number;
   totalGroupSpent: number;
+  expenses?: Array<Record<string, unknown>>;
   statsLoading: boolean;
   groupsLoading: boolean;
   groupsEmpty: boolean;
-  timeRange: 'week' | 'month' | 'all';
-  onTimeRangeChange: (range: 'week' | 'month' | 'all') => void;
   onTotalSpentPress: () => void;
   onOwedPress: () => void;
   onOwePress: () => void;
@@ -31,15 +32,15 @@ interface BalanceCardProps {
  */
 export const BalanceCard = React.memo(function BalanceCard({
   totalSpent,
+  totalIncome = 0,
   totalOwedToMe,
   totalIOwe,
   netBalance,
   totalGroupSpent,
+  expenses = [],
   statsLoading,
   groupsLoading,
   groupsEmpty,
-  timeRange,
-  onTimeRangeChange,
   onTotalSpentPress,
   onOwedPress,
   onOwePress,
@@ -67,92 +68,94 @@ export const BalanceCard = React.memo(function BalanceCard({
         },
       ]}
     >
-      {/* Header Row: Title & Inline Switcher */}
+      {/* Hero Header: Monthly Income & Expense side-by-side (Centered) */}
       <View
         style={{
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: 12,
+          marginBottom: 10,
         }}
       >
-        <Text style={[styles.balanceLabel, !isDark && { color: 'rgba(255, 255, 255, 0.75)' }]}>
-          {timeRange === 'week'
-            ? 'WEEKLY SPENDING'
-            : timeRange === 'month'
-              ? 'MONTHLY SPENDING'
-              : 'ALL-TIME SPENDING'}
-        </Text>
+        {/* Income Block (Green) */}
+        <TouchableOpacity
+          style={{ flex: 1, alignItems: 'center' }}
+          activeOpacity={0.8}
+          onPress={() => router.push('/income')}
+        >
+          <Text
+            style={[
+              styles.balanceLabel,
+              !isDark && { color: 'rgba(255, 255, 255, 0.75)' },
+              { marginBottom: 4, textTransform: 'none' },
+            ]}
+          >
+            INCOME /m
+          </Text>
+          {showStatsSkeleton ? (
+            <SkeletonLoader width={100} height={28} style={styles.skeletonBalanceOnDark} />
+          ) : (
+            <Text
+              style={{
+                fontSize: 22,
+                fontWeight: '800',
+                color: isDark ? '#10B981' : '#85f8c4',
+                textAlign: 'center',
+              }}
+            >
+              {CURRENCY_SYMBOL}
+              {totalIncome.toFixed(2)}
+            </Text>
+          )}
+        </TouchableOpacity>
 
-        {/* Tiny Switcher pills */}
+        {/* Divider line between Income & Expense */}
         <View
           style={{
-            flexDirection: 'row',
-            backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255, 255, 255, 0.12)',
-            borderRadius: 8,
-            padding: 2,
-            borderWidth: 1,
-            borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255, 255, 255, 0.18)',
+            width: 1,
+            height: 38,
+            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.2)',
+            marginHorizontal: 8,
           }}
+        />
+
+        {/* Expense Block (Red) */}
+        <TouchableOpacity
+          style={{ flex: 1, alignItems: 'center' }}
+          activeOpacity={0.8}
+          onPress={onTotalSpentPress}
         >
-          {(['week', 'month', 'all'] as const).map((range) => {
-            const isActive = timeRange === range;
-            const label = range === 'week' ? 'W' : range === 'month' ? 'M' : 'All';
-            return (
-              <TouchableOpacity
-                key={range}
-                activeOpacity={0.7}
-                onPress={() => onTimeRangeChange(range)}
-                style={{
-                  paddingHorizontal: 8,
-                  paddingVertical: 4,
-                  borderRadius: 6,
-                  backgroundColor: isActive
-                    ? isDark
-                      ? 'rgba(16, 185, 129, 0.08)'
-                      : 'rgba(255, 255, 255, 0.22)'
-                    : 'transparent',
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 10,
-                    fontWeight: '800',
-                    color: isActive
-                      ? isDark
-                        ? '#10B981'
-                        : '#ffffff'
-                      : isDark
-                        ? '#74817B'
-                        : 'rgba(255, 255, 255, 0.6)',
-                  }}
-                >
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+          <Text
+            style={[
+              styles.balanceLabel,
+              !isDark && { color: 'rgba(255, 255, 255, 0.75)' },
+              { marginBottom: 4, textTransform: 'none' },
+            ]}
+          >
+            EXPENSE /m
+          </Text>
+          {showStatsSkeleton ? (
+            <SkeletonLoader width={100} height={28} style={styles.skeletonBalanceOnDark} />
+          ) : (
+            <Text
+              style={{
+                fontSize: 22,
+                fontWeight: '800',
+                color: isDark ? '#EF4444' : '#ffb4ab',
+                textAlign: 'center',
+              }}
+            >
+              {CURRENCY_SYMBOL}
+              {totalSpent.toFixed(2)}
+            </Text>
+          )}
+        </TouchableOpacity>
       </View>
 
-      {/* Hero Total Spending Amount */}
-      <TouchableOpacity
-        style={{ alignItems: 'flex-start', marginBottom: 12 }}
-        activeOpacity={0.8}
-        onPress={onTotalSpentPress}
-      >
-        {showStatsSkeleton ? (
-          <SkeletonLoader width={160} height={40} style={styles.skeletonBalanceOnDark} />
-        ) : (
-          <Text style={[styles.balanceAmount, !isDark && { color: '#ffffff' }, { marginTop: 0 }]}>
-            {CURRENCY_SYMBOL}
-            {totalSpent.toFixed(2)}
-          </Text>
-        )}
-      </TouchableOpacity>
-
       {/* Minimal Sparkline Trend Line */}
-      {!showStatsSkeleton && <SparklineChart timeRange={timeRange} />}
+      {!showStatsSkeleton && (
+        <SparklineChart variant={variant} monthlyIncome={totalIncome} expenses={expenses} />
+      )}
 
       <View
         style={[styles.balanceDivider, !isDark && { backgroundColor: 'rgba(255, 255, 255, 0.12)' }]}

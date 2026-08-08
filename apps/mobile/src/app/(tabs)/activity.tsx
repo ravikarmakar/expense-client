@@ -1,4 +1,5 @@
 import React from 'react';
+import { router } from 'expo-router';
 import {
   StyleSheet,
   View,
@@ -6,78 +7,39 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Modal,
-  Platform,
   ActivityIndicator,
   NativeScrollEvent,
-  TextInput,
 } from 'react-native';
-import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../../constants/theme';
-import { ExpenseItem } from '../../components/ExpenseItem';
+import { COLORS } from '../../constants/theme';
 import { ExpenseItemSkeleton } from '../../components/ExpenseItemSkeleton';
-import { SkeletonLoader } from '../../components/SkeletonLoader';
 import { AddExpenseModal } from '../../components/AddExpenseModal';
+import { AddIncomeModal } from '../../components/AddIncomeModal';
+import { ActivityFeedItem } from '../../module/groups/components/group-details/ActivityFeedItem';
+import { ActivityOverviewChartCard } from '../../components/ActivityOverviewChartCard';
+import { useTheme } from '../../context/ThemeContext';
 import { ErrorView } from '../../components/ErrorView';
 import { EmptyState } from '../../components/EmptyState';
-import { useActivityController, type ExpenseCategory } from '@workspace/api';
+import {
+  useActivityController,
+  useIncomes,
+  useSettlements,
+  type Income,
+  type Settlement,
+} from '@workspace/api';
 import { getDateHeading } from '../../utils/date';
 
-const FILTER_TABS: Array<{ label: string; value: ExpenseCategory | 'All' }> = [
-  { label: 'All', value: 'All' },
-  { label: 'Food', value: 'Food' },
-  { label: 'Transport', value: 'Transport' },
-  { label: 'Shopping', value: 'Shopping' },
-  { label: 'Bills', value: 'Bills' },
-  { label: 'Travel', value: 'Travel' },
-  { label: 'Health', value: 'Health' },
-  { label: 'Other', value: 'Other' },
-];
-
-const DATE_RANGE_OPTIONS = [
-  { label: 'All Time', value: 'all-time', icon: 'calendar-outline' },
-  { label: 'This Month', value: 'this-month', icon: 'calendar-number-outline' },
-  { label: 'Last Month', value: 'last-month', icon: 'play-back-outline' },
-  { label: 'Last 7 Days', value: 'last-7-days', icon: 'time-outline' },
-  { label: 'Last 30 Days', value: 'last-30-days', icon: 'timer-outline' },
-] as const;
-
-const SORT_OPTIONS = [
-  { label: 'Date: Newest First', value: 'date-desc', icon: 'calendar-outline' },
-  { label: 'Date: Oldest First', value: 'date-asc', icon: 'time-outline' },
-  { label: 'Amount: Low to High', value: 'amount-asc', icon: 'trending-up-outline' },
-  { label: 'Amount: High to Low', value: 'amount-desc', icon: 'trending-down-outline' },
-] as const;
+const BATCH_SIZE = 15;
 
 export default function ActivityTabScreen() {
   const {
     user,
     addExpenseVisible,
     setAddExpenseVisible,
-    filterModalVisible,
-    setFilterModalVisible,
-    activeFilter,
-    setActiveFilter,
-    isCategoryDropdownOpen,
-    setIsCategoryDropdownOpen,
     dateRange,
     setDateRange,
-    isDateRangeDropdownOpen,
-    setIsDateRangeDropdownOpen,
-    paidByMe,
-    setPaidByMe,
-    sortBy,
-    setSortBy,
-    isSortDropdownOpen,
-    setIsSortDropdownOpen,
-    useWalletOnly,
-    setUseWalletOnly,
     isRefreshing,
-    searchVisible,
-    setSearchVisible,
-    searchQuery,
-    setSearchQuery,
     sortedExpenses,
     isLoading,
     isError,
@@ -86,8 +48,154 @@ export default function ActivityTabScreen() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    handleResetAll,
   } = useActivityController();
+
+  const { isDark } = useTheme();
+  const variant = isDark ? 'dark' : 'light';
+  const [addIncomeVisible, setAddIncomeVisible] = React.useState(false);
+  const [displayLimit, setDisplayLimit] = React.useState(BATCH_SIZE);
+
+  const { data: incomeData } = useIncomes();
+  const rawIncomes = incomeData?.incomes ?? [];
+
+  const filteredIncomes = React.useMemo(() => {
+    return rawIncomes.filter((inc) => {
+      if (dateRange !== 'all-time') {
+        const incDate = new Date(inc.date);
+        const now = new Date();
+        if (dateRange === 'this-month') {
+          if (incDate.getMonth() !== now.getMonth() || incDate.getFullYear() !== now.getFullYear())
+            return false;
+        } else if (dateRange === 'last-month') {
+          const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          if (
+            incDate.getMonth() !== lastMonth.getMonth() ||
+            incDate.getFullYear() !== lastMonth.getFullYear()
+          )
+            return false;
+        } else if (dateRange === 'last-7-days') {
+          const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          if (incDate < sevenDaysAgo) return false;
+        } else if (dateRange === 'last-30-days') {
+          const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          if (incDate < thirtyDaysAgo) return false;
+        } else if (dateRange.startsWith('month-')) {
+          const parts = dateRange.replace('month-', '').split('-');
+          const year = parseInt(parts[0], 10);
+          const month = parseInt(parts[1], 10) - 1;
+          if (incDate.getFullYear() !== year || incDate.getMonth() !== month) return false;
+        }
+      }
+      return true;
+    });
+  }, [rawIncomes, dateRange]);
+
+  const { data: settlementData } = useSettlements();
+  const rawSettlements = settlementData?.settlements ?? [];
+
+  const filteredSettlements = React.useMemo(() => {
+    return rawSettlements.filter((set) => {
+      if (dateRange !== 'all-time') {
+        const setDate = new Date(set.createdAt);
+        const now = new Date();
+        if (dateRange === 'this-month') {
+          if (setDate.getMonth() !== now.getMonth() || setDate.getFullYear() !== now.getFullYear())
+            return false;
+        } else if (dateRange === 'last-month') {
+          const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          if (
+            setDate.getMonth() !== lastMonth.getMonth() ||
+            setDate.getFullYear() !== lastMonth.getFullYear()
+          )
+            return false;
+        } else if (dateRange === 'last-7-days') {
+          const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          if (setDate < sevenDaysAgo) return false;
+        } else if (dateRange === 'last-30-days') {
+          const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          if (setDate < thirtyDaysAgo) return false;
+        } else if (dateRange.startsWith('month-')) {
+          const parts = dateRange.replace('month-', '').split('-');
+          const year = parseInt(parts[0], 10);
+          const month = parseInt(parts[1], 10) - 1;
+          if (setDate.getFullYear() !== year || setDate.getMonth() !== month) return false;
+        }
+      }
+      return true;
+    });
+  }, [rawSettlements, dateRange]);
+
+  type ActivityFeedItem =
+    | {
+        kind: 'expense';
+        id: string;
+        date: string;
+        amount: number;
+        item: (typeof sortedExpenses)[0];
+      }
+    | { kind: 'income'; id: string; date: string; amount: number; item: Income }
+    | { kind: 'settlement'; id: string; date: string; amount: number; item: Settlement };
+
+  const combinedActivityFeed = React.useMemo(() => {
+    const expensesList: ActivityFeedItem[] = sortedExpenses.map((e) => ({
+      kind: 'expense' as const,
+      id: e.id,
+      date: e.date,
+      amount: e.amount,
+      item: e,
+    }));
+    const incomesList: ActivityFeedItem[] = filteredIncomes.map((i) => ({
+      kind: 'income' as const,
+      id: i.id,
+      date: i.date,
+      amount: i.amount,
+      item: i,
+    }));
+    const settlementsList: ActivityFeedItem[] = filteredSettlements.map((s) => ({
+      kind: 'settlement' as const,
+      id: s.id,
+      date: s.createdAt,
+      amount: s.amount,
+      item: s,
+    }));
+
+    const list = [...expensesList, ...incomesList, ...settlementsList];
+    list.sort((a, b) => {
+      const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+      if (dateDiff !== 0) return dateDiff;
+      const createdA =
+        'item' in a && a.item && 'createdAt' in a.item
+          ? new Date(a.item.createdAt as string | Date).getTime()
+          : 0;
+      const createdB =
+        'item' in b && b.item && 'createdAt' in b.item
+          ? new Date(b.item.createdAt as string | Date).getTime()
+          : 0;
+      return createdB - createdA;
+    });
+    return list;
+  }, [sortedExpenses, filteredIncomes, filteredSettlements]);
+
+  // Client-side paginated feed (15 items per batch)
+  const paginatedFeed = React.useMemo(() => {
+    return combinedActivityFeed.slice(0, displayLimit);
+  }, [combinedActivityFeed, displayLimit]);
+
+  const handleLoadMore = React.useCallback(() => {
+    if (displayLimit < combinedActivityFeed.length) {
+      // More client-side items available, just bump the limit
+      setDisplayLimit((prev) => prev + BATCH_SIZE);
+    } else if (hasNextPage && !isFetchingNextPage) {
+      // All client-side items shown, fetch next page from server
+      fetchNextPage();
+      setDisplayLimit((prev) => prev + BATCH_SIZE);
+    }
+  }, [displayLimit, combinedActivityFeed.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Reset display limit when date range changes
+  React.useEffect(() => {
+    setDisplayLimit(BATCH_SIZE);
+  }, [dateRange]);
 
   const isCloseToBottom = ({
     layoutMeasurement,
@@ -101,175 +209,38 @@ export default function ActivityTabScreen() {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.container}>
-      {/* Header Container with Bottom Divider line */}
-      <View style={[styles.headerContainer, { paddingTop: insets.top + 16 }]}>
-        {/* Header row */}
-        <View style={styles.tabHeaderRow}>
-          {searchVisible ? (
-            <View style={styles.searchInputContainer}>
-              <Ionicons
-                name="search"
-                size={20}
-                color={COLORS.primary}
-                style={styles.searchIconInline}
-              />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search expenses by title..."
-                placeholderTextColor={COLORS.outline}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoFocus
-              />
-              <TouchableOpacity
-                onPress={() => {
-                  setSearchQuery('');
-                  setSearchVisible(false);
-                }}
-                style={styles.clearSearchBtn}
-              >
-                <Ionicons name="close-circle" size={22} color={COLORS.outline} />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <>
-              <View>
-                <Text style={styles.tabTitle}>Activity</Text>
-                <Text style={styles.tabSubtitle}>Shared Ledger</Text>
-              </View>
-
-              <View style={styles.headerRightActions}>
-                <TouchableOpacity
-                  style={styles.searchIconBtn}
-                  activeOpacity={0.8}
-                  onPress={() => setSearchVisible(true)}
-                >
-                  <Ionicons name="search" size={22} color={COLORS.primary} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.filterBtn,
-                    (activeFilter !== 'All' ||
-                      sortBy !== 'date-desc' ||
-                      paidByMe ||
-                      useWalletOnly) &&
-                      styles.filterBtnActive,
-                  ]}
-                  onPress={() => setFilterModalVisible(true)}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons
-                    name="funnel"
-                    size={20}
-                    color={
-                      activeFilter !== 'All' || sortBy !== 'date-desc' || paidByMe || useWalletOnly
-                        ? '#ffffff'
-                        : COLORS.primary
-                    }
-                  />
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
-        </View>
-
-        {/* Active Filters Row */}
-        {(activeFilter !== 'All' || useWalletOnly || sortBy !== 'date-desc') && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.activeFiltersRow}
-          >
-            {activeFilter !== 'All' && (
-              <View style={styles.activeFilterBadge}>
-                <Text style={styles.activeFilterBadgeText}>{activeFilter}</Text>
-                <TouchableOpacity onPress={() => setActiveFilter('All')}>
-                  <Ionicons name="close-circle" size={14} color={COLORS.primary} />
-                </TouchableOpacity>
-              </View>
-            )}
-            {useWalletOnly && (
-              <View style={styles.activeFilterBadge}>
-                <Text style={styles.activeFilterBadgeText}>Wallet</Text>
-                <TouchableOpacity onPress={() => setUseWalletOnly(false)}>
-                  <Ionicons name="close-circle" size={14} color={COLORS.primary} />
-                </TouchableOpacity>
-              </View>
-            )}
-            {sortBy !== 'date-desc' && (
-              <View style={styles.activeFilterBadge}>
-                <Text style={styles.activeFilterBadgeText}>
-                  {sortBy === 'date-asc'
-                    ? 'Oldest'
-                    : sortBy === 'amount-asc'
-                      ? 'Amount: Low-High'
-                      : 'Amount: High-Low'}
-                </Text>
-                <TouchableOpacity onPress={() => setSortBy('date-desc')}>
-                  <Ionicons name="close-circle" size={14} color={COLORS.primary} />
-                </TouchableOpacity>
-              </View>
-            )}
-          </ScrollView>
-        )}
-      </View>
-
+    <View style={[styles.container, isDark && styles.containerDark]}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top + 16, paddingBottom: 100 },
+        ]}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => {
+              setDisplayLimit(BATCH_SIZE);
+              handleRefresh();
+            }}
+          />
+        }
         onScroll={({ nativeEvent }) => {
-          if (isCloseToBottom(nativeEvent) && hasNextPage && !isFetchingNextPage) {
-            fetchNextPage();
+          if (isCloseToBottom(nativeEvent)) {
+            handleLoadMore();
           }
         }}
         scrollEventThrottle={400}
       >
-        {/* Premium Total Spent Banner */}
-        {(isLoading || sortedExpenses.length > 0) && (
-          <View style={styles.premiumCard}>
-            <View style={styles.cardCircle1} />
-            <View style={styles.cardCircle2} />
-            <View style={styles.premiumCardContent}>
-              <View style={styles.premiumCardLeft}>
-                <Text style={styles.premiumCardLabel}>Total Shared Spend</Text>
-                {isLoading ? (
-                  <SkeletonLoader
-                    width={100}
-                    height={28}
-                    borderRadius={6}
-                    style={{ marginTop: 4, backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
-                  />
-                ) : (
-                  <Text style={styles.premiumCardValue}>
-                    {CURRENCY_SYMBOL}
-                    {sortedExpenses
-                      .reduce((s, e) => s + e.amount, 0)
-                      .toLocaleString('en-IN', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                  </Text>
-                )}
-              </View>
-              <View style={styles.premiumCardDivider} />
-              <View style={styles.premiumCardRight}>
-                <Text style={styles.premiumCardRightLabel}>Transactions</Text>
-                {isLoading ? (
-                  <SkeletonLoader
-                    width={30}
-                    height={20}
-                    borderRadius={4}
-                    style={{ marginTop: 4, backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
-                  />
-                ) : (
-                  <Text style={styles.premiumCardRightValue}>{sortedExpenses.length}</Text>
-                )}
-              </View>
-            </View>
-          </View>
-        )}
+        {/* Activity Pie & Cashflow Chart Overview */}
+        <ActivityOverviewChartCard
+          expenses={sortedExpenses}
+          incomes={filteredIncomes}
+          settlements={filteredSettlements}
+          variant={variant}
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
+        />
 
         {/* Loading */}
         {isLoading && (
@@ -287,40 +258,75 @@ export default function ActivityTabScreen() {
         {isError && <ErrorView message="Failed to load expenses" onRetry={refetch} />}
 
         {/* Empty */}
-        {!isLoading && !isError && sortedExpenses.length === 0 && (
+        {!isLoading && !isError && combinedActivityFeed.length === 0 && (
           <EmptyState
             icon="receipt-long"
             iconLib="MaterialIcons"
-            title="No expenses yet"
-            description={
-              activeFilter !== 'All'
-                ? `No ${activeFilter} expenses found.`
-                : 'Add your first expense to start tracking!'
-            }
-            ctaText={activeFilter === 'All' ? 'Add Expense' : undefined}
-            onCtaPress={activeFilter === 'All' ? () => setAddExpenseVisible(true) : undefined}
+            title="No activity yet"
+            description="Add your first expense or income to start tracking!"
+            ctaText="Add Expense"
+            onCtaPress={() => setAddExpenseVisible(true)}
             ctaIcon="add-circle"
           />
         )}
 
-        {/* Expense list */}
-        {sortedExpenses.length > 0 && (
+        {/* Combined Activity List (Expenses & Income synced chronologically) */}
+        {paginatedFeed.length > 0 && (
           <View style={styles.activityFeed}>
+            {/* Activity Logs Header */}
+            <View style={styles.activityHeaderRow}>
+              <TouchableOpacity onPress={() => router.push('/activity-logs')} activeOpacity={0.7}>
+                <Text
+                  style={[styles.activityHeaderTitle, isDark && styles.activityHeaderTitleDark]}
+                >
+                  Activity Logs
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.seeAllBtn}
+                onPress={() => router.push('/activity-logs')}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={[styles.seeAllText, isDark && styles.seeAllTextDark]}>See All</Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={isDark ? '#34D399' : COLORS.primary}
+                />
+              </TouchableOpacity>
+            </View>
+
             {(() => {
               let lastDateHeading = '';
-              return sortedExpenses.map((expense) => {
-                const currentHeading = getDateHeading(expense.date);
+              return paginatedFeed.map((entry) => {
+                const currentHeading = getDateHeading(entry.date);
                 const showHeading = currentHeading !== lastDateHeading;
                 lastDateHeading = currentHeading;
 
                 return (
-                  <React.Fragment key={expense.id}>
+                  <React.Fragment key={`${entry.kind}-${entry.id}`}>
                     {showHeading && (
                       <View style={styles.dateHeaderContainer}>
                         <Text style={styles.dateHeaderText}>{currentHeading}</Text>
                       </View>
                     )}
-                    <ExpenseItem expense={expense} currentUserId={user?.id} />
+                    <ActivityFeedItem
+                      item={
+                        entry.kind === 'expense'
+                          ? { type: 'expense', data: entry.item }
+                          : entry.kind === 'income'
+                            ? { type: 'income', data: entry.item }
+                            : { type: 'settlement', data: entry.item }
+                      }
+                      currentUserId={user?.id}
+                      variant={variant}
+                      onPress={
+                        entry.kind === 'income'
+                          ? () => router.push(`/income/${entry.item.id}`)
+                          : undefined
+                      }
+                    />
                   </React.Fragment>
                 );
               });
@@ -342,339 +348,12 @@ export default function ActivityTabScreen() {
         onSuccess={() => refetch()}
       />
 
-      {/* Filter Modal */}
-      <Modal
-        animationType="slide"
-        transparent
-        visible={filterModalVisible}
-        onRequestClose={() => setFilterModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity
-            style={styles.modalBackdrop}
-            activeOpacity={1}
-            onPress={() => setFilterModalVisible(false)}
-          />
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHandle} />
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Filters & Sort</Text>
-              <TouchableOpacity
-                onPress={() => setFilterModalVisible(false)}
-                style={styles.modalCloseBtn}
-              >
-                <Ionicons name="close" size={22} color={COLORS.onSurface} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.modalScrollContent}
-            >
-              {/* Category Section */}
-              <Text style={styles.modalSectionTitle}>Filter by Category</Text>
-              <View style={styles.dropdownContainer}>
-                <TouchableOpacity
-                  style={styles.dropdownHeader}
-                  onPress={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.dropdownHeaderLeft}>
-                    <View
-                      style={[
-                        styles.dropdownHeaderIcon,
-                        { backgroundColor: CATEGORY_ICONS[activeFilter].bg },
-                      ]}
-                    >
-                      {CATEGORY_ICONS[activeFilter].lib === 'Ionicons' ? (
-                        <Ionicons
-                          name={CATEGORY_ICONS[activeFilter].icon as never}
-                          size={18}
-                          color={CATEGORY_ICONS[activeFilter].color}
-                        />
-                      ) : (
-                        <MaterialIcons
-                          name={CATEGORY_ICONS[activeFilter].icon as never}
-                          size={18}
-                          color={CATEGORY_ICONS[activeFilter].color}
-                        />
-                      )}
-                    </View>
-                    <Text style={styles.dropdownHeaderText}>
-                      {FILTER_TABS.find((t) => t.value === activeFilter)?.label || 'All Categories'}
-                    </Text>
-                  </View>
-                  <Ionicons
-                    name={isCategoryDropdownOpen ? 'chevron-up' : 'chevron-down'}
-                    size={20}
-                    color={COLORS.outline}
-                  />
-                </TouchableOpacity>
-
-                {isCategoryDropdownOpen && (
-                  <View style={styles.dropdownList}>
-                    {FILTER_TABS.map((tab) => {
-                      const isSelected = activeFilter === tab.value;
-                      const cfg = CATEGORY_ICONS[tab.value];
-                      return (
-                        <TouchableOpacity
-                          key={tab.value}
-                          style={[styles.dropdownItem, isSelected && styles.dropdownItemActive]}
-                          onPress={() => {
-                            setActiveFilter(tab.value);
-                            setIsCategoryDropdownOpen(false);
-                          }}
-                          activeOpacity={0.8}
-                        >
-                          <View style={styles.dropdownItemLeft}>
-                            <View style={[styles.dropdownItemIcon, { backgroundColor: cfg.bg }]}>
-                              {cfg.lib === 'Ionicons' ? (
-                                <Ionicons name={cfg.icon as never} size={16} color={cfg.color} />
-                              ) : (
-                                <MaterialIcons
-                                  name={cfg.icon as never}
-                                  size={16}
-                                  color={cfg.color}
-                                />
-                              )}
-                            </View>
-                            <Text
-                              style={[
-                                styles.dropdownItemLabel,
-                                isSelected && styles.dropdownItemLabelActive,
-                              ]}
-                            >
-                              {tab.label}
-                            </Text>
-                          </View>
-                          {isSelected && (
-                            <Ionicons name="checkmark-sharp" size={18} color={COLORS.primary} />
-                          )}
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                )}
-              </View>
-
-              {/* Date Range Section */}
-              <Text style={styles.modalSectionTitle}>Date Range</Text>
-              <View style={styles.dropdownContainer}>
-                <TouchableOpacity
-                  style={styles.dropdownHeader}
-                  onPress={() => setIsDateRangeDropdownOpen(!isDateRangeDropdownOpen)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.dropdownHeaderLeft}>
-                    <View
-                      style={[
-                        styles.dropdownHeaderIcon,
-                        { backgroundColor: COLORS.secondaryFixed },
-                      ]}
-                    >
-                      <Ionicons
-                        name={DATE_RANGE_OPTIONS.find((o) => o.value === dateRange)?.icon as never}
-                        size={18}
-                        color={COLORS.secondary}
-                      />
-                    </View>
-                    <Text style={styles.dropdownHeaderText}>
-                      {DATE_RANGE_OPTIONS.find((o) => o.value === dateRange)?.label}
-                    </Text>
-                  </View>
-                  <Ionicons
-                    name={isDateRangeDropdownOpen ? 'chevron-up' : 'chevron-down'}
-                    size={20}
-                    color={COLORS.outline}
-                  />
-                </TouchableOpacity>
-
-                {isDateRangeDropdownOpen && (
-                  <View style={styles.dropdownList}>
-                    {DATE_RANGE_OPTIONS.map((opt) => {
-                      const isSelected = dateRange === opt.value;
-                      return (
-                        <TouchableOpacity
-                          key={opt.value}
-                          style={[styles.dropdownItem, isSelected && styles.dropdownItemActive]}
-                          onPress={() => {
-                            setDateRange(opt.value);
-                            setIsDateRangeDropdownOpen(false);
-                          }}
-                          activeOpacity={0.8}
-                        >
-                          <View style={styles.dropdownItemLeft}>
-                            <View
-                              style={[
-                                styles.dropdownItemIcon,
-                                { backgroundColor: COLORS.secondaryFixed },
-                              ]}
-                            >
-                              <Ionicons
-                                name={opt.icon as never}
-                                size={16}
-                                color={COLORS.secondary}
-                              />
-                            </View>
-                            <Text
-                              style={[
-                                styles.dropdownItemLabel,
-                                isSelected && styles.dropdownItemLabelActive,
-                              ]}
-                            >
-                              {opt.label}
-                            </Text>
-                          </View>
-                          {isSelected && (
-                            <Ionicons name="checkmark-sharp" size={18} color={COLORS.primary} />
-                          )}
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                )}
-              </View>
-
-              {/* Sorting Section */}
-              <Text style={styles.modalSectionTitle}>Sort By</Text>
-              <View style={styles.dropdownContainer}>
-                <TouchableOpacity
-                  style={styles.dropdownHeader}
-                  onPress={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.dropdownHeaderLeft}>
-                    <View
-                      style={[styles.dropdownHeaderIcon, { backgroundColor: COLORS.tertiaryFixed }]}
-                    >
-                      <Ionicons
-                        name={SORT_OPTIONS.find((o) => o.value === sortBy)?.icon as never}
-                        size={18}
-                        color={COLORS.tertiary}
-                      />
-                    </View>
-                    <Text style={styles.dropdownHeaderText}>
-                      {SORT_OPTIONS.find((o) => o.value === sortBy)?.label}
-                    </Text>
-                  </View>
-                  <Ionicons
-                    name={isSortDropdownOpen ? 'chevron-up' : 'chevron-down'}
-                    size={20}
-                    color={COLORS.outline}
-                  />
-                </TouchableOpacity>
-
-                {isSortDropdownOpen && (
-                  <View style={styles.dropdownList}>
-                    {SORT_OPTIONS.map((opt) => {
-                      const isSelected = sortBy === opt.value;
-                      return (
-                        <TouchableOpacity
-                          key={opt.value}
-                          style={[styles.dropdownItem, isSelected && styles.dropdownItemActive]}
-                          onPress={() => {
-                            setSortBy(opt.value);
-                            setIsSortDropdownOpen(false);
-                          }}
-                          activeOpacity={0.8}
-                        >
-                          <View style={styles.dropdownItemLeft}>
-                            <View
-                              style={[
-                                styles.dropdownItemIcon,
-                                { backgroundColor: COLORS.tertiaryFixed },
-                              ]}
-                            >
-                              <Ionicons
-                                name={opt.icon as never}
-                                size={16}
-                                color={COLORS.tertiary}
-                              />
-                            </View>
-                            <Text
-                              style={[
-                                styles.dropdownItemLabel,
-                                isSelected && styles.dropdownItemLabelActive,
-                              ]}
-                            >
-                              {opt.label}
-                            </Text>
-                          </View>
-                          {isSelected && (
-                            <Ionicons name="checkmark-sharp" size={18} color={COLORS.primary} />
-                          )}
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                )}
-              </View>
-
-              {/* Payment Filter Section */}
-              <Text style={styles.modalSectionTitle}>Payment</Text>
-              <View style={styles.sortList}>
-                <TouchableOpacity
-                  style={[styles.sortItem, paidByMe && styles.sortItemActive]}
-                  onPress={() => setPaidByMe(!paidByMe)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.sortItemLeft}>
-                    <Ionicons
-                      name="person"
-                      size={18}
-                      color={paidByMe ? COLORS.primary : COLORS.outline}
-                    />
-                    <Text style={[styles.sortItemLabel, paidByMe && styles.sortItemLabelActive]}>
-                      Paid by me
-                    </Text>
-                  </View>
-                  {paidByMe && <Ionicons name="checkmark-sharp" size={18} color={COLORS.primary} />}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.sortItem, useWalletOnly && styles.sortItemActive]}
-                  onPress={() => setUseWalletOnly(!useWalletOnly)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.sortItemLeft}>
-                    <Ionicons
-                      name="wallet"
-                      size={18}
-                      color={useWalletOnly ? COLORS.primary : COLORS.outline}
-                    />
-                    <Text
-                      style={[styles.sortItemLabel, useWalletOnly && styles.sortItemLabelActive]}
-                    >
-                      Paid via Wallet
-                    </Text>
-                  </View>
-                  {useWalletOnly && (
-                    <Ionicons name="checkmark-sharp" size={18} color={COLORS.primary} />
-                  )}
-                </TouchableOpacity>
-              </View>
-
-              {/* Action Buttons */}
-              <View style={styles.modalActionsRow}>
-                <TouchableOpacity
-                  style={styles.modalResetBtn}
-                  onPress={handleResetAll}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.modalResetBtnText}>Reset All</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.modalApplyBtn}
-                  onPress={() => setFilterModalVisible(false)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.modalApplyBtnText}>Apply</Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+      <AddIncomeModal
+        visible={addIncomeVisible}
+        onClose={() => setAddIncomeVisible(false)}
+        onSuccess={() => refetch()}
+        variant={variant}
+      />
     </View>
   );
 }
@@ -683,6 +362,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  containerDark: {
+    backgroundColor: '#08110F',
   },
   scrollContent: {
     paddingTop: 12,
@@ -802,293 +484,41 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
   },
-  filterBtnActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-  },
-  modalSheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
-    maxHeight: '85%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 24,
-  },
-  modalHandle: {
-    width: 48,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: COLORS.surfaceContainerHigh,
-    alignSelf: 'center',
-    marginTop: 14,
-    marginBottom: 8,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: COLORS.onSurface,
-    letterSpacing: -0.5,
-  },
-  modalCloseBtn: {
-    padding: 8,
-    borderRadius: 24,
-    backgroundColor: COLORS.surfaceContainerLow,
-  },
-  dropdownContainer: {
-    paddingHorizontal: 24,
-    marginBottom: 20,
-  },
-  dropdownHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: COLORS.surfaceContainerLow,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  dropdownHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  dropdownHeaderIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dropdownHeaderText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.onSurface,
-  },
-  dropdownList: {
-    marginTop: 8,
-    backgroundColor: COLORS.surfaceContainerLow,
-    borderRadius: 16,
-    padding: 8,
-    gap: 4,
-  },
-  dropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-    borderRadius: 12,
-  },
-  dropdownItemActive: {
-    backgroundColor: COLORS.surfaceContainer,
-  },
-  dropdownItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  dropdownItemIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dropdownItemLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.onSurfaceVariant,
-  },
-  dropdownItemLabelActive: {
-    fontWeight: '700',
-    color: COLORS.primary,
-  },
-  modalScrollContent: {
-    paddingBottom: 32,
-  },
-  modalSectionTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: COLORS.onSurfaceVariant,
-    paddingHorizontal: 24,
-    marginTop: 8,
-    marginBottom: 16,
-    letterSpacing: 0.5,
-  },
-  sortList: {
-    paddingHorizontal: 24,
-    gap: 12,
-    marginBottom: 28,
-  },
-  sortItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 16,
-    backgroundColor: COLORS.surfaceContainerLow,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  sortItemActive: {
-    borderColor: COLORS.primaryFixed,
-    backgroundColor: '#e6f9f0',
-  },
-  sortItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  sortItemLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.onSurfaceVariant,
-  },
-  sortItemLabelActive: {
-    color: COLORS.primary,
-    fontWeight: '800',
-  },
-  modalActionsRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 24,
-    gap: 16,
-    marginTop: 8,
-  },
-  modalResetBtn: {
-    flex: 1,
-    height: 56,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: COLORS.surfaceContainerHigh,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.surface,
-  },
-  modalResetBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.outline,
-  },
-  modalApplyBtn: {
-    flex: 2,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  modalApplyBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  premiumCard: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 20,
-    marginHorizontal: 16,
-    overflow: 'hidden',
-    position: 'relative',
-    elevation: 8,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-  },
-  cardCircle1: {
-    position: 'absolute',
-    borderRadius: 999,
-    width: 140,
-    height: 140,
-    top: -40,
-    right: -40,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  cardCircle2: {
-    position: 'absolute',
-    borderRadius: 999,
-    width: 80,
-    height: 80,
-    bottom: -30,
-    left: -10,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  premiumCardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    zIndex: 2,
-  },
-  premiumCardLeft: {
-    flex: 2,
-  },
-  premiumCardLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.primaryFixed,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 4,
-    opacity: 0.9,
-  },
-  premiumCardValue: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#ffffff',
-    letterSpacing: -0.5,
-  },
-  premiumCardDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    marginHorizontal: 16,
-  },
-  premiumCardRight: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  premiumCardRightLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: COLORS.primaryFixed,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 4,
-    opacity: 0.9,
-  },
-  premiumCardRightValue: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#ffffff',
-  },
   activityFeed: {},
+  activityHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    marginBottom: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  activityHeaderTitle: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '800',
+    color: COLORS.onSurface,
+  },
+  activityHeaderTitleDark: {
+    color: '#F9FAFB',
+  },
+  seeAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+  },
+  seeAllText: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  seeAllTextDark: {
+    color: '#34D399',
+  },
   loadingMore: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1114,5 +544,12 @@ const styles = StyleSheet.create({
     color: COLORS.outline,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
+  },
+  topFadeOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
   },
 });

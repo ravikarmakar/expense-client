@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 
 interface SectionHeaderProps {
@@ -20,8 +21,19 @@ export const SectionHeader = React.memo(function SectionHeader({
     <View style={styles.container}>
       <Text style={large ? styles.titleLarge : styles.titleSmall}>{title}</Text>
       {onSeeAll && (
-        <TouchableOpacity onPress={onSeeAll} activeOpacity={0.7} hitSlop={8}>
+        <TouchableOpacity
+          onPress={onSeeAll}
+          activeOpacity={0.7}
+          hitSlop={8}
+          style={{ flexDirection: 'row', alignItems: 'center' }}
+        >
           <Text style={styles.seeAllText}>{seeAllText}</Text>
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            color={COLORS.secondary}
+            style={{ marginLeft: 2 }}
+          />
         </TouchableOpacity>
       )}
     </View>
@@ -49,7 +61,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
   },
   seeAllText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '700',
     color: COLORS.secondary,
   },

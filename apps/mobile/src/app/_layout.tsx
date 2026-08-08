@@ -101,6 +101,7 @@ function RootLayoutNav() {
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="groups/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="activity-logs" options={{ headerShown: false }} />
         </Stack>
       </AuthGuard>
       <UpdateDialog />

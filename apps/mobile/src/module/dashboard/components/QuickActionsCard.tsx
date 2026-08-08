@@ -7,6 +7,7 @@ import { ScalePressable } from '../../../components/ScalePressable';
 
 interface QuickActionsCardProps {
   onAddExpensePress: () => void;
+  onAddIncomePress?: () => void;
   onCreateGroupPress: () => void;
   onCreateCategoryPress: () => void;
   onScanReceiptPress?: () => void;
@@ -19,6 +20,7 @@ interface QuickActionsCardProps {
  */
 export const QuickActionsCard = React.memo(function QuickActionsCard({
   onAddExpensePress,
+  onAddIncomePress,
   onCreateGroupPress,
   onCreateCategoryPress,
   onScanReceiptPress,
@@ -63,6 +65,28 @@ export const QuickActionsCard = React.memo(function QuickActionsCard({
             Add Expense
           </Text>
         </ScalePressable>
+
+        {/* Add Income */}
+        {onAddIncomePress && (
+          <ScalePressable style={styles.quickActionItem} onPress={onAddIncomePress}>
+            <View
+              style={[
+                styles.quickActionIconContainer,
+                isDark
+                  ? styles.darkIconContainer
+                  : { backgroundColor: '#ecfdf5', borderColor: '#a7f3d0', borderWidth: 1 },
+              ]}
+            >
+              <Ionicons name="cash-outline" size={24} color={isDark ? '#10B981' : '#047857'} />
+            </View>
+            <Text
+              style={[styles.quickActionLabel, { color: isDark ? '#ffffff' : '#191c1d' }]}
+              numberOfLines={2}
+            >
+              + Income
+            </Text>
+          </ScalePressable>
+        )}
 
         {/* My Wallet */}
         <ScalePressable

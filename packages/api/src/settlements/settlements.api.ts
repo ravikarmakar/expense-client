@@ -28,3 +28,10 @@ export const getGroupSettlementsApi = async (
     nextCursor: parsed.data.nextCursor ?? null,
   };
 };
+
+export const deleteSettlementApi = async (settlementId: string): Promise<{ message: string }> => {
+  const { data } = await getApiClient().delete<{ success: boolean; data: { message: string } }>(
+    `/settlements/${settlementId}`
+  );
+  return data.data;
+};

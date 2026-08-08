@@ -74,10 +74,13 @@ export function useSettleUpScreenController(config?: SettleUpScreenControllerCon
       return;
     }
 
+    const isOwed = settleDirection === 'owed';
     settleMutation.mutate({
       groupId: settleGroupId,
       withUserId: settleUserId,
       amount,
+      fromId: isOwed ? settleUserId : undefined,
+      toId: isOwed ? undefined : settleUserId,
     });
   };
 

@@ -174,7 +174,11 @@ export const createApiClient = (
             error.message = 'Server is unreachable. Please try again later.';
             error.code = 'ERR_SERVER_UNREACHABLE';
           }
-        } else if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        } else if (
+          typeof globalThis !== 'undefined' &&
+          'navigator' in globalThis &&
+          (globalThis as any).navigator?.onLine === false
+        ) {
           error.message = 'No internet connection. Please check your network.';
           error.code = 'ERR_NO_NETWORK';
         } else {

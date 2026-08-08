@@ -44,6 +44,8 @@ export function useGroupDetailQuery(groupId: string) {
 
   const group = detailData?.group;
   const expenses = detailData?.expenses ?? [];
+  const activity = detailData?.activity ?? [];
+  const activityNextCursor = detailData?.activityNextCursor ?? null;
   const myBalance = group?.myBalance ?? 0;
   const isAdmin = group?.members.find((m) => m.userId === user?.id)?.role === GroupRole.ADMIN;
   const isFullySettled = group?.members.every((m) => Math.abs(m.balance ?? 0) < 0.01) ?? true;
@@ -52,6 +54,8 @@ export function useGroupDetailQuery(groupId: string) {
     user,
     group,
     expenses,
+    activity,
+    activityNextCursor,
     myBalance,
     isAdmin,
     isFullySettled,
@@ -199,10 +203,16 @@ export function useGroupDetailActions({
       return;
     }
 
+    const isOwed = settleMember.balance >= 0;
     setSettleModalVisible(false);
     setSettlingUserId(settleMember.userId);
     settleUp.mutate(
-      { withUserId: settleMember.userId, amount },
+      {
+        withUserId: settleMember.userId,
+        amount,
+        fromId: isOwed ? settleMember.userId : undefined,
+        toId: isOwed ? undefined : settleMember.userId,
+      },
       {
         onSuccess: () => {
           setSettlingUserId(null);

@@ -20,6 +20,7 @@ import { BalanceCard } from '../components/BalanceCard';
 import { BudgetProgressCard } from '../components/BudgetProgressCard';
 import { SetLimitModal } from '../components/SetLimitModal';
 import { AddExpenseModal } from '../../../components/AddExpenseModal';
+import { AddIncomeModal } from '../../../components/AddIncomeModal';
 import { CreateGroupModal } from '../../groups/components/CreateGroupModal';
 import { CreateCategoryModal } from '../../../components/CreateCategoryModal';
 import { GroupCardSkeleton } from '../../groups/components/GroupCardSkeleton';
@@ -32,6 +33,7 @@ import { resolveAvatar } from '../../../constants/theme';
 import { globalStyles } from '../../../styles/globalStyles';
 import { TopAppBar } from '../../../components/TopAppBar';
 import { RecentExpenses } from '../components/RecentExpenses';
+import { RecentIncome } from '../components/RecentIncome';
 import { useSinglePress } from '../../../hooks/useSinglePress';
 import { useTheme } from '../../../context/ThemeContext';
 import { AppBackground } from '../../../components/AppBackground';
@@ -64,6 +66,7 @@ export default function HomeScreen() {
   const singlePress = useSinglePress();
   const { isDark } = useTheme();
   const variant = isDark ? 'dark' : 'light';
+  const [addIncomeVisible, setAddIncomeVisible] = useState(false);
 
   // ─── Stable handlers (won't create new closures on each render) ───────
   const handleNotificationPress = useCallback(() => router.push('/notifications'), []);
@@ -71,6 +74,8 @@ export default function HomeScreen() {
   const handleSettingsPress = useCallback(() => router.push('/(tabs)/settings'), []);
   const handleOpenAddExpense = useCallback(() => setAddExpenseVisible(true), []);
   const handleCloseAddExpense = useCallback(() => setAddExpenseVisible(false), []);
+  const handleOpenAddIncome = useCallback(() => setAddIncomeVisible(true), []);
+  const handleCloseAddIncome = useCallback(() => setAddIncomeVisible(false), []);
   const handleOpenCreateGroup = useCallback(() => setCreateGroupVisible(true), []);
   const handleCloseCreateGroup = useCallback(() => setCreateGroupVisible(false), []);
   const handleCreateGroupSuccess = useCallback(() => {
@@ -133,39 +138,14 @@ export default function HomeScreen() {
     }, 200);
   }, [setAddExpenseVisible]);
 
-  // ─── Derived values ───────────────────────────────────────────────────
-  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'all'>('month');
-
-  const filteredTotalSpent =
-    timeRange === 'week'
-      ? totalSpent * 0.25
-      : timeRange === 'month'
-        ? totalSpent * 0.65
-        : totalSpent;
-  const filteredTotalOwedToMe =
-    timeRange === 'week'
-      ? totalOwedToMe * 0.3
-      : timeRange === 'month'
-        ? totalOwedToMe * 0.7
-        : totalOwedToMe;
-  const filteredTotalIOwe =
-    timeRange === 'week' ? totalIOwe * 0.2 : timeRange === 'month' ? totalIOwe * 0.6 : totalIOwe;
+  // All spending and balance values show real all-time totals.
+  const filteredTotalSpent = totalSpent;
+  const filteredTotalOwedToMe = totalOwedToMe;
+  const filteredTotalIOwe = totalIOwe;
   const filteredNetBalance = filteredTotalOwedToMe - filteredTotalIOwe;
-  const filteredTotalGroupSpent =
-    timeRange === 'week'
-      ? totalGroupSpent * 0.28
-      : timeRange === 'month'
-        ? totalGroupSpent * 0.68
-        : totalGroupSpent;
+  const filteredTotalGroupSpent = totalGroupSpent;
 
-  const filteredExpenses = (expenses || []).filter((e) => {
-    if (timeRange === 'all') return true;
-    const expenseDate = new Date(e.date || e.createdAt || Date.now());
-    const daysDiff = (Date.now() - expenseDate.getTime()) / (1000 * 60 * 60 * 24);
-    if (timeRange === 'week') return daysDiff <= 7;
-    if (timeRange === 'month') return daysDiff <= 30;
-    return true;
-  });
+  const filteredExpenses = expenses || [];
 
   // Spending Limit state with persistent AsyncStorage fallback
   const [budgetPeriod, setBudgetPeriod] = useState<'weekly' | 'monthly'>('monthly');
@@ -204,11 +184,6 @@ export default function HomeScreen() {
       AsyncStorage.setItem('user_monthly_limit', amount.toString());
     }
   };
-
-  const handleTimeRangeChange = useCallback((range: 'week' | 'month' | 'all') => {
-    hapticFeedback.selection();
-    setTimeRange(range);
-  }, []);
 
   const greetingHour = new Date().getHours();
   const greeting =
@@ -252,15 +227,15 @@ export default function HomeScreen() {
         {/* Main Balance Card */}
         <BalanceCard
           totalSpent={filteredTotalSpent}
+          totalIncome={stats?.totalIncome}
           totalOwedToMe={filteredTotalOwedToMe}
           totalIOwe={filteredTotalIOwe}
           netBalance={filteredNetBalance}
           totalGroupSpent={filteredTotalGroupSpent}
+          expenses={filteredExpenses}
           statsLoading={statsLoading && !stats}
           groupsLoading={groupsLoading}
           groupsEmpty={groups.length === 0}
-          timeRange={timeRange}
-          onTimeRangeChange={handleTimeRangeChange}
           onTotalSpentPress={handleTotalSpentPress}
           onOwedPress={handleOwedPress}
           onOwePress={handleOwePress}
@@ -272,6 +247,7 @@ export default function HomeScreen() {
         {/* Quick Actions */}
         <QuickActionsCard
           onAddExpensePress={handleOpenAddExpense}
+          onAddIncomePress={handleOpenAddIncome}
           onCreateGroupPress={handleOpenCreateGroup}
           onCreateCategoryPress={handleOpenCreateCategory}
           onScanReceiptPress={handleScanReceipt}
@@ -344,6 +320,9 @@ export default function HomeScreen() {
           />
         )}
 
+        {/* Recent Income */}
+        <RecentIncome variant={variant} onAddIncomePress={handleOpenAddIncome} />
+
         {/* Empty state */}
         {!expensesLoading &&
           !groupsLoading &&
@@ -392,6 +371,13 @@ export default function HomeScreen() {
       <AddExpenseModal
         visible={addExpenseVisible}
         onClose={handleCloseAddExpense}
+        onSuccess={refetchDashboard}
+        variant={variant}
+      />
+
+      <AddIncomeModal
+        visible={addIncomeVisible}
+        onClose={handleCloseAddIncome}
         onSuccess={refetchDashboard}
         variant={variant}
       />

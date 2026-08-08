@@ -8,6 +8,7 @@ export const dashboardResponseSchema = z.object({
   data: z.object({
     user: authUserSchema,
     stats: z.object({
+      totalIncome: z.number().optional(),
       totalSpent: z.number(),
       totalGroupSpent: z.number(),
       totalPersonalSpent: z.number(),
@@ -29,6 +30,7 @@ export const dashboardResponseSchema = z.object({
 export const dashboardStatsSchema = z.object({
   success: z.boolean(),
   data: z.object({
+    totalIncome: z.number().optional(),
     totalSpent: z.number(),
     totalGroupSpent: z.number(),
     totalPersonalSpent: z.number(),

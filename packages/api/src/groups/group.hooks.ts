@@ -226,10 +226,19 @@ export const useSendReminder = (groupId: string) => {
   });
 };
 
+import type { ActivityItem } from './activity.types';
+
 export const useGroupActivity = (
   groupId: string,
   type?: 'all' | 'expenses' | 'settlements',
-  options?: { enabled?: boolean }
+  options?: {
+    enabled?: boolean;
+    initialData?: {
+      pages: Array<{ activity: ActivityItem[]; nextCursor: string | null }>;
+      pageParams: Array<string | undefined>;
+    };
+    staleTime?: number;
+  }
 ) =>
   useInfiniteQuery({
     queryKey: [...groupKeys.detail(groupId), 'activity', type] as const,
@@ -237,5 +246,6 @@ export const useGroupActivity = (
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     enabled: !!groupId && (options?.enabled ?? true),
-    staleTime: 30 * 1000,
+    initialData: options?.initialData,
+    staleTime: options?.staleTime ?? 30 * 1000,
   });

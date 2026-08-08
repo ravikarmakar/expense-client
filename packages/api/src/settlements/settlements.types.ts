@@ -1,5 +1,7 @@
 import { z } from 'zod';
-import { groupSchema } from '../groups/group.types';
+import type { groupSchema } from '../groups/group.types';
+
+declare const require: (moduleName: string) => { groupSchema: typeof groupSchema };
 
 export const settlementSchema = z.object({
   id: z.string(),
@@ -33,7 +35,9 @@ export const settlementListSchema = z.object({
 export const settleUpResponseSchema = z.object({
   success: z.boolean(),
   data: z.object({
-    group: z.lazy(() => groupSchema).optional(), // Optional since P2P settlements don't have a group
+    group: z
+      .lazy(() => (require('../groups/group.types') as { groupSchema: z.ZodTypeAny }).groupSchema)
+      .optional(),
     settlement: settlementSchema.optional(), // Optional for P2P response payload
   }),
 });

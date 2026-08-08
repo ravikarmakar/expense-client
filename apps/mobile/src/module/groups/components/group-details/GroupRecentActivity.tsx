@@ -47,11 +47,11 @@ export function GroupRecentActivity() {
           style={[
             globalStyles.sectionTitle,
             {
-              fontSize: 20,
+              fontSize: 22,
               color: COLORS.onSurface,
               textTransform: 'none',
               letterSpacing: 0,
-              fontWeight: '700',
+              fontWeight: '800',
               marginBottom: 0,
             },
           ]}
@@ -66,8 +66,16 @@ export function GroupRecentActivity() {
                 params: { name: group?.name, type: 'activity' },
               })
             }
+            style={{ flexDirection: 'row', alignItems: 'center' }}
+            activeOpacity={0.7}
           >
-            <Text style={{ fontSize: 13, fontWeight: '700', color: COLORS.primary }}>See All</Text>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: COLORS.primary }}>See All</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={COLORS.primary}
+              style={{ marginLeft: 2 }}
+            />
           </TouchableOpacity>
         )}
       </View>
@@ -112,6 +120,7 @@ export function GroupRecentActivity() {
                         : undefined
                     }
                     isSettled={item.type === 'expense' ? item.data.isSettled : undefined}
+                    fullBleed={true}
                   />
                 </React.Fragment>
               );

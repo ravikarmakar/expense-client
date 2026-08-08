@@ -46,9 +46,9 @@ export const GroupCard = React.memo(function GroupCard({
     isOwed = balance > 0.01;
     isSettled = !isOwe && !isOwed;
     if (isOwed) {
-      displayBalanceText = `You are owed ₹${balance.toFixed(2)}`;
+      displayBalanceText = `Owed ₹${balance.toFixed(2)}`;
     } else if (isOwe) {
-      displayBalanceText = `You owe ₹${Math.abs(balance).toFixed(2)}`;
+      displayBalanceText = `Owe ₹${Math.abs(balance).toFixed(2)}`;
     } else {
       displayBalanceText = 'Settled ✓';
     }
