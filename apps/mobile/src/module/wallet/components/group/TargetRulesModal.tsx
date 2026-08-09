@@ -3,6 +3,7 @@ import { Modal, Pressable, View, Text, TouchableOpacity, StyleSheet } from 'reac
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, CURRENCY_SYMBOL } from '../../../../constants/theme';
 import { walletStyles as styles } from '../../../groups/styles/group.styles';
+import { useTheme } from '../../../../context/ThemeContext';
 
 interface TargetRulesModalProps {
   visible: boolean;
@@ -10,51 +11,92 @@ interface TargetRulesModalProps {
 }
 
 export function TargetRulesModal({ visible, onClose }: TargetRulesModalProps) {
+  const { isDark } = useTheme();
+
   return (
     <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.modalOverlay} onPress={onClose}>
-        <Pressable style={styles.modalContent}>
+        <Pressable
+          style={[
+            styles.modalContent,
+            isDark && {
+              backgroundColor: '#101917',
+              borderColor: '#1E2F2B',
+            },
+          ]}
+        >
           <View style={localStyles.infoModalHeader}>
-            <Ionicons name="information-circle" size={28} color={COLORS.primary} />
-            <Text style={localStyles.infoModalTitle}>Target Rules</Text>
+            <Ionicons
+              name="information-circle"
+              size={28}
+              color={isDark ? '#34D399' : COLORS.primary}
+            />
+            <Text style={[localStyles.infoModalTitle, isDark && { color: '#F9FAFB' }]}>
+              Target Rules
+            </Text>
           </View>
 
-          <Text style={localStyles.infoModalDesc}>
+          <Text style={[localStyles.infoModalDesc, isDark && { color: '#9CA3AF' }]}>
             The contribution target is locked to prevent modifications during active collection.
           </Text>
 
-          <View style={localStyles.rulesContainer}>
+          <View
+            style={[
+              localStyles.rulesContainer,
+              isDark && {
+                backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+              },
+            ]}
+          >
             <View style={localStyles.ruleItem}>
               <Ionicons
                 name="people"
                 size={18}
-                color={COLORS.primary}
+                color={isDark ? '#34D399' : COLORS.primary}
                 style={localStyles.ruleIcon}
               />
-              <Text style={localStyles.ruleText}>
+              <Text style={[localStyles.ruleText, isDark && { color: '#F9FAFB' }]}>
                 <Text style={{ fontWeight: '700' }}>Equal Share Met:</Text> Unlocks automatically
                 once every member contributes their portion.
               </Text>
             </View>
 
             <View style={localStyles.ruleItem}>
-              <Ionicons name="time" size={18} color={COLORS.primary} style={localStyles.ruleIcon} />
-              <Text style={localStyles.ruleText}>
+              <Ionicons
+                name="time"
+                size={18}
+                color={isDark ? '#34D399' : COLORS.primary}
+                style={localStyles.ruleIcon}
+              />
+              <Text style={[localStyles.ruleText, isDark && { color: '#F9FAFB' }]}>
                 <Text style={{ fontWeight: '700' }}>Time Expiry:</Text> Unlocks automatically when
                 the selected target duration finishes.
               </Text>
             </View>
 
             <View style={localStyles.ruleItem}>
-              <Ionicons name="cash" size={18} color={COLORS.primary} style={localStyles.ruleIcon} />
-              <Text style={localStyles.ruleText}>
+              <Ionicons
+                name="cash"
+                size={18}
+                color={isDark ? '#34D399' : COLORS.primary}
+                style={localStyles.ruleIcon}
+              />
+              <Text style={[localStyles.ruleText, isDark && { color: '#F9FAFB' }]}>
                 <Text style={{ fontWeight: '700' }}>Depleted Balance:</Text> Unlocks if the wallet
                 balance is fully spent to {CURRENCY_SYMBOL}0.00.
               </Text>
             </View>
           </View>
 
-          <TouchableOpacity style={[styles.modalSaveBtn, { marginTop: 24 }]} onPress={onClose}>
+          <TouchableOpacity
+            style={[
+              styles.modalSaveBtn,
+              { marginTop: 24 },
+              isDark && { backgroundColor: '#059669' },
+            ]}
+            onPress={onClose}
+          >
             <Text style={styles.modalSaveText}>Got it</Text>
           </TouchableOpacity>
         </Pressable>

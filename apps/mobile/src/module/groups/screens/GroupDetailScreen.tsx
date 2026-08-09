@@ -31,6 +31,9 @@ import { GroupOverflowMenuModal } from '../components/group-details/GroupOverflo
 import { GroupCategoriesModal } from '../components/group-details/GroupCategoriesModal';
 import { GroupDetailProvider, useGroupDetail } from '../contexts/GroupDetailContext';
 
+import { useTheme } from '../../../context/ThemeContext';
+import { AppBackground } from '../../../components/AppBackground';
+
 const groupRouteSchema = z.object({
   id: z.string(),
   name: z.string().optional(),
@@ -38,6 +41,9 @@ const groupRouteSchema = z.object({
 });
 
 function GroupDetailContent() {
+  const { isDark } = useTheme();
+  const variant = isDark ? 'dark' : 'light';
+
   const {
     id,
     user,
@@ -104,14 +110,20 @@ function GroupDetailContent() {
   }
 
   return (
-    <View style={styles.container}>
+    <AppBackground style={styles.container}>
       {/* ── Header ── */}
       <GroupDetailHeader />
 
       <ScrollView
         contentContainerStyle={[globalStyles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={isDark ? '#ffffff' : undefined}
+          />
+        }
       >
         {/* ── Balance Card ── */}
         <GroupBalanceCard />
@@ -124,7 +136,7 @@ function GroupDetailContent() {
                 globalStyles.sectionTitle,
                 {
                   fontSize: 16,
-                  color: COLORS.onSurface,
+                  color: isDark ? '#F9FAFB' : COLORS.onSurface,
                   textTransform: 'none',
                   letterSpacing: 0,
                   fontWeight: '700',
@@ -140,9 +152,26 @@ function GroupDetailContent() {
                   onPress={() => setCategoriesModalVisible(true)}
                   activeOpacity={0.7}
                 >
-                  <View style={styles.addMemberBtn}>
-                    <Ionicons name="grid-outline" size={14} color={COLORS.primary} />
-                    <Text style={[styles.addMemberBtnText, { color: COLORS.primary }]}>
+                  <View
+                    style={[
+                      styles.addMemberBtn,
+                      isDark && {
+                        backgroundColor: '#1E292B',
+                        borderColor: 'rgba(255, 255, 255, 0.12)',
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="grid-outline"
+                      size={14}
+                      color={isDark ? '#34D399' : COLORS.primary}
+                    />
+                    <Text
+                      style={[
+                        styles.addMemberBtnText,
+                        { color: isDark ? '#34D399' : COLORS.primary },
+                      ]}
+                    >
                       Categories
                     </Text>
                   </View>
@@ -154,16 +183,35 @@ function GroupDetailContent() {
                   onPress={() => router.push(`/groups/${id}/add-member`)}
                   activeOpacity={0.7}
                 >
-                  <View style={styles.addMemberBtn}>
-                    <Ionicons name="person-add" size={14} color={COLORS.secondary} />
-                    <Text style={styles.addMemberBtnText}>Add</Text>
+                  <View
+                    style={[
+                      styles.addMemberBtn,
+                      isDark && {
+                        backgroundColor: 'rgba(129, 140, 248, 0.18)',
+                        borderColor: 'rgba(129, 140, 248, 0.3)',
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="person-add"
+                      size={14}
+                      color={isDark ? '#818CF8' : COLORS.secondary}
+                    />
+                    <Text style={[styles.addMemberBtnText, isDark && { color: '#818CF8' }]}>
+                      Add
+                    </Text>
                   </View>
                 </TouchableOpacity>
               )}
             </View>
           </View>
           {showSkeleton || !group ? (
-            <View style={localStyles.membersSkeletonContainer}>
+            <View
+              style={[
+                localStyles.membersSkeletonContainer,
+                isDark && { backgroundColor: '#101917', borderColor: 'rgba(255, 255, 255, 0.08)' },
+              ]}
+            >
               <MemberBalanceItemSkeleton />
               <MemberBalanceItemSkeleton />
               <MemberBalanceItemSkeleton isLast />
@@ -172,6 +220,7 @@ function GroupDetailContent() {
             <SplitSummaryCard
               members={group.members}
               currentUserId={user?.id}
+              createdBy={group.createdBy}
               onSettleUp={handleSettleUp}
               isSettling={settlingUserId}
               onSendReminder={handleSendReminder}
@@ -221,6 +270,7 @@ function GroupDetailContent() {
         onClose={() => setAddExpenseVisible(false)}
         groupId={id}
         groupName={group?.name ?? routeName ?? 'Group'}
+        variant={variant}
         onSuccess={(isWallet) => {
           if (!isWallet) {
             refetch();
@@ -267,7 +317,7 @@ function GroupDetailContent() {
 
       {/* ── Overflow Menu Modal ── */}
       <GroupOverflowMenuModal onAddCategoryPress={() => setAddCategoryVisible(true)} />
-    </View>
+    </AppBackground>
   );
 }
 

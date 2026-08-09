@@ -16,6 +16,7 @@ interface TopAppBarProps {
   onRightActionPress?: () => void;
   rightActions?: React.ReactNode;
   variant?: 'light' | 'dark';
+  titleStyle?: object;
 }
 
 export function TopAppBar({
@@ -30,6 +31,7 @@ export function TopAppBar({
   onRightActionPress,
   rightActions,
   variant = 'light',
+  titleStyle,
 }: TopAppBarProps) {
   const insets = useSafeAreaInsets();
   const isDark = variant === 'dark';
@@ -40,10 +42,9 @@ export function TopAppBar({
     <View
       style={[
         styles.headerContainer,
-        isDark ? { borderBottomWidth: 0 } : undefined,
+        isDark ? styles.headerContainerDark : undefined,
         {
           paddingTop: insets.top,
-          backgroundColor: isDark ? 'transparent' : COLORS.background,
         },
       ]}
     >
@@ -58,6 +59,7 @@ export function TopAppBar({
                 style={[
                   titleAlign === 'center' ? styles.centerTitle : styles.leftTitle,
                   { color: textColor },
+                  titleStyle,
                 ]}
                 numberOfLines={1}
               >
@@ -82,7 +84,7 @@ export function TopAppBar({
                 color={isDark ? '#34d399' : COLORS.primary}
               />
             </View>
-            <Text style={[styles.headerTitle, { color: textColor }]}>SplitShare</Text>
+            <Text style={[styles.headerTitle, { color: textColor }, titleStyle]}>SplitShare</Text>
           </TouchableOpacity>
         )}
 
@@ -137,6 +139,11 @@ const styles = StyleSheet.create({
   headerContainer: {
     borderBottomWidth: 1,
     borderBottomColor: '#f1f1f1',
+    backgroundColor: COLORS.surface,
+  },
+  headerContainerDark: {
+    backgroundColor: '#0D1714',
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
   header: {
     flexDirection: 'row',
@@ -166,7 +173,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '800',
     color: COLORS.onSurface,
     marginLeft: 10,
@@ -176,14 +183,15 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '800',
     color: COLORS.onSurface,
-    letterSpacing: -0.4,
+    letterSpacing: -0.5,
   },
   centerTitle: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
     color: COLORS.onSurface,
+    letterSpacing: -0.5,
   },
   rightActions: {
     flexDirection: 'row',

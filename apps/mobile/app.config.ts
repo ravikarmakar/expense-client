@@ -4,7 +4,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: process.env.EXPO_PUBLIC_APP_NAME || 'SplitShare',
   slug: 'splitshare',
-  version: process.env.EXPO_PUBLIC_APP_VERSION || '1.0.0',
+  version: process.env.EXPO_PUBLIC_APP_VERSION || '2.0.1',
   orientation: 'portrait',
   userInterfaceStyle: 'light',
   splash: {

@@ -28,9 +28,16 @@ interface EditExpenseModalProps {
   onClose: () => void;
   expense: Expense;
   onSuccess?: () => void;
+  variant?: 'light' | 'dark';
 }
 
-export function EditExpenseModal({ visible, onClose, expense, onSuccess }: EditExpenseModalProps) {
+export function EditExpenseModal({
+  visible,
+  onClose,
+  expense,
+  onSuccess,
+  variant = 'light',
+}: EditExpenseModalProps) {
   const [category, setCategory] = useState<ExpenseCategory>(expense.category);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
 
@@ -114,7 +121,7 @@ export function EditExpenseModal({ visible, onClose, expense, onSuccess }: EditE
   };
 
   return (
-    <BottomSheetModal visible={visible} onClose={onClose} title="Edit Expense">
+    <BottomSheetModal visible={visible} onClose={onClose} title="Edit Expense" variant={variant}>
       {errorMessage ? (
         <View style={styles.errorBanner}>
           <Ionicons name="alert-circle" size={16} color={COLORS.error} />

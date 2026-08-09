@@ -3,9 +3,9 @@ import { View, Text, ScrollView, Image, TouchableOpacity, Modal, Pressable } fro
 import { router } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, CURRENCY_SYMBOL, CATEGORY_ICONS } from '../../../constants/theme';
+import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
 import { globalStyles } from '../../../styles/globalStyles';
-import { useExpense, useDeleteExpense, useMe } from '@workspace/api';
+import { useExpense, useDeleteExpense, useMe, useCategories } from '@workspace/api';
 import { TopAppBar } from '../../../components/TopAppBar';
 import { ErrorView } from '../../../components/ErrorView';
 import { EditExpenseModal } from '../../../components/EditExpenseModal';
@@ -13,11 +13,20 @@ import { useRouteParams, idParamSchema } from '../../../hooks/useRouteParams';
 import { ExpenseDetailSkeleton } from '../components/ExpenseDetailSkeleton';
 import { detailStyles as styles } from '../styles/expense.styles';
 import { CustomAlertDialog } from '../../../components/CustomAlertDialog';
+import { useTheme } from '../../../context/ThemeContext';
+import { AppBackground } from '../../../components/AppBackground';
+
+import { getCategoryVisuals } from '../../../constants/categories';
 
 export default function ExpenseDetailScreen() {
   const { id } = useRouteParams(idParamSchema);
   const { data: expense, isLoading, isError, refetch } = useExpense(id);
+  const { data: categoriesData } = useCategories();
+  const customCategories = categoriesData?.custom || [];
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
+  const variant = isDark ? 'dark' : 'light';
+
   const [editVisible, setEditVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [alertConfig, setAlertConfig] = useState<{
@@ -101,7 +110,7 @@ export default function ExpenseDetailScreen() {
     return <ErrorView message="Failed to load expense details" onRetry={refetch} />;
   }
 
-  const cfg = CATEGORY_ICONS[expense.category] ?? CATEGORY_ICONS.Other;
+  const visuals = getCategoryVisuals(expense.category, customCategories);
   const dateStr = new Date(expense.date).toLocaleDateString('en-IN', {
     weekday: 'long',
     day: 'numeric',
@@ -118,11 +127,12 @@ export default function ExpenseDetailScreen() {
   const timeStr = `${hoursStr}:${minutes} ${ampm}`;
 
   return (
-    <View style={styles.container}>
+    <AppBackground style={styles.container}>
       <TopAppBar
         title="Expense Details"
         showBack
         onBack={() => router.back()}
+        variant={variant}
         rightActionIcon={canModify ? 'ellipsis-vertical' : undefined}
         onRightActionPress={canModify ? () => setMenuVisible(true) : undefined}
       />
@@ -132,24 +142,43 @@ export default function ExpenseDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Hero Section */}
-        <View style={styles.heroCard}>
-          <View style={[styles.heroIconBg, { backgroundColor: cfg.bg }]}>
-            {cfg.lib === 'Ionicons' ? (
-              <Ionicons name={cfg.icon as never} size={36} color={cfg.color} />
+        <View
+          style={[
+            styles.heroCard,
+            isDark && { backgroundColor: '#101917', borderColor: 'rgba(255, 255, 255, 0.08)' },
+          ]}
+        >
+          <View
+            style={[
+              styles.heroIconBg,
+              { backgroundColor: isDark ? `${visuals.color}25` : visuals.bg },
+            ]}
+          >
+            {visuals.lib === 'Ionicons' ? (
+              <Ionicons name={visuals.icon as never} size={36} color={visuals.color} />
             ) : (
-              <MaterialIcons name={cfg.icon as never} size={36} color={cfg.color} />
+              <MaterialIcons name={visuals.icon as never} size={36} color={visuals.color} />
             )}
           </View>
-          <Text style={styles.heroTitle}>{expense.title}</Text>
-          <Text style={styles.heroAmount}>
+          <Text style={[styles.heroTitle, isDark && { color: '#F9FAFB' }]}>{expense.title}</Text>
+          <Text style={[styles.heroAmount, isDark && { color: '#F9FAFB' }]}>
             {CURRENCY_SYMBOL}
             {expense.amount.toFixed(2)}
           </Text>
 
           {expense.isWalletPayment && (
-            <View style={styles.walletBadgeLarge}>
-              <Ionicons name="wallet" size={14} color={COLORS.onPrimaryFixedVariant} />
-              <Text style={styles.walletBadgeLargeText}>
+            <View
+              style={[
+                styles.walletBadgeLarge,
+                isDark && { backgroundColor: 'rgba(52, 211, 153, 0.15)' },
+              ]}
+            >
+              <Ionicons
+                name="wallet"
+                size={14}
+                color={isDark ? '#34D399' : COLORS.onPrimaryFixedVariant}
+              />
+              <Text style={[styles.walletBadgeLargeText, isDark && { color: '#34D399' }]}>
                 Paid via Group Wallet
                 {expense.walletAmount !== undefined && expense.walletAmount !== null
                   ? ` (${CURRENCY_SYMBOL}${expense.walletAmount.toFixed(2)})`
@@ -159,29 +188,89 @@ export default function ExpenseDetailScreen() {
           )}
 
           <View style={styles.heroMeta}>
-            <View style={styles.metaBadge}>
-              <Ionicons name="calendar-outline" size={14} color={COLORS.onSurfaceVariant} />
-              <Text style={styles.metaBadgeText}>{dateStr}</Text>
+            {/* Date Badge */}
+            <View
+              style={[
+                styles.metaBadge,
+                { backgroundColor: isDark ? 'rgba(56, 189, 248, 0.15)' : '#e0f2fe' },
+              ]}
+            >
+              <Ionicons name="calendar-outline" size={14} color={isDark ? '#38BDF8' : '#0284c7'} />
+              <Text
+                style={[
+                  styles.metaBadgeText,
+                  { color: isDark ? '#38BDF8' : '#0284c7', fontWeight: '700' },
+                ]}
+              >
+                {dateStr}
+              </Text>
             </View>
-            <View style={styles.metaBadge}>
-              <Ionicons name="time-outline" size={14} color={COLORS.onSurfaceVariant} />
-              <Text style={styles.metaBadgeText}>{timeStr}</Text>
+
+            {/* Time Badge */}
+            <View
+              style={[
+                styles.metaBadge,
+                { backgroundColor: isDark ? 'rgba(251, 191, 36, 0.15)' : '#fef3c7' },
+              ]}
+            >
+              <Ionicons name="time-outline" size={14} color={isDark ? '#FBBF24' : '#d97706'} />
+              <Text
+                style={[
+                  styles.metaBadgeText,
+                  { color: isDark ? '#FBBF24' : '#d97706', fontWeight: '700' },
+                ]}
+              >
+                {timeStr}
+              </Text>
             </View>
-            <View style={styles.metaBadge}>
-              <Ionicons name="pricetag-outline" size={14} color={COLORS.onSurfaceVariant} />
-              <Text style={styles.metaBadgeText}>{expense.category}</Text>
+
+            {/* Category Badge */}
+            <View
+              style={[
+                styles.metaBadge,
+                { backgroundColor: isDark ? `${visuals.color}25` : visuals.bg },
+              ]}
+            >
+              <Ionicons name="pricetag-outline" size={14} color={visuals.color} />
+              <Text style={[styles.metaBadgeText, { color: visuals.color, fontWeight: '700' }]}>
+                {expense.category}
+              </Text>
             </View>
+
+            {/* Expense Type Badge (Group vs Personal) */}
             {expense.groupId ? (
-              <View style={styles.metaBadge}>
-                <Ionicons name="people-outline" size={14} color={COLORS.onSurfaceVariant} />
-                <Text style={styles.metaBadgeText}>
+              <View
+                style={[
+                  styles.metaBadge,
+                  { backgroundColor: isDark ? 'rgba(52, 211, 153, 0.15)' : '#e6f4ea' },
+                ]}
+              >
+                <Ionicons name="people-outline" size={14} color={isDark ? '#34D399' : '#059669'} />
+                <Text
+                  style={[
+                    styles.metaBadgeText,
+                    { color: isDark ? '#34D399' : '#059669', fontWeight: '700' },
+                  ]}
+                >
                   {expense.group ? `${expense.group.emoji} ${expense.group.name}` : 'Group Expense'}
                 </Text>
               </View>
             ) : (
-              <View style={styles.metaBadge}>
-                <Ionicons name="person-outline" size={14} color={COLORS.onSurfaceVariant} />
-                <Text style={styles.metaBadgeText}>Personal Expense</Text>
+              <View
+                style={[
+                  styles.metaBadge,
+                  { backgroundColor: isDark ? 'rgba(129, 140, 248, 0.18)' : '#e0e7ff' },
+                ]}
+              >
+                <Ionicons name="person-outline" size={14} color={isDark ? '#818CF8' : '#4338ca'} />
+                <Text
+                  style={[
+                    styles.metaBadgeText,
+                    { color: isDark ? '#818CF8' : '#4338ca', fontWeight: '700' },
+                  ]}
+                >
+                  Personal Expense
+                </Text>
               </View>
             )}
           </View>
@@ -189,9 +278,14 @@ export default function ExpenseDetailScreen() {
 
         {/* Paid By Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Paid By</Text>
+          <Text style={[styles.sectionTitle, isDark && { color: '#F9FAFB' }]}>Paid By</Text>
           {expense.isWalletPayment ? (
-            <View style={styles.walletPaidCard}>
+            <View
+              style={[
+                styles.walletPaidCard,
+                isDark && { backgroundColor: '#101917', borderColor: 'rgba(255, 255, 255, 0.08)' },
+              ]}
+            >
               {/* Row 1: Wallet contribution if there is any */}
               {(() => {
                 const walletAmt = expense.walletAmount ?? 0;
@@ -204,8 +298,10 @@ export default function ExpenseDetailScreen() {
                           <Ionicons name="wallet" size={22} color={COLORS.primary} />
                         </View>
                         <View style={styles.paidByInfo}>
-                          <Text style={styles.paidByName}>Group Wallet</Text>
-                          <Text style={styles.paidBySub}>
+                          <Text style={[styles.paidByName, isDark && { color: '#F9FAFB' }]}>
+                            Group Wallet
+                          </Text>
+                          <Text style={[styles.paidBySub, isDark && { color: '#9CA3AF' }]}>
                             {CURRENCY_SYMBOL}
                             {(walletAmt > 0 ? walletAmt : expense.amount).toFixed(2)}
                           </Text>
@@ -213,7 +309,14 @@ export default function ExpenseDetailScreen() {
                       </View>
                     )}
 
-                    {walletAmt > 0 && userAmt > 0 && <View style={styles.walletPaidDivider} />}
+                    {walletAmt > 0 && userAmt > 0 && (
+                      <View
+                        style={[
+                          styles.walletPaidDivider,
+                          isDark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+                        ]}
+                      />
+                    )}
 
                     {walletAmt > 0 && userAmt > 0 && (
                       <View style={styles.walletPaidRow}>
@@ -226,8 +329,10 @@ export default function ExpenseDetailScreen() {
                           style={styles.paidByAvatar}
                         />
                         <View style={styles.paidByInfo}>
-                          <Text style={styles.paidByName}>{expense.paidBy.name}</Text>
-                          <Text style={styles.paidBySub}>
+                          <Text style={[styles.paidByName, isDark && { color: '#F9FAFB' }]}>
+                            {expense.paidBy.name}
+                          </Text>
+                          <Text style={[styles.paidBySub, isDark && { color: '#9CA3AF' }]}>
                             {CURRENCY_SYMBOL}
                             {userAmt.toFixed(2)} (Personal contribution)
                           </Text>
@@ -239,7 +344,12 @@ export default function ExpenseDetailScreen() {
               })()}
             </View>
           ) : (
-            <View style={styles.paidByCard}>
+            <View
+              style={[
+                styles.paidByCard,
+                isDark && { backgroundColor: '#101917', borderColor: 'rgba(255, 255, 255, 0.08)' },
+              ]}
+            >
               <Image
                 source={{
                   uri:
@@ -249,8 +359,10 @@ export default function ExpenseDetailScreen() {
                 style={styles.paidByAvatar}
               />
               <View style={styles.paidByInfo}>
-                <Text style={styles.paidByName}>{expense.paidBy.name}</Text>
-                <Text style={styles.paidBySub}>
+                <Text style={[styles.paidByName, isDark && { color: '#F9FAFB' }]}>
+                  {expense.paidBy.name}
+                </Text>
+                <Text style={[styles.paidBySub, isDark && { color: '#9CA3AF' }]}>
                   {CURRENCY_SYMBOL}
                   {expense.amount.toFixed(2)}
                 </Text>
@@ -262,10 +374,21 @@ export default function ExpenseDetailScreen() {
         {/* Notes Section */}
         {expense.notes && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Notes</Text>
-            <View style={styles.notesCard}>
-              <Ionicons name="document-text-outline" size={20} color={COLORS.outline} />
-              <Text style={styles.notesText}>{expense.notes}</Text>
+            <Text style={[styles.sectionTitle, isDark && { color: '#F9FAFB' }]}>Notes</Text>
+            <View
+              style={[
+                styles.notesCard,
+                isDark && { backgroundColor: '#101917', borderColor: 'rgba(255, 255, 255, 0.08)' },
+              ]}
+            >
+              <Ionicons
+                name="document-text-outline"
+                size={20}
+                color={isDark ? '#9CA3AF' : COLORS.outline}
+              />
+              <Text style={[styles.notesText, isDark && { color: '#9CA3AF' }]}>
+                {expense.notes}
+              </Text>
             </View>
           </View>
         )}
@@ -273,8 +396,13 @@ export default function ExpenseDetailScreen() {
         {/* Split Details Section */}
         {expense.splits && expense.splits.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Split Details</Text>
-            <View style={styles.splitsCard}>
+            <Text style={[styles.sectionTitle, isDark && { color: '#F9FAFB' }]}>Split Details</Text>
+            <View
+              style={[
+                styles.splitsCard,
+                isDark && { backgroundColor: '#101917', borderColor: 'rgba(255, 255, 255, 0.08)' },
+              ]}
+            >
               {expense.splits.map((split, index) => (
                 <View key={split.userId}>
                   <View style={styles.splitRow}>
@@ -287,7 +415,9 @@ export default function ExpenseDetailScreen() {
                       style={styles.splitAvatar}
                     />
                     <View style={styles.splitInfo}>
-                      <Text style={styles.splitName}>{split.name}</Text>
+                      <Text style={[styles.splitName, isDark && { color: '#F9FAFB' }]}>
+                        {split.name}
+                      </Text>
                       {split.paid || (expense.isWalletPayment && split.amount === 0) ? (
                         <View style={styles.statusBadgeSettled}>
                           <Text style={styles.statusBadgeSettledText}>Settled</Text>
@@ -298,12 +428,19 @@ export default function ExpenseDetailScreen() {
                         </View>
                       )}
                     </View>
-                    <Text style={styles.splitAmount}>
+                    <Text style={[styles.splitAmount, isDark && { color: '#F9FAFB' }]}>
                       {CURRENCY_SYMBOL}
                       {split.amount.toFixed(2)}
                     </Text>
                   </View>
-                  {index < expense.splits.length - 1 && <View style={styles.divider} />}
+                  {index < expense.splits.length - 1 && (
+                    <View
+                      style={[
+                        styles.divider,
+                        isDark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+                      ]}
+                    />
+                  )}
                 </View>
               ))}
             </View>
@@ -317,6 +454,7 @@ export default function ExpenseDetailScreen() {
           onClose={() => setEditVisible(false)}
           expense={expense}
           onSuccess={() => refetch()}
+          variant={variant}
         />
       )}
 
@@ -341,7 +479,13 @@ export default function ExpenseDetailScreen() {
         onRequestClose={() => setMenuVisible(false)}
       >
         <Pressable style={styles.menuOverlay} onPress={() => setMenuVisible(false)}>
-          <View style={[styles.menuContainer, { top: insets.top + 50 }]}>
+          <View
+            style={[
+              styles.menuContainer,
+              { top: insets.top + 50 },
+              isDark && { backgroundColor: '#131D1A', borderColor: 'rgba(255, 255, 255, 0.12)' },
+            ]}
+          >
             <TouchableOpacity
               style={styles.menuItem}
               onPress={() => {
@@ -349,12 +493,22 @@ export default function ExpenseDetailScreen() {
                 setEditVisible(true);
               }}
             >
-              <Ionicons name="pencil-outline" size={20} color={COLORS.onSurface} />
-              <Text style={styles.menuItemText}>Edit Details</Text>
+              <Ionicons
+                name="pencil-outline"
+                size={20}
+                color={isDark ? '#F9FAFB' : COLORS.onSurface}
+              />
+              <Text style={[styles.menuItemText, isDark && { color: '#F9FAFB' }]}>
+                Edit Details
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.menuItem, styles.menuItemBorder]}
+              style={[
+                styles.menuItem,
+                styles.menuItemBorder,
+                isDark && { borderTopColor: 'rgba(255, 255, 255, 0.08)' },
+              ]}
               onPress={() => {
                 setMenuVisible(false);
                 handleDelete();
@@ -366,6 +520,6 @@ export default function ExpenseDetailScreen() {
           </View>
         </Pressable>
       </Modal>
-    </View>
+    </AppBackground>
   );
 }

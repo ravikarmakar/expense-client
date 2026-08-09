@@ -410,7 +410,13 @@ export default function GroupExpensesScreen() {
   return (
     <View style={[styles.container, isDark && styles.containerDark]}>
       {/* ── Top Header ── */}
-      <View style={[styles.headerContainer, { paddingTop: insets.top + 12 }]}>
+      <View
+        style={[
+          styles.headerContainer,
+          isDark && styles.headerContainerDark,
+          { paddingTop: insets.top + 12 },
+        ]}
+      >
         <View style={styles.tabHeaderRow}>
           <View style={styles.headerLeftRow}>
             <TouchableOpacity
@@ -609,10 +615,10 @@ export default function GroupExpensesScreen() {
                   : 'receipt-outline'
             }
             size={48}
-            color={COLORS.outline}
+            color={isDark ? 'rgba(255, 255, 255, 0.4)' : COLORS.outline}
             style={{ marginBottom: 12 }}
           />
-          <Text style={styles.emptyText}>
+          <Text style={[styles.emptyText, isDark && { color: '#9CA3AF' }]}>
             No matching {isSettlements ? 'settlements' : isActivity ? 'activity' : 'expenses'} found
           </Text>
         </View>
@@ -630,6 +636,7 @@ export default function GroupExpensesScreen() {
                   settlement={s}
                   currentUserId={userData?.id}
                   onDelete={handleDeleteSettlement}
+                  variant={isDark ? 'dark' : 'light'}
                 />
               );
             }
@@ -654,8 +661,12 @@ export default function GroupExpensesScreen() {
               return (
                 <View>
                   {showHeading && (
-                    <View style={styles.dateHeaderContainer}>
-                      <Text style={styles.dateHeaderText}>{currentHeading}</Text>
+                    <View
+                      style={[styles.dateHeaderContainer, isDark && styles.dateHeaderContainerDark]}
+                    >
+                      <Text style={[styles.dateHeaderText, isDark && styles.dateHeaderTextDark]}>
+                        {currentHeading}
+                      </Text>
                     </View>
                   )}
                   {act.type === 'expense' ? (
@@ -663,12 +674,14 @@ export default function GroupExpensesScreen() {
                       expense={act.data}
                       currentUserId={userData?.id}
                       isSettled={act.data.isSettled}
+                      variant={isDark ? 'dark' : 'light'}
                     />
                   ) : (
                     <SettlementItem
                       settlement={act.data}
                       currentUserId={userData?.id}
                       onDelete={handleDeleteSettlement}
+                      variant={isDark ? 'dark' : 'light'}
                     />
                   )}
                 </View>
@@ -685,14 +698,19 @@ export default function GroupExpensesScreen() {
             return (
               <View>
                 {showHeading && (
-                  <View style={styles.dateHeaderContainer}>
-                    <Text style={styles.dateHeaderText}>{currentHeading}</Text>
+                  <View
+                    style={[styles.dateHeaderContainer, isDark && styles.dateHeaderContainerDark]}
+                  >
+                    <Text style={[styles.dateHeaderText, isDark && styles.dateHeaderTextDark]}>
+                      {currentHeading}
+                    </Text>
                   </View>
                 )}
                 <ExpenseItem
                   expense={expense}
                   currentUserId={userData?.id}
                   isSettled={expense.isSettled}
+                  variant={isDark ? 'dark' : 'light'}
                 />
               </View>
             );
@@ -724,7 +742,7 @@ export default function GroupExpensesScreen() {
             style={[styles.resetFiltersBtn, isDark && styles.resetFiltersBtnDark]}
             activeOpacity={0.7}
           >
-            <Text style={styles.resetFiltersBtnText}>Reset</Text>
+            <Text style={[styles.resetFiltersBtnText, isDark && { color: '#34D399' }]}>Reset</Text>
           </TouchableOpacity>
         }
       >
@@ -732,7 +750,9 @@ export default function GroupExpensesScreen() {
           {/* Section: Activity Type */}
           {isActivity && (
             <View style={styles.modalSection}>
-              <Text style={styles.modalSectionTitle}>Activity Type</Text>
+              <Text style={[styles.modalSectionTitle, isDark && { color: '#F9FAFB' }]}>
+                Activity Type
+              </Text>
               <View style={styles.chipsRow}>
                 {(
                   [
@@ -746,11 +766,27 @@ export default function GroupExpensesScreen() {
                   return (
                     <TouchableOpacity
                       key={opt.key}
-                      style={[styles.modalChip, isActive && styles.modalChipActive]}
+                      style={[
+                        styles.modalChip,
+                        isDark
+                          ? isActive
+                            ? styles.modalChipActiveDark
+                            : styles.modalChipDark
+                          : isActive && styles.modalChipActive,
+                      ]}
                       onPress={() => setActivityFilter(opt.key)}
                       activeOpacity={0.7}
                     >
-                      <Text style={[styles.modalChipText, isActive && styles.modalChipTextActive]}>
+                      <Text
+                        style={[
+                          styles.modalChipText,
+                          isDark
+                            ? isActive
+                              ? { color: '#34D399', fontWeight: '700' }
+                              : { color: '#9CA3AF' }
+                            : isActive && styles.modalChipTextActive,
+                        ]}
+                      >
                         {opt.label}
                       </Text>
                     </TouchableOpacity>
@@ -762,7 +798,7 @@ export default function GroupExpensesScreen() {
 
           {/* Section: Sort By */}
           <View style={styles.modalSection}>
-            <Text style={styles.modalSectionTitle}>Sort By</Text>
+            <Text style={[styles.modalSectionTitle, isDark && { color: '#F9FAFB' }]}>Sort By</Text>
             <View style={styles.chipsRow}>
               {(
                 [
@@ -775,11 +811,27 @@ export default function GroupExpensesScreen() {
                 return (
                   <TouchableOpacity
                     key={opt.key}
-                    style={[styles.modalChip, isActive && styles.modalChipActive]}
+                    style={[
+                      styles.modalChip,
+                      isDark
+                        ? isActive
+                          ? styles.modalChipActiveDark
+                          : styles.modalChipDark
+                        : isActive && styles.modalChipActive,
+                    ]}
                     onPress={() => setSortBy(opt.key)}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.modalChipText, isActive && styles.modalChipTextActive]}>
+                    <Text
+                      style={[
+                        styles.modalChipText,
+                        isDark
+                          ? isActive
+                            ? { color: '#34D399', fontWeight: '700' }
+                            : { color: '#9CA3AF' }
+                          : isActive && styles.modalChipTextActive,
+                      ]}
+                    >
                       {opt.label}
                     </Text>
                   </TouchableOpacity>
@@ -791,21 +843,34 @@ export default function GroupExpensesScreen() {
           {/* Section: Paid By / Member */}
           {groupMembers.length > 0 && (
             <View style={styles.modalSection}>
-              <Text style={styles.modalSectionTitle}>Filter by Member</Text>
+              <Text style={[styles.modalSectionTitle, isDark && { color: '#F9FAFB' }]}>
+                Filter by Member
+              </Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.chipsRow}
               >
                 <TouchableOpacity
-                  style={[styles.modalChip, selectedMemberId === null && styles.modalChipActive]}
+                  style={[
+                    styles.modalChip,
+                    isDark
+                      ? selectedMemberId === null
+                        ? styles.modalChipActiveDark
+                        : styles.modalChipDark
+                      : selectedMemberId === null && styles.modalChipActive,
+                  ]}
                   onPress={() => setSelectedMemberId(null)}
                   activeOpacity={0.7}
                 >
                   <Text
                     style={[
                       styles.modalChipText,
-                      selectedMemberId === null && styles.modalChipTextActive,
+                      isDark
+                        ? selectedMemberId === null
+                          ? { color: '#34D399', fontWeight: '700' }
+                          : { color: '#9CA3AF' }
+                        : selectedMemberId === null && styles.modalChipTextActive,
                     ]}
                   >
                     All Members
@@ -816,11 +881,27 @@ export default function GroupExpensesScreen() {
                   return (
                     <TouchableOpacity
                       key={m.userId}
-                      style={[styles.modalChip, isActive && styles.modalChipActive]}
+                      style={[
+                        styles.modalChip,
+                        isDark
+                          ? isActive
+                            ? styles.modalChipActiveDark
+                            : styles.modalChipDark
+                          : isActive && styles.modalChipActive,
+                      ]}
                       onPress={() => setSelectedMemberId(m.userId)}
                       activeOpacity={0.7}
                     >
-                      <Text style={[styles.modalChipText, isActive && styles.modalChipTextActive]}>
+                      <Text
+                        style={[
+                          styles.modalChipText,
+                          isDark
+                            ? isActive
+                              ? { color: '#34D399', fontWeight: '700' }
+                              : { color: '#9CA3AF' }
+                            : isActive && styles.modalChipTextActive,
+                        ]}
+                      >
                         {m.name.split(' ')[0]}
                       </Text>
                     </TouchableOpacity>
@@ -833,21 +914,34 @@ export default function GroupExpensesScreen() {
           {/* Section: Category (Not for settlements) */}
           {!isSettlements && categoriesList.length > 0 && (
             <View style={styles.modalSection}>
-              <Text style={styles.modalSectionTitle}>Filter by Category</Text>
+              <Text style={[styles.modalSectionTitle, isDark && { color: '#F9FAFB' }]}>
+                Filter by Category
+              </Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.chipsRow}
               >
                 <TouchableOpacity
-                  style={[styles.modalChip, selectedCategory === null && styles.modalChipActive]}
+                  style={[
+                    styles.modalChip,
+                    isDark
+                      ? selectedCategory === null
+                        ? styles.modalChipActiveDark
+                        : styles.modalChipDark
+                      : selectedCategory === null && styles.modalChipActive,
+                  ]}
                   onPress={() => setSelectedCategory(null)}
                   activeOpacity={0.7}
                 >
                   <Text
                     style={[
                       styles.modalChipText,
-                      selectedCategory === null && styles.modalChipTextActive,
+                      isDark
+                        ? selectedCategory === null
+                          ? { color: '#34D399', fontWeight: '700' }
+                          : { color: '#9CA3AF' }
+                        : selectedCategory === null && styles.modalChipTextActive,
                     ]}
                   >
                     All Categories
@@ -859,11 +953,27 @@ export default function GroupExpensesScreen() {
                   return (
                     <TouchableOpacity
                       key={cat}
-                      style={[styles.modalChip, isActive && styles.modalChipActive]}
+                      style={[
+                        styles.modalChip,
+                        isDark
+                          ? isActive
+                            ? styles.modalChipActiveDark
+                            : styles.modalChipDark
+                          : isActive && styles.modalChipActive,
+                      ]}
                       onPress={() => setSelectedCategory(cat)}
                       activeOpacity={0.7}
                     >
-                      <Text style={[styles.modalChipText, isActive && styles.modalChipTextActive]}>
+                      <Text
+                        style={[
+                          styles.modalChipText,
+                          isDark
+                            ? isActive
+                              ? { color: '#34D399', fontWeight: '700' }
+                              : { color: '#9CA3AF' }
+                            : isActive && styles.modalChipTextActive,
+                        ]}
+                      >
                         {iconCfg.icon} {cat}
                       </Text>
                     </TouchableOpacity>
@@ -875,7 +985,9 @@ export default function GroupExpensesScreen() {
 
           {/* Section: Amount Range */}
           <View style={styles.modalSection}>
-            <Text style={styles.modalSectionTitle}>Amount Range</Text>
+            <Text style={[styles.modalSectionTitle, isDark && { color: '#F9FAFB' }]}>
+              Amount Range
+            </Text>
             <View style={styles.chipsRow}>
               {(
                 [
@@ -889,11 +1001,27 @@ export default function GroupExpensesScreen() {
                 return (
                   <TouchableOpacity
                     key={opt.key}
-                    style={[styles.modalChip, isActive && styles.modalChipActive]}
+                    style={[
+                      styles.modalChip,
+                      isDark
+                        ? isActive
+                          ? styles.modalChipActiveDark
+                          : styles.modalChipDark
+                        : isActive && styles.modalChipActive,
+                    ]}
                     onPress={() => setAmountRange(opt.key)}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.modalChipText, isActive && styles.modalChipTextActive]}>
+                    <Text
+                      style={[
+                        styles.modalChipText,
+                        isDark
+                          ? isActive
+                            ? { color: '#34D399', fontWeight: '700' }
+                            : { color: '#9CA3AF' }
+                          : isActive && styles.modalChipTextActive,
+                      ]}
+                    >
                       {opt.label}
                     </Text>
                   </TouchableOpacity>
@@ -904,7 +1032,7 @@ export default function GroupExpensesScreen() {
         </ScrollView>
 
         <TouchableOpacity
-          style={styles.applyFiltersBtn}
+          style={[styles.applyFiltersBtn, isDark && { backgroundColor: '#10B981' }]}
           onPress={() => setFilterModalVisible(false)}
         >
           <Text style={styles.applyFiltersBtnText}>Apply Filters</Text>
@@ -930,6 +1058,7 @@ export default function GroupExpensesScreen() {
             'group'
           )
         }
+        variant={isDark ? 'dark' : 'light'}
       />
 
       {/* Export Progress & Success Modal */}
@@ -942,6 +1071,7 @@ export default function GroupExpensesScreen() {
         onOpenFile={exportHook.handleOpenFile}
         onShareFile={exportHook.handleShareFile}
         onSaveToDownloads={exportHook.handleSaveToDownloads}
+        variant={isDark ? 'dark' : 'light'}
       />
     </View>
   );
@@ -961,6 +1091,10 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#f1f1f1',
+  },
+  headerContainerDark: {
+    backgroundColor: '#0D1714',
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
   tabHeaderRow: {
     flexDirection: 'row',
@@ -1052,12 +1186,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.surfaceContainer,
   },
+  dateHeaderContainerDark: {
+    backgroundColor: '#131D1A',
+    borderBottomColor: '#1E292B',
+  },
   dateHeaderText: {
     fontSize: 11,
     fontWeight: '800',
     color: COLORS.outline,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
+  },
+  dateHeaderTextDark: {
+    color: '#9CA3AF',
   },
   centerContainer: {
     flex: 1,
@@ -1129,9 +1270,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.surfaceContainer,
   },
+  modalChipDark: {
+    backgroundColor: '#101917',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
   modalChipActive: {
     backgroundColor: COLORS.primaryFixed,
     borderColor: COLORS.primary,
+  },
+  modalChipActiveDark: {
+    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+    borderColor: '#34D399',
   },
   modalChipText: {
     fontSize: 13,

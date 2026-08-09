@@ -24,6 +24,10 @@ export const getDateRangeLabelText = (
   endDate?: Date
 ): string => {
   switch (range) {
+    case 'this-month':
+      return 'This Month';
+    case 'last-month':
+      return 'Last Month';
     case 'last-7-days':
       return 'Last 7 Days';
     case 'last-30-days':
@@ -50,7 +54,13 @@ export const filterExpensesByRange = (
   let start = new Date(0);
   let end = new Date();
 
-  if (range === 'last-7-days') {
+  if (range === 'this-month') {
+    start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  } else if (range === 'last-month') {
+    start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+    end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+  } else if (range === 'last-7-days') {
     start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     end = now;
   } else if (range === 'last-30-days') {

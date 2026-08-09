@@ -9,10 +9,14 @@ import { TopAppBar } from '../components/TopAppBar';
 import { CreateCategoryModal } from '../components/CreateCategoryModal';
 import { SkeletonLoader } from '../components/SkeletonLoader';
 import { getCategoryVisuals } from '../constants/categories';
+import { useTheme } from '../context/ThemeContext';
+import { AppBackground } from '../components/AppBackground';
 
 export default function CategoriesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
+  const variant = isDark ? 'dark' : 'light';
 
   const { data, isLoading } = useCategories();
   const deleteCategory = useDeleteCategory();
@@ -44,8 +48,13 @@ export default function CategoriesScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <TopAppBar title="Manage Categories" showBack onBack={() => router.back()} />
+    <AppBackground style={styles.container}>
+      <TopAppBar
+        title="Manage Categories"
+        showBack
+        onBack={() => router.back()}
+        variant={variant}
+      />
 
       {isLoading ? (
         <ScrollView
@@ -58,9 +67,15 @@ export default function CategoriesScreen() {
               <SkeletonLoader width={180} height={16} borderRadius={8} />
               <SkeletonLoader width={80} height={28} borderRadius={20} />
             </View>
-            <View style={styles.listContainer}>
+            <View style={[styles.listContainer, isDark && styles.listContainerDark]}>
               {[1, 2, 3].map((i) => (
-                <View key={i} style={styles.categoryRow}>
+                <View
+                  key={i}
+                  style={[
+                    styles.categoryRow,
+                    isDark && { borderBottomColor: 'rgba(255, 255, 255, 0.08)' },
+                  ]}
+                >
                   <View style={styles.categoryInfo}>
                     <SkeletonLoader width={36} height={36} borderRadius={12} />
                     <SkeletonLoader width={100} height={14} borderRadius={6} />
@@ -74,9 +89,15 @@ export default function CategoriesScreen() {
           {/* Standard Categories Skeleton */}
           <View style={styles.section}>
             <SkeletonLoader width={150} height={16} borderRadius={8} />
-            <View style={styles.listContainer}>
+            <View style={[styles.listContainer, isDark && styles.listContainerDark]}>
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <View key={i} style={styles.categoryRow}>
+                <View
+                  key={i}
+                  style={[
+                    styles.categoryRow,
+                    isDark && { borderBottomColor: 'rgba(255, 255, 255, 0.08)' },
+                  ]}
+                >
                   <View style={styles.categoryInfo}>
                     <SkeletonLoader width={36} height={36} borderRadius={12} />
                     <SkeletonLoader width={90 + (i % 3) * 20} height={14} borderRadius={6} />
@@ -95,9 +116,11 @@ export default function CategoriesScreen() {
           {/* Custom Categories Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Your Custom Categories</Text>
+              <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>
+                Your Custom Categories
+              </Text>
               <TouchableOpacity
-                style={styles.addBtn}
+                style={[styles.addBtn, isDark && styles.addBtnDark]}
                 onPress={() => setModalVisible(true)}
                 activeOpacity={0.7}
               >
@@ -107,11 +130,19 @@ export default function CategoriesScreen() {
             </View>
 
             {data?.custom && data.custom.length > 0 ? (
-              <View style={styles.listContainer}>
-                {data.custom.map((cat) => {
+              <View style={[styles.listContainer, isDark && styles.listContainerDark]}>
+                {data.custom.map((cat, idx) => {
                   const visuals = getCategoryVisuals(cat.name, data.custom);
+                  const isLast = idx === data.custom.length - 1;
                   return (
-                    <View key={cat.id} style={styles.categoryRow}>
+                    <View
+                      key={cat.id}
+                      style={[
+                        styles.categoryRow,
+                        isLast && { borderBottomWidth: 0 },
+                        isDark && !isLast && { borderBottomColor: 'rgba(255, 255, 255, 0.08)' },
+                      ]}
+                    >
                       <View style={styles.categoryInfo}>
                         <View style={[styles.iconBg, { backgroundColor: visuals.bg }]}>
                           {visuals.lib === 'Ionicons' ? (
@@ -128,7 +159,9 @@ export default function CategoriesScreen() {
                             />
                           )}
                         </View>
-                        <Text style={styles.categoryName}>{cat.name}</Text>
+                        <Text style={[styles.categoryName, isDark && styles.categoryNameDark]}>
+                          {cat.name}
+                        </Text>
                       </View>
                       <TouchableOpacity
                         onPress={() => handleDelete(cat.id, cat.name)}
@@ -142,10 +175,16 @@ export default function CategoriesScreen() {
                 })}
               </View>
             ) : (
-              <View style={styles.emptyState}>
-                <Ionicons name="grid-outline" size={32} color={COLORS.outlineVariant} />
-                <Text style={styles.emptyStateText}>No custom categories yet</Text>
-                <Text style={styles.emptyStateSubtext}>
+              <View style={[styles.emptyState, isDark && styles.emptyStateDark]}>
+                <Ionicons
+                  name="grid-outline"
+                  size={32}
+                  color={isDark ? 'rgba(255, 255, 255, 0.4)' : COLORS.outlineVariant}
+                />
+                <Text style={[styles.emptyStateText, isDark && styles.emptyStateTextDark]}>
+                  No custom categories yet
+                </Text>
+                <Text style={[styles.emptyStateSubtext, isDark && styles.emptyStateSubtextDark]}>
                   Create your own categories to classify expenses exactly how you want.
                 </Text>
               </View>
@@ -154,12 +193,22 @@ export default function CategoriesScreen() {
 
           {/* Standard Categories Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Standard Categories</Text>
-            <View style={styles.listContainer}>
-              {data?.standard.map((name) => {
+            <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>
+              Standard Categories
+            </Text>
+            <View style={[styles.listContainer, isDark && styles.listContainerDark]}>
+              {data?.standard.map((name, idx) => {
                 const visuals = getCategoryVisuals(name);
+                const isLast = idx === (data?.standard.length ?? 0) - 1;
                 return (
-                  <View key={name} style={styles.categoryRow}>
+                  <View
+                    key={name}
+                    style={[
+                      styles.categoryRow,
+                      isLast && { borderBottomWidth: 0 },
+                      isDark && !isLast && { borderBottomColor: 'rgba(255, 255, 255, 0.08)' },
+                    ]}
+                  >
                     <View style={styles.categoryInfo}>
                       <View style={[styles.iconBg, { backgroundColor: visuals.bg }]}>
                         {visuals.lib === 'Ionicons' ? (
@@ -172,9 +221,13 @@ export default function CategoriesScreen() {
                           />
                         )}
                       </View>
-                      <Text style={styles.categoryName}>{name}</Text>
+                      <Text style={[styles.categoryName, isDark && styles.categoryNameDark]}>
+                        {name}
+                      </Text>
                     </View>
-                    <Text style={styles.standardLabel}>Default</Text>
+                    <Text style={[styles.standardLabel, isDark && styles.standardLabelDark]}>
+                      Default
+                    </Text>
                   </View>
                 );
               })}
@@ -185,14 +238,13 @@ export default function CategoriesScreen() {
 
       {/* ── Modal: Create Category ── */}
       <CreateCategoryModal visible={modalVisible} onClose={() => setModalVisible(false)} />
-    </View>
+    </AppBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   scrollContainer: {
     padding: 16,
@@ -212,6 +264,9 @@ const styles = StyleSheet.create({
     color: COLORS.onSurface,
     letterSpacing: -0.1,
   },
+  sectionTitleDark: {
+    color: '#F9FAFB',
+  },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -226,6 +281,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
+  addBtnDark: {
+    backgroundColor: '#10B981',
+    shadowColor: '#10B981',
+  },
   addBtnText: {
     fontSize: 12,
     fontWeight: '700',
@@ -238,6 +297,10 @@ const styles = StyleSheet.create({
     borderColor: COLORS.surfaceContainer,
     paddingHorizontal: 16,
     paddingVertical: 8,
+  },
+  listContainerDark: {
+    backgroundColor: '#101917',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   categoryRow: {
     flexDirection: 'row',
@@ -264,6 +327,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.onSurface,
   },
+  categoryNameDark: {
+    color: '#F9FAFB',
+  },
   deleteBtn: {
     padding: 6,
   },
@@ -271,6 +337,9 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: COLORS.outlineVariant,
+  },
+  standardLabelDark: {
+    color: '#9CA3AF',
   },
   emptyState: {
     backgroundColor: COLORS.surface,
@@ -282,11 +351,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
+  emptyStateDark: {
+    backgroundColor: '#101917',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
   emptyStateText: {
     fontSize: 14,
     fontWeight: '700',
     color: COLORS.onSurface,
     marginTop: 4,
+  },
+  emptyStateTextDark: {
+    color: '#F9FAFB',
   },
   emptyStateSubtext: {
     fontSize: 12,
@@ -294,5 +370,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 16,
     paddingHorizontal: 16,
+  },
+  emptyStateSubtextDark: {
+    color: '#9CA3AF',
   },
 });

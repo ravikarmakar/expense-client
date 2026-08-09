@@ -5,9 +5,12 @@ import { COLORS } from '../../../../constants/theme';
 import type { GroupMember } from '@workspace/api';
 import { MemberBalanceItem } from './MemberBalanceItem';
 
+import { useTheme } from '../../../../context/ThemeContext';
+
 interface SplitSummaryCardProps {
   members: GroupMember[];
   currentUserId?: string;
+  createdBy?: string;
   onSettleUp?: (member: GroupMember) => void;
   isSettling?: string | null; // userId being settled
   onSendReminder?: (member: GroupMember) => void;
@@ -18,12 +21,14 @@ interface SplitSummaryCardProps {
 export function SplitSummaryCard({
   members,
   currentUserId,
+  createdBy,
   onSettleUp,
   isSettling,
   onSendReminder,
   isReminding,
   groupId,
 }: SplitSummaryCardProps) {
+  const { isDark } = useTheme();
   const currentUser = members.find((m) => m.userId === currentUserId);
   const otherMembers = members.filter((m) => m.userId !== currentUserId);
   const displayMembers = currentUser ? [currentUser, ...otherMembers] : otherMembers;
@@ -38,20 +43,26 @@ export function SplitSummaryCard({
 
   if (displayMembers.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
-        <Ionicons name="checkmark-circle" size={32} color={COLORS.primary} />
-        <Text style={styles.emptyText}>No members yet</Text>
+      <View style={[styles.emptyContainer, isDark && { backgroundColor: '#101917' }]}>
+        <Ionicons name="checkmark-circle" size={32} color={isDark ? '#34D399' : COLORS.primary} />
+        <Text style={[styles.emptyText, isDark && { color: '#9CA3AF' }]}>No members yet</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        isDark && { backgroundColor: '#101917', borderColor: 'rgba(255, 255, 255, 0.08)' },
+      ]}
+    >
       {renderedMembers.map((member, index) => (
         <MemberBalanceItem
           key={member.userId}
           member={member}
           currentUserId={currentUserId}
+          createdBy={createdBy}
           onSettleUp={onSettleUp}
           isSettling={isSettling === member.userId}
           onSendReminder={onSendReminder}

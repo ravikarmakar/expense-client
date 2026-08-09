@@ -493,8 +493,15 @@ export default function IncomeHistoryScreen() {
                 return (
                   <React.Fragment key={item.id}>
                     {showHeading && (
-                      <View style={styles.dateHeaderContainer}>
-                        <Text style={styles.dateHeaderText}>{currentHeading}</Text>
+                      <View
+                        style={[
+                          styles.dateHeaderContainer,
+                          isDark && styles.dateHeaderContainerDark,
+                        ]}
+                      >
+                        <Text style={[styles.dateHeaderText, isDark && styles.dateHeaderTextDark]}>
+                          {currentHeading}
+                        </Text>
                       </View>
                     )}
                     <View
@@ -772,6 +779,7 @@ export default function IncomeHistoryScreen() {
         setCustomEndDate={exportHook.setCustomEndDate}
         format={exportHook.format}
         setFormat={exportHook.setFormat}
+        variant={variant}
         onConfirmExport={() =>
           exportHook.executeExport(
             filteredIncomes.map((i) => ({
@@ -1016,12 +1024,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.surfaceContainer,
   },
+  dateHeaderContainerDark: {
+    backgroundColor: '#131D1A',
+    borderBottomColor: '#1E292B',
+  },
   dateHeaderText: {
     fontSize: 11,
     fontWeight: '800',
     color: COLORS.outline,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
+  },
+  dateHeaderTextDark: {
+    color: '#34D399',
   },
   incomeRow: {
     flexDirection: 'row',

@@ -4,7 +4,6 @@ import { COLORS } from '../../../constants/theme';
 export const detailStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   header: {
     flexDirection: 'row',
@@ -379,6 +378,10 @@ export const detailStyles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.surfaceContainer,
   },
+  dateHeaderContainerDark: {
+    backgroundColor: '#131D1A',
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+  },
   dateHeaderText: {
     fontSize: 11,
     fontWeight: '800',
@@ -386,12 +389,14 @@ export const detailStyles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
+  dateHeaderTextDark: {
+    color: '#9CA3AF',
+  },
 });
 
 export const addMemberStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   header: {
     flexDirection: 'row',
@@ -561,7 +566,6 @@ export const addMemberStyles = StyleSheet.create({
 export const analyticsStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   tabSelectorContainer: {
     flexDirection: 'row',
@@ -593,6 +597,53 @@ export const analyticsStyles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   tabBtnTextActive: {
+    color: COLORS.primary,
+  },
+  controlHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    gap: 10,
+  },
+  dateBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#e6f4ea',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
+  dateBoxDark: {
+    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+    borderColor: 'rgba(52, 211, 153, 0.3)',
+  },
+  dateBoxText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  rightDropdownBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.surfaceContainerLow,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
+  },
+  rightDropdownBtnDark: {
+    backgroundColor: '#101917',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  rightDropdownText: {
+    fontSize: 13,
+    fontWeight: '700',
     color: COLORS.primary,
   },
   periodLabel: {
@@ -653,6 +704,138 @@ export const analyticsStyles = StyleSheet.create({
     color: COLORS.outline,
     lineHeight: 18,
   },
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 24,
+  },
+  gridCard: {
+    width: '48%',
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
+  },
+  gridCardDark: {
+    backgroundColor: '#101917',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  gridCardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  gridCardIconBg: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gridCardTitle: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.outline,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    flex: 1,
+  },
+  gridCardValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: COLORS.onSurface,
+    marginTop: 2,
+  },
+  gridCardSub: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.outline,
+    marginTop: 2,
+  },
+  topSpenderCard: {
+    padding: 18,
+    borderRadius: 22,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
+    marginBottom: 24,
+  },
+  topSpenderCardDark: {
+    backgroundColor: '#101917',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  insightCard: {
+    padding: 18,
+    borderRadius: 22,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
+    marginBottom: 24,
+  },
+  insightCardDark: {
+    backgroundColor: '#101917',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  insightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  insightIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  insightText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.onSurface,
+    flex: 1,
+    lineHeight: 18,
+  },
+  memberCompareRow: {
+    marginBottom: 16,
+  },
+  memberCompareHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  memberCompareName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.onSurface,
+  },
+  memberCompareNetBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  memberCompareNetText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  memberCompareBars: {
+    gap: 4,
+  },
+  memberBarWrapper: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.surfaceContainer,
+    overflow: 'hidden',
+  },
+  memberBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
   balanceDivider: {
     height: 1,
     backgroundColor: COLORS.surfaceContainer,
@@ -706,6 +889,7 @@ export const analyticsStyles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   axisLabelText: {
     color: COLORS.outline,

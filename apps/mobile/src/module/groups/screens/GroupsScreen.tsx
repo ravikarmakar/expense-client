@@ -11,6 +11,7 @@ import { CreateGroupModal } from '../components/CreateGroupModal';
 import { ErrorView } from '../../../components/ErrorView';
 import { EmptyState } from '../../../components/EmptyState';
 import { useGroupsController } from '@workspace/api';
+import { useTheme } from '../../../context/ThemeContext';
 import { styles } from '../styles/groups-tab.styles';
 import { NetBalanceCard } from '../components/NetBalanceCard';
 import { NetBalanceCardSkeleton } from '../components/NetBalanceCardSkeleton';
@@ -42,6 +43,9 @@ function formatLastActive(dateStr?: string | Date) {
 }
 
 export default function GroupsScreen() {
+  const { isDark } = useTheme();
+  const variant = isDark ? 'dark' : 'light';
+
   const {
     createGroupVisible,
     setCreateGroupVisible,
@@ -72,10 +76,10 @@ export default function GroupsScreen() {
   const showBalancesSkeleton = isBalancesLoading || (isFetchingBalances && !isRefreshing);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark && { backgroundColor: '#08110F' }]}>
       {/* Premium Background Gradient */}
       <LinearGradient
-        colors={['#ffffff', '#fafafa', '#f5f6f8']}
+        colors={isDark ? ['#08110F', '#0D1714', '#101917'] : ['#ffffff', '#fafafa', '#f5f6f8']}
         style={StyleSheet.absoluteFillObject}
       />
 
@@ -84,13 +88,13 @@ export default function GroupsScreen() {
         <Svg
           height="400"
           width="400"
-          style={{ position: 'absolute', bottom: -100, left: -100, opacity: 0.15 }}
+          style={{ position: 'absolute', bottom: -100, left: -100, opacity: isDark ? 0.08 : 0.15 }}
         >
           <Circle cx="150" cy="250" r="180" fill="url(#grad2)" />
           <Defs>
             <RadialGradient id="grad2" cx="50%" cy="50%" rx="50%" ry="50%">
-              <Stop offset="0%" stopColor="#4b41e1" stopOpacity="0.15" />
-              <Stop offset="100%" stopColor="#4b41e1" stopOpacity="0" />
+              <Stop offset="0%" stopColor={isDark ? '#34D399' : '#4b41e1'} stopOpacity="0.15" />
+              <Stop offset="100%" stopColor={isDark ? '#34D399' : '#4b41e1'} stopOpacity="0" />
             </RadialGradient>
           </Defs>
         </Svg>
@@ -100,6 +104,7 @@ export default function GroupsScreen() {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         onCreateGroupPress={() => setCreateGroupVisible(true)}
+        variant={variant}
       />
 
       {/* Scrollable Filter Pills */}
@@ -108,6 +113,7 @@ export default function GroupsScreen() {
         setActiveFilter={setActiveFilter}
         activeCount={activeGroupList.length}
         deactivatedCount={groupList.filter((g) => g.isActive === false).length}
+        variant={variant}
       />
 
       <FlatList
@@ -116,7 +122,7 @@ export default function GroupsScreen() {
         renderItem={({ item: group }) => {
           const bal = balancesData ? (balancesData[group.id]?.myBalance ?? 0) : 0;
           return (
-            <View style={{ marginHorizontal: -20 }}>
+            <View style={{ marginHorizontal: isDark ? 0 : -20 }}>
               <GroupCard
                 name={group.name}
                 emoji={group.emoji ?? '👥'}
@@ -125,6 +131,7 @@ export default function GroupsScreen() {
                 totalMembersCount={group.memberCount}
                 isLoadingBalance={showBalancesSkeleton}
                 balance={bal}
+                variant={variant}
                 onPress={() =>
                   router.push(
                     `/groups/${group.id}?name=${encodeURIComponent(group.name)}&emoji=${encodeURIComponent(group.emoji ?? '👥')}`
@@ -140,32 +147,36 @@ export default function GroupsScreen() {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            tintColor={COLORS.primary}
+            tintColor={isDark ? '#34D399' : COLORS.primary}
           />
         }
         ListHeaderComponent={
           <>
             {/* Premium Net Balance Card */}
             {!showSkeleton && !isError && !showBalancesSkeleton && groupList.length > 0 && (
-              <NetBalanceCard totalOwedToMe={totalOwedToMe} totalIOwe={totalIOwe} />
+              <NetBalanceCard
+                totalOwedToMe={totalOwedToMe}
+                totalIOwe={totalIOwe}
+                variant={variant}
+              />
             )}
 
             {showBalancesSkeleton && !showSkeleton && groupList.length > 0 && (
-              <NetBalanceCardSkeleton />
+              <NetBalanceCardSkeleton variant={variant} />
             )}
 
             {/* Loading state */}
             {showSkeleton && (
               <>
-                <NetBalanceCardSkeleton />
-                <View style={{ marginHorizontal: -20, marginBottom: 12 }}>
-                  <GroupCardSkeleton />
-                  <GroupCardSkeleton />
-                  <GroupCardSkeleton />
-                  <GroupCardSkeleton />
-                  <GroupCardSkeleton />
-                  <GroupCardSkeleton />
-                  <GroupCardSkeleton />
+                <NetBalanceCardSkeleton variant={variant} />
+                <View style={{ marginHorizontal: isDark ? 0 : -20, marginBottom: 12 }}>
+                  <GroupCardSkeleton variant={variant} />
+                  <GroupCardSkeleton variant={variant} />
+                  <GroupCardSkeleton variant={variant} />
+                  <GroupCardSkeleton variant={variant} />
+                  <GroupCardSkeleton variant={variant} />
+                  <GroupCardSkeleton variant={variant} />
+                  <GroupCardSkeleton variant={variant} />
                 </View>
               </>
             )}

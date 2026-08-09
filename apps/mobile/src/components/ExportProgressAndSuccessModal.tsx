@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, Modal, TouchableOpacity, ActivityIndicator } fr
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 import { ExportResult } from '../services/export/types';
+import { useTheme } from '../context/ThemeContext';
 
 interface ExportProgressAndSuccessModalProps {
   isGenerating: boolean;
@@ -13,6 +14,7 @@ interface ExportProgressAndSuccessModalProps {
   onOpenFile: () => void;
   onShareFile: () => void;
   onSaveToDownloads?: () => void;
+  variant?: 'light' | 'dark';
 }
 
 export const ExportProgressAndSuccessModal: React.FC<ExportProgressAndSuccessModalProps> = ({
@@ -23,18 +25,32 @@ export const ExportProgressAndSuccessModal: React.FC<ExportProgressAndSuccessMod
   exportResult,
   onOpenFile,
   onShareFile,
+  variant,
 }) => {
+  const { isDark: themeIsDark } = useTheme();
+  const isDark = variant ? variant === 'dark' : themeIsDark;
+  const accentColor = isDark ? '#34D399' : COLORS.secondary;
+
   return (
     <>
       {/* 1. Generation Progress Modal */}
       <Modal visible={isGenerating} transparent animationType="fade">
         <View style={styles.modalOverlayCenter}>
-          <View style={styles.progressCard}>
-            <View style={styles.progressIconRing}>
-              <ActivityIndicator size="large" color={COLORS.secondary} />
+          <View style={[styles.progressCard, isDark && { backgroundColor: '#101917' }]}>
+            <View
+              style={[
+                styles.progressIconRing,
+                isDark && { backgroundColor: 'rgba(52, 211, 153, 0.15)' },
+              ]}
+            >
+              <ActivityIndicator size="large" color={accentColor} />
             </View>
-            <Text style={styles.progressTitle}>Generating Export</Text>
-            <Text style={styles.progressSub}>{progressMessage}</Text>
+            <Text style={[styles.progressTitle, isDark && { color: '#F9FAFB' }]}>
+              Generating Export
+            </Text>
+            <Text style={[styles.progressSub, isDark && { color: '#9CA3AF' }]}>
+              {progressMessage}
+            </Text>
           </View>
         </View>
       </Modal>
@@ -48,29 +64,47 @@ export const ExportProgressAndSuccessModal: React.FC<ExportProgressAndSuccessMod
       >
         <View style={styles.modalOverlayBottom}>
           <TouchableOpacity
-            style={styles.modalBackdrop}
+            style={[styles.modalBackdrop, isDark && { backgroundColor: 'rgba(0, 0, 0, 0.65)' }]}
             activeOpacity={1}
             onPress={onCloseSuccess}
           />
-          <View style={styles.successSheet}>
-            <View style={styles.modalHandle} />
+          <View style={[styles.successSheet, isDark && { backgroundColor: '#101917' }]}>
+            <View
+              style={[
+                styles.modalHandle,
+                isDark && { backgroundColor: 'rgba(255, 255, 255, 0.15)' },
+              ]}
+            />
 
             <View style={styles.successHeader}>
               <View style={styles.checkBadge}>
-                <Ionicons name="checkmark-circle" size={48} color={COLORS.secondary} />
+                <Ionicons name="checkmark-circle" size={48} color={accentColor} />
               </View>
-              <Text style={styles.successTitle}>Export Ready!</Text>
-              <Text style={styles.successSub}>
+              <Text style={[styles.successTitle, isDark && { color: '#F9FAFB' }]}>
+                Export Ready!
+              </Text>
+              <Text style={[styles.successSub, isDark && { color: '#9CA3AF' }]}>
                 Your file has been saved to your device. Use the options below to open or share it.
               </Text>
             </View>
 
             {/* File Info Box */}
-            <View style={styles.pathBox}>
-              <Ionicons name="document-text-outline" size={22} color={COLORS.secondary} />
+            <View
+              style={[
+                styles.pathBox,
+                isDark && {
+                  backgroundColor: '#1A2623',
+                  borderColor: 'rgba(255, 255, 255, 0.12)',
+                },
+              ]}
+            >
+              <Ionicons name="document-text-outline" size={22} color={accentColor} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.pathBoxLabel}>File Name</Text>
-                <Text style={styles.pathBoxValue} numberOfLines={1}>
+                <Text style={[styles.pathBoxLabel, isDark && { color: '#9CA3AF' }]}>File Name</Text>
+                <Text
+                  style={[styles.pathBoxValue, isDark && { color: '#34D399' }]}
+                  numberOfLines={1}
+                >
                   {exportResult?.fileName || 'Statement Export'}
                 </Text>
               </View>
@@ -80,7 +114,7 @@ export const ExportProgressAndSuccessModal: React.FC<ExportProgressAndSuccessMod
             <View style={styles.actionsContainer}>
               {/* Open File — primary action */}
               <TouchableOpacity
-                style={styles.actionBtnPrimary}
+                style={[styles.actionBtnPrimary, isDark && { backgroundColor: '#10B981' }]}
                 activeOpacity={0.85}
                 onPress={onOpenFile}
               >
@@ -90,17 +124,25 @@ export const ExportProgressAndSuccessModal: React.FC<ExportProgressAndSuccessMod
 
               {/* Share File — secondary action */}
               <TouchableOpacity
-                style={styles.actionBtnSecondary}
+                style={[
+                  styles.actionBtnSecondary,
+                  isDark && {
+                    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+                    borderColor: '#34D399',
+                  },
+                ]}
                 activeOpacity={0.85}
                 onPress={onShareFile}
               >
-                <Ionicons name="share-social-outline" size={18} color={COLORS.secondary} />
-                <Text style={styles.actionBtnSecondaryText}>Share File</Text>
+                <Ionicons name="share-social-outline" size={18} color={accentColor} />
+                <Text style={[styles.actionBtnSecondaryText, isDark && { color: '#34D399' }]}>
+                  Share File
+                </Text>
               </TouchableOpacity>
             </View>
 
             <TouchableOpacity style={styles.doneBtn} onPress={onCloseSuccess}>
-              <Text style={styles.doneBtnText}>Close</Text>
+              <Text style={[styles.doneBtnText, isDark && { color: '#9CA3AF' }]}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>

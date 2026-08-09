@@ -3,15 +3,26 @@ import { View, StyleSheet, Dimensions } from 'react-native';
 import { SkeletonLoader } from '../../../components/SkeletonLoader';
 import { ExpenseItemSkeleton } from '../../../components/ExpenseItemSkeleton';
 import { COLORS } from '../../../constants/theme';
+import { useTheme } from '../../../context/ThemeContext';
 
 const screenWidth = Dimensions.get('window').width;
 const chartWidth = screenWidth - 72;
 
 export const SpentAnalyticsSkeleton = () => {
+  const { isDark } = useTheme();
+
   return (
     <View style={styles.container}>
       {/* Hero Card Skeleton */}
-      <View style={styles.cardSkeleton}>
+      <View
+        style={[
+          styles.cardSkeleton,
+          isDark && {
+            backgroundColor: '#0D1A16',
+            borderColor: '#1E2F2B',
+          },
+        ]}
+      >
         <View style={styles.row}>
           <View>
             <SkeletonLoader width={100} height={12} borderRadius={6} style={{ marginBottom: 8 }} />
@@ -25,13 +36,20 @@ export const SpentAnalyticsSkeleton = () => {
           borderRadius={6}
           style={{ marginTop: 12, marginBottom: 16 }}
         />
-        <View style={styles.divider} />
+        <View
+          style={[styles.divider, isDark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' }]}
+        />
         <View style={styles.row}>
           <View style={styles.col}>
             <SkeletonLoader width={80} height={10} borderRadius={5} style={{ marginBottom: 6 }} />
             <SkeletonLoader width={100} height={16} borderRadius={8} />
           </View>
-          <View style={styles.dividerVertical} />
+          <View
+            style={[
+              styles.dividerVertical,
+              isDark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+            ]}
+          />
           <View style={styles.col}>
             <SkeletonLoader width={80} height={10} borderRadius={5} style={{ marginBottom: 6 }} />
             <SkeletonLoader width={100} height={16} borderRadius={8} />
@@ -40,7 +58,15 @@ export const SpentAnalyticsSkeleton = () => {
       </View>
 
       {/* Chart Skeleton */}
-      <View style={styles.cardSkeleton}>
+      <View
+        style={[
+          styles.cardSkeleton,
+          isDark && {
+            backgroundColor: '#0D1A16',
+            borderColor: '#1E2F2B',
+          },
+        ]}
+      >
         <SkeletonLoader
           width={120}
           height={16}
@@ -53,7 +79,15 @@ export const SpentAnalyticsSkeleton = () => {
       </View>
 
       {/* Category Breakdown Skeleton */}
-      <View style={styles.cardSkeleton}>
+      <View
+        style={[
+          styles.cardSkeleton,
+          isDark && {
+            backgroundColor: '#0D1A16',
+            borderColor: '#1E2F2B',
+          },
+        ]}
+      >
         <SkeletonLoader
           width={150}
           height={16}

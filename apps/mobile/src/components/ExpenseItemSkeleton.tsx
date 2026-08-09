@@ -2,10 +2,13 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SkeletonLoader } from './SkeletonLoader';
+import { useTheme } from '../context/ThemeContext';
 
 export function ExpenseItemSkeleton() {
+  const { isDark } = useTheme();
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark && { borderBottomColor: 'rgba(255, 255, 255, 0.06)' }]}>
       {/* Left: Category Icon Avatar Skeleton */}
       <SkeletonLoader width={48} height={48} borderRadius={24} style={{ marginRight: 14 }} />
 
@@ -27,7 +30,12 @@ export function ExpenseItemSkeleton() {
           {/* Balance Label Skeleton */}
           <SkeletonLoader width={50} height={12} borderRadius={6} style={{ marginTop: 5 }} />
         </View>
-        <Ionicons name="chevron-forward" size={16} color="#bdc1c6" style={styles.chevron} />
+        <Ionicons
+          name="chevron-forward"
+          size={16}
+          color={isDark ? 'rgba(255, 255, 255, 0.2)' : '#bdc1c6'}
+          style={styles.chevron}
+        />
       </View>
     </View>
   );

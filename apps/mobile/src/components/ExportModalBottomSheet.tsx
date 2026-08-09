@@ -18,9 +18,12 @@ interface ExportModalBottomSheetProps {
   format: ExportFormat;
   setFormat: (format: ExportFormat) => void;
   onConfirmExport: () => void;
+  variant?: 'light' | 'dark';
 }
 
 const DATE_RANGE_OPTIONS: { label: string; value: ExportDateRange; icon: string }[] = [
+  { label: 'This Month', value: 'this-month', icon: 'calendar-outline' },
+  { label: 'Last Month', value: 'last-month', icon: 'calendar-clear-outline' },
   { label: 'Last 7 Days', value: 'last-7-days', icon: 'time-outline' },
   { label: 'Last 30 Days', value: 'last-30-days', icon: 'calendar-outline' },
   { label: 'Last 3 Months', value: 'last-3-months', icon: 'timer-outline' },
@@ -81,7 +84,9 @@ export const ExportModalBottomSheet: React.FC<ExportModalBottomSheetProps> = ({
   format,
   setFormat,
   onConfirmExport,
+  variant = 'light',
 }) => {
+  const isDark = variant === 'dark';
   const currentRangeLabel = getDateRangeLabelText(dateRange, customStartDate, customEndDate);
 
   return (
@@ -90,12 +95,22 @@ export const ExportModalBottomSheet: React.FC<ExportModalBottomSheetProps> = ({
       onClose={onClose}
       title="Export Statement"
       description="Select date range and format to save statement to device"
+      variant={variant}
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Step 1: Date Range Horizontal Pills */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Select Timeframe</Text>
-          <Text style={styles.selectedBadgeText}>{currentRangeLabel}</Text>
+          <Text style={[styles.sectionTitle, isDark && { color: '#9CA3AF' }]}>
+            Select Timeframe
+          </Text>
+          <Text
+            style={[
+              styles.selectedBadgeText,
+              isDark && { color: '#A5B4FC', backgroundColor: 'rgba(165, 180, 252, 0.15)' },
+            ]}
+          >
+            {currentRangeLabel}
+          </Text>
         </View>
 
         <ScrollView
@@ -108,16 +123,40 @@ export const ExportModalBottomSheet: React.FC<ExportModalBottomSheetProps> = ({
             return (
               <TouchableOpacity
                 key={opt.value}
-                style={[styles.pillCard, isSelected && styles.pillCardActive]}
+                style={[
+                  styles.pillCard,
+                  isDark && {
+                    backgroundColor: '#101917',
+                    borderColor: 'rgba(255, 255, 255, 0.08)',
+                  },
+                  isSelected &&
+                    (isDark
+                      ? { backgroundColor: 'rgba(165, 180, 252, 0.2)', borderColor: '#818CF8' }
+                      : styles.pillCardActive),
+                ]}
                 activeOpacity={0.75}
                 onPress={() => setDateRange(opt.value)}
               >
                 <Ionicons
                   name={opt.icon as never}
                   size={15}
-                  color={isSelected ? COLORS.secondary : COLORS.outline}
+                  color={
+                    isSelected
+                      ? isDark
+                        ? '#A5B4FC'
+                        : COLORS.secondary
+                      : isDark
+                        ? '#9CA3AF'
+                        : COLORS.outline
+                  }
                 />
-                <Text style={[styles.pillText, isSelected && styles.pillTextActive]}>
+                <Text
+                  style={[
+                    styles.pillText,
+                    isDark && { color: '#9CA3AF' },
+                    isSelected && (isDark ? { color: '#A5B4FC' } : styles.pillTextActive),
+                  ]}
+                >
                   {opt.label}
                 </Text>
               </TouchableOpacity>
@@ -127,17 +166,35 @@ export const ExportModalBottomSheet: React.FC<ExportModalBottomSheetProps> = ({
 
         {/* Custom Date Pickers if 'custom' is active */}
         {dateRange === 'custom' && (
-          <View style={styles.customRangeCard}>
-            <Text style={styles.customRangeTitle}>Pick Custom Date Range</Text>
+          <View
+            style={[
+              styles.customRangeCard,
+              isDark && {
+                backgroundColor: '#101917',
+                borderColor: 'rgba(255, 255, 255, 0.08)',
+              },
+            ]}
+          >
+            <Text style={[styles.customRangeTitle, isDark && { color: '#9CA3AF' }]}>
+              Pick Custom Date Range
+            </Text>
             <View style={styles.customDateRow}>
               <TouchableOpacity
-                style={styles.dateSelectorBtn}
+                style={[
+                  styles.dateSelectorBtn,
+                  isDark && {
+                    backgroundColor: '#1A2623',
+                    borderColor: 'rgba(255, 255, 255, 0.12)',
+                  },
+                ]}
                 onPress={() => {
                   setCustomStartDate(new Date(customStartDate.getTime() - 7 * 24 * 60 * 60 * 1000));
                 }}
               >
-                <Text style={styles.dateSelectorLabel}>From Date</Text>
-                <Text style={styles.dateSelectorValue}>
+                <Text style={[styles.dateSelectorLabel, isDark && { color: '#9CA3AF' }]}>
+                  From Date
+                </Text>
+                <Text style={[styles.dateSelectorValue, isDark && { color: '#F9FAFB' }]}>
                   {customStartDate.toLocaleDateString('en-IN', {
                     month: 'short',
                     day: 'numeric',
@@ -146,14 +203,26 @@ export const ExportModalBottomSheet: React.FC<ExportModalBottomSheetProps> = ({
                 </Text>
               </TouchableOpacity>
 
-              <Ionicons name="arrow-forward" size={16} color={COLORS.outline} />
+              <Ionicons
+                name="arrow-forward"
+                size={16}
+                color={isDark ? '#9CA3AF' : COLORS.outline}
+              />
 
               <TouchableOpacity
-                style={styles.dateSelectorBtn}
+                style={[
+                  styles.dateSelectorBtn,
+                  isDark && {
+                    backgroundColor: '#1A2623',
+                    borderColor: 'rgba(255, 255, 255, 0.12)',
+                  },
+                ]}
                 onPress={() => setCustomEndDate(new Date())}
               >
-                <Text style={styles.dateSelectorLabel}>To Date</Text>
-                <Text style={styles.dateSelectorValue}>
+                <Text style={[styles.dateSelectorLabel, isDark && { color: '#9CA3AF' }]}>
+                  To Date
+                </Text>
+                <Text style={[styles.dateSelectorValue, isDark && { color: '#F9FAFB' }]}>
                   {customEndDate.toLocaleDateString('en-IN', {
                     month: 'short',
                     day: 'numeric',
@@ -166,7 +235,13 @@ export const ExportModalBottomSheet: React.FC<ExportModalBottomSheetProps> = ({
         )}
 
         {/* Step 2: Format Selection Cards */}
-        <Text style={[styles.sectionTitle, { marginTop: 22, marginBottom: 12 }]}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            { marginTop: 22, marginBottom: 12 },
+            isDark && { color: '#9CA3AF' },
+          ]}
+        >
           Select File Format
         </Text>
 
@@ -176,12 +251,27 @@ export const ExportModalBottomSheet: React.FC<ExportModalBottomSheetProps> = ({
             return (
               <TouchableOpacity
                 key={opt.value}
-                style={[styles.formatCard, isSelected && styles.formatCardActive]}
+                style={[
+                  styles.formatCard,
+                  isDark && {
+                    backgroundColor: '#101917',
+                    borderColor: 'rgba(255, 255, 255, 0.08)',
+                  },
+                  isSelected &&
+                    (isDark
+                      ? { backgroundColor: 'rgba(165, 180, 252, 0.15)', borderColor: '#818CF8' }
+                      : styles.formatCardActive),
+                ]}
                 activeOpacity={0.8}
                 onPress={() => setFormat(opt.value)}
               >
                 <View style={styles.formatLeftRow}>
-                  <View style={[styles.formatIconCircle, { backgroundColor: opt.bg }]}>
+                  <View
+                    style={[
+                      styles.formatIconCircle,
+                      { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : opt.bg },
+                    ]}
+                  >
                     {opt.iconLib === 'Ionicons' ? (
                       <Ionicons name={opt.icon as never} size={19} color={opt.color} />
                     ) : (
@@ -193,21 +283,45 @@ export const ExportModalBottomSheet: React.FC<ExportModalBottomSheetProps> = ({
                       <Text
                         style={[
                           styles.formatTitle,
-                          isSelected && { color: COLORS.secondary, fontWeight: '800' },
+                          isDark && { color: '#F9FAFB' },
+                          isSelected &&
+                            (isDark
+                              ? { color: '#A5B4FC', fontWeight: '800' }
+                              : { color: COLORS.secondary, fontWeight: '800' }),
                         ]}
                       >
                         {opt.label}
                       </Text>
-                      <Text style={styles.formatExtBadge}>{opt.ext}</Text>
+                      <Text
+                        style={[
+                          styles.formatExtBadge,
+                          isDark && {
+                            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                            color: '#9CA3AF',
+                          },
+                        ]}
+                      >
+                        {opt.ext}
+                      </Text>
                     </View>
-                    <Text style={styles.formatSubText}>{opt.sub}</Text>
+                    <Text style={[styles.formatSubText, isDark && { color: '#9CA3AF' }]}>
+                      {opt.sub}
+                    </Text>
                   </View>
                 </View>
 
                 <Ionicons
                   name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
                   size={20}
-                  color={isSelected ? COLORS.secondary : COLORS.outlineVariant}
+                  color={
+                    isSelected
+                      ? isDark
+                        ? '#A5B4FC'
+                        : COLORS.secondary
+                      : isDark
+                        ? '#74817B'
+                        : COLORS.outlineVariant
+                  }
                 />
               </TouchableOpacity>
             );
@@ -216,7 +330,7 @@ export const ExportModalBottomSheet: React.FC<ExportModalBottomSheetProps> = ({
 
         {/* Premium Confirm Export Button */}
         <TouchableOpacity
-          style={styles.exportSubmitBtn}
+          style={[styles.exportSubmitBtn, isDark && { backgroundColor: '#6366F1' }]}
           activeOpacity={0.85}
           onPress={onConfirmExport}
         >

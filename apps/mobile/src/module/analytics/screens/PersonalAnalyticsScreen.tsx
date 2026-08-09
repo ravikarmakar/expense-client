@@ -8,6 +8,7 @@ import { useExpenseAnalyticsInfinite, useMe, useCategories } from '@workspace/ap
 import { globalStyles } from '../../../styles/globalStyles';
 import { ErrorView } from '../../../components/ErrorView';
 import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
+import { useTheme } from '../../../context/ThemeContext';
 import { useExport } from '../../../hooks/useExport';
 import { ExportModalBottomSheet } from '../../../components/ExportModalBottomSheet';
 import { ExportProgressAndSuccessModal } from '../../../components/ExportProgressAndSuccessModal';
@@ -27,6 +28,7 @@ const TIMEFRAME_OPTIONS = [
   { label: 'Today', value: 'today', icon: 'today-outline' },
   { label: '7 Days', value: 'week', icon: 'time-outline' },
   { label: 'This Month', value: 'month', icon: 'calendar-number-outline' },
+  { label: 'Last Month', value: 'last_month', icon: 'calendar-clear-outline' },
   { label: 'This Year', value: 'year', icon: 'infinite-outline' },
   { label: 'All Time', value: 'all', icon: 'globe-outline' },
   { label: 'Select Month', value: 'custom_month', icon: 'calendar-outline' },
@@ -37,6 +39,7 @@ const TIMEFRAME_OPTIONS = [
 export default function PersonalAnalyticsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
   const [timeframe, setTimeframe] = useState<
     | 'today'
     | 'week'
@@ -59,6 +62,15 @@ export default function PersonalAnalyticsScreen() {
     return `${yyyy}-${mm}-${dd}`;
   };
 
+  // Format last month's reference date string (1st day of last month)
+  const getLastMonthString = () => {
+    const now = new Date();
+    const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return `${yyyy}-${mm}-01`;
+  };
+
   const [refDate, setRefDate] = useState<string>(getTodayString());
 
   const isTodayDate = (dateStr: string) => {
@@ -71,6 +83,15 @@ export default function PersonalAnalyticsScreen() {
     if (parts.length < 2) return true;
     const now = new Date();
     return parts[0] === now.getFullYear() && parts[1] === now.getMonth() + 1;
+  };
+
+  const isLastMonth = (dateStr: string) => {
+    if (!dateStr) return false;
+    const parts = dateStr.split('-').map(Number);
+    if (parts.length < 2) return false;
+    const now = new Date();
+    const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return parts[0] === lm.getFullYear() && parts[1] === lm.getMonth() + 1;
   };
 
   const getDynamicTimeframeLabel = () => {
@@ -87,6 +108,9 @@ export default function PersonalAnalyticsScreen() {
             if (isCurrentMonth(refDate)) {
               return 'This Month';
             }
+            if (isLastMonth(refDate)) {
+              return 'Last Month';
+            }
             return refObj.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
           }
           if (timeframe === 'today') {
@@ -101,7 +125,10 @@ export default function PersonalAnalyticsScreen() {
 
     if (timeframe === 'today') return 'Today';
     if (timeframe === 'week') return '7 Days';
-    if (timeframe === 'month') return 'This Month';
+    if (timeframe === 'month') {
+      if (isLastMonth(refDate)) return 'Last Month';
+      return 'This Month';
+    }
     if (timeframe === 'year') return 'This Year';
     if (timeframe === 'all') return 'All Time';
     if (timeframe === 'custom_year') {
@@ -313,9 +340,15 @@ export default function PersonalAnalyticsScreen() {
   const chartWidth = screenWidth - 72;
 
   return (
-    <View style={localStyles.container}>
+    <View style={[localStyles.container, isDark && localStyles.containerDark]}>
       {/* Top App Bar: Left-Aligned Large Title & Right AI Icon */}
-      <View style={[localStyles.headerContainer, { paddingTop: insets.top + 10 }]}>
+      <View
+        style={[
+          localStyles.headerContainer,
+          isDark && localStyles.headerContainerDark,
+          { paddingTop: insets.top + 10 },
+        ]}
+      >
         <View style={localStyles.headerRow}>
           <View style={localStyles.headerLeftRow}>
             <TouchableOpacity
@@ -323,13 +356,19 @@ export default function PersonalAnalyticsScreen() {
               style={localStyles.headerBackBtn}
               activeOpacity={0.7}
             >
-              <Ionicons name="arrow-back" size={24} color={COLORS.onSurface} />
+              <Ionicons name="arrow-back" size={24} color={isDark ? '#F9FAFB' : COLORS.onSurface} />
             </TouchableOpacity>
-            <Text style={localStyles.headerTitleLeft}>Personal Analytics</Text>
+            <Text style={[localStyles.headerTitleLeft, isDark && localStyles.headerTitleLeftDark]}>
+              Personal Analytics
+            </Text>
           </View>
 
           <TouchableOpacity style={localStyles.aiIconBtn} activeOpacity={0.7}>
-            <MaterialIcons name="auto-awesome" size={26} color={COLORS.secondary} />
+            <MaterialIcons
+              name="auto-awesome"
+              size={26}
+              color={isDark ? '#A5B4FC' : COLORS.secondary}
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -341,22 +380,30 @@ export default function PersonalAnalyticsScreen() {
         {/* Unified Control Header: Date Range Text on Left, Timeframe Dropdown on Right */}
         <View style={localStyles.controlHeaderRow}>
           {/* Left Side: Light Purple Shade Box Badge */}
-          <View style={localStyles.purpleDateBox}>
-            <Ionicons name="calendar-outline" size={14} color={COLORS.secondary} />
-            <Text style={localStyles.purpleDateBoxText}>{formatPeriodLabel()}</Text>
+          <View style={[localStyles.purpleDateBox, isDark && localStyles.purpleDateBoxDark]}>
+            <Ionicons
+              name="calendar-outline"
+              size={14}
+              color={isDark ? '#A5B4FC' : COLORS.secondary}
+            />
+            <Text style={[localStyles.purpleDateBoxText, isDark && { color: '#A5B4FC' }]}>
+              {formatPeriodLabel()}
+            </Text>
           </View>
 
           {/* Right Side: Compact Timeframe Dropdown */}
           <TouchableOpacity
-            style={localStyles.rightDropdownBtn}
+            style={[localStyles.rightDropdownBtn, isDark && localStyles.rightDropdownBtnDark]}
             onPress={() => setIsTimeframeDropdownOpen(!isTimeframeDropdownOpen)}
             activeOpacity={0.8}
           >
-            <Text style={localStyles.rightDropdownText}>{getDynamicTimeframeLabel()}</Text>
+            <Text style={[localStyles.rightDropdownText, isDark && { color: '#A5B4FC' }]}>
+              {getDynamicTimeframeLabel()}
+            </Text>
             <Ionicons
               name={isTimeframeDropdownOpen ? 'chevron-up' : 'chevron-down'}
               size={13}
-              color={COLORS.secondary}
+              color={isDark ? '#A5B4FC' : COLORS.secondary}
             />
           </TouchableOpacity>
         </View>
@@ -480,11 +527,13 @@ export default function PersonalAnalyticsScreen() {
               peakSpendingDay ||
               projectedMonthlySpend) && (
               <View style={{ marginBottom: 20 }}>
-                <Text style={localStyles.streamSectionTitle}>Spending Highlights</Text>
+                <Text style={[localStyles.streamSectionTitle, isDark && { color: '#F9FAFB' }]}>
+                  Spending Highlights
+                </Text>
 
                 <View style={localStyles.highlightGrid}>
                   {topCategoryInsight && (
-                    <View style={localStyles.gridHighlightCard}>
+                    <View style={[localStyles.gridHighlightCard, isDark && localStyles.cardDark]}>
                       <View style={localStyles.gridCardHeader}>
                         <View
                           style={[
@@ -506,17 +555,30 @@ export default function PersonalAnalyticsScreen() {
                             />
                           )}
                         </View>
-                        <View style={localStyles.gridBadge}>
-                          <Text style={localStyles.gridBadgeText}>
+                        <View
+                          style={[
+                            localStyles.gridBadge,
+                            isDark && { backgroundColor: 'rgba(165, 180, 252, 0.2)' },
+                          ]}
+                        >
+                          <Text style={[localStyles.gridBadgeText, isDark && { color: '#A5B4FC' }]}>
                             {topCategoryInsight.percentage}%
                           </Text>
                         </View>
                       </View>
-                      <Text style={localStyles.gridCardLabel}>Top Driver</Text>
-                      <Text style={localStyles.gridCardValue} numberOfLines={1}>
+                      <Text style={[localStyles.gridCardLabel, isDark && { color: '#9CA3AF' }]}>
+                        Top Driver
+                      </Text>
+                      <Text
+                        style={[localStyles.gridCardValue, isDark && { color: '#F9FAFB' }]}
+                        numberOfLines={1}
+                      >
                         {topCategoryInsight.name}
                       </Text>
-                      <Text style={localStyles.gridCardSub} numberOfLines={1}>
+                      <Text
+                        style={[localStyles.gridCardSub, isDark && { color: '#9CA3AF' }]}
+                        numberOfLines={1}
+                      >
                         {CURRENCY_SYMBOL}
                         {topCategoryInsight.amount.toFixed(0)} total
                       </Text>
@@ -524,7 +586,7 @@ export default function PersonalAnalyticsScreen() {
                   )}
 
                   {topExpense && (
-                    <View style={localStyles.gridHighlightCard}>
+                    <View style={[localStyles.gridHighlightCard, isDark && localStyles.cardDark]}>
                       <View style={localStyles.gridCardHeader}>
                         <View style={[localStyles.gridIconCircle, { backgroundColor: '#fee2e2' }]}>
                           <Ionicons name="flame-outline" size={16} color="#dc2626" />
@@ -535,11 +597,19 @@ export default function PersonalAnalyticsScreen() {
                           </Text>
                         </View>
                       </View>
-                      <Text style={localStyles.gridCardLabel}>Largest Expense</Text>
-                      <Text style={localStyles.gridCardValue} numberOfLines={1}>
+                      <Text style={[localStyles.gridCardLabel, isDark && { color: '#9CA3AF' }]}>
+                        Largest Expense
+                      </Text>
+                      <Text
+                        style={[localStyles.gridCardValue, isDark && { color: '#F9FAFB' }]}
+                        numberOfLines={1}
+                      >
                         {topExpense.title}
                       </Text>
-                      <Text style={localStyles.gridCardSub} numberOfLines={1}>
+                      <Text
+                        style={[localStyles.gridCardSub, isDark && { color: '#9CA3AF' }]}
+                        numberOfLines={1}
+                      >
                         {CURRENCY_SYMBOL}
                         {topExpense.amount.toFixed(0)}
                       </Text>
@@ -547,7 +617,7 @@ export default function PersonalAnalyticsScreen() {
                   )}
 
                   {mostFrequentCategory && (
-                    <View style={localStyles.gridHighlightCard}>
+                    <View style={[localStyles.gridHighlightCard, isDark && localStyles.cardDark]}>
                       <View style={localStyles.gridCardHeader}>
                         <View style={[localStyles.gridIconCircle, { backgroundColor: '#d1fae5' }]}>
                           <Ionicons name="repeat-outline" size={16} color="#059669" />
@@ -558,18 +628,26 @@ export default function PersonalAnalyticsScreen() {
                           </Text>
                         </View>
                       </View>
-                      <Text style={localStyles.gridCardLabel}>Top Habit</Text>
-                      <Text style={localStyles.gridCardValue} numberOfLines={1}>
+                      <Text style={[localStyles.gridCardLabel, isDark && { color: '#9CA3AF' }]}>
+                        Top Habit
+                      </Text>
+                      <Text
+                        style={[localStyles.gridCardValue, isDark && { color: '#F9FAFB' }]}
+                        numberOfLines={1}
+                      >
                         {mostFrequentCategory.name}
                       </Text>
-                      <Text style={localStyles.gridCardSub} numberOfLines={1}>
+                      <Text
+                        style={[localStyles.gridCardSub, isDark && { color: '#9CA3AF' }]}
+                        numberOfLines={1}
+                      >
                         {mostFrequentCategory.count} purchases
                       </Text>
                     </View>
                   )}
 
                   {peakSpendingDay && (
-                    <View style={localStyles.gridHighlightCard}>
+                    <View style={[localStyles.gridHighlightCard, isDark && localStyles.cardDark]}>
                       <View style={localStyles.gridCardHeader}>
                         <View style={[localStyles.gridIconCircle, { backgroundColor: '#fef3c7' }]}>
                           <Ionicons name="calendar-sharp" size={16} color="#d97706" />
@@ -580,11 +658,19 @@ export default function PersonalAnalyticsScreen() {
                           </Text>
                         </View>
                       </View>
-                      <Text style={localStyles.gridCardLabel}>Busiest Day</Text>
-                      <Text style={localStyles.gridCardValue} numberOfLines={1}>
+                      <Text style={[localStyles.gridCardLabel, isDark && { color: '#9CA3AF' }]}>
+                        Busiest Day
+                      </Text>
+                      <Text
+                        style={[localStyles.gridCardValue, isDark && { color: '#F9FAFB' }]}
+                        numberOfLines={1}
+                      >
                         {peakSpendingDay.dayName}s
                       </Text>
-                      <Text style={localStyles.gridCardSub} numberOfLines={1}>
+                      <Text
+                        style={[localStyles.gridCardSub, isDark && { color: '#9CA3AF' }]}
+                        numberOfLines={1}
+                      >
                         {CURRENCY_SYMBOL}
                         {peakSpendingDay.amount.toFixed(0)} spent
                       </Text>
@@ -592,7 +678,9 @@ export default function PersonalAnalyticsScreen() {
                   )}
 
                   {projectedMonthlySpend && (
-                    <View style={localStyles.gridHighlightCardFull}>
+                    <View
+                      style={[localStyles.gridHighlightCardFull, isDark && localStyles.cardDark]}
+                    >
                       <View style={localStyles.gridCardHeader}>
                         <View style={[localStyles.gridIconCircle, { backgroundColor: '#dbeafe' }]}>
                           <Ionicons name="trending-up-outline" size={16} color="#2563eb" />
@@ -604,8 +692,10 @@ export default function PersonalAnalyticsScreen() {
                           </Text>
                         </View>
                       </View>
-                      <Text style={localStyles.gridCardLabel}>Monthly Spend Forecast</Text>
-                      <Text style={localStyles.gridCardSub}>
+                      <Text style={[localStyles.gridCardLabel, isDark && { color: '#9CA3AF' }]}>
+                        Monthly Spend Forecast
+                      </Text>
+                      <Text style={[localStyles.gridCardSub, isDark && { color: '#9CA3AF' }]}>
                         Current Pace: {CURRENCY_SYMBOL}
                         {projectedMonthlySpend.dailyRate}/day ({projectedMonthlySpend.daysLeft} days
                         remaining)
@@ -622,20 +712,27 @@ export default function PersonalAnalyticsScreen() {
               timeframe={apiTimeframe as 'today' | 'week' | 'month' | 'year'}
               activeChartData={activeChartData}
               chartWidth={chartWidth}
-              themeColor={PURPLE_PRIMARY}
+              themeColor={isDark ? '#818CF8' : PURPLE_PRIMARY}
             />
 
             {/* Category Breakdown with Rounded Progress Bars */}
-            <View style={localStyles.categoryCard}>
+            <View style={[localStyles.categoryCard, isDark && localStyles.cardDark]}>
               <View style={localStyles.categoryCardHeader}>
                 <View>
-                  <Text style={localStyles.categoryCardTitle}>Category Breakdown</Text>
-                  <Text style={localStyles.categoryCardSub}>
+                  <Text style={[localStyles.categoryCardTitle, isDark && { color: '#F9FAFB' }]}>
+                    Category Breakdown
+                  </Text>
+                  <Text style={[localStyles.categoryCardSub, isDark && { color: '#9CA3AF' }]}>
                     Distribution across personal categories
                   </Text>
                 </View>
-                <View style={localStyles.categoryCountBadge}>
-                  <Text style={localStyles.categoryCountText}>
+                <View
+                  style={[
+                    localStyles.categoryCountBadge,
+                    isDark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+                  ]}
+                >
+                  <Text style={[localStyles.categoryCountText, isDark && { color: '#9CA3AF' }]}>
                     {activeCategorySpent.length} Categories
                   </Text>
                 </View>
@@ -643,23 +740,40 @@ export default function PersonalAnalyticsScreen() {
 
               {activeCategorySpent.length === 0 ? (
                 <View style={localStyles.emptyCategoryState}>
-                  <Ionicons name="pie-chart-outline" size={32} color={COLORS.outlineVariant} />
-                  <Text style={localStyles.emptyCategoryText}>No category breakdown available</Text>
+                  <Ionicons
+                    name="pie-chart-outline"
+                    size={32}
+                    color={isDark ? '#9CA3AF' : COLORS.outlineVariant}
+                  />
+                  <Text style={[localStyles.emptyCategoryText, isDark && { color: '#9CA3AF' }]}>
+                    No category breakdown available
+                  </Text>
                 </View>
               ) : (
                 <View>
                   {/* Category Donut Pie Chart */}
-                  <View style={localStyles.pieChartContainer}>
+                  <View
+                    style={[
+                      localStyles.pieChartContainer,
+                      isDark && { borderBottomColor: 'rgba(255, 255, 255, 0.08)' },
+                    ]}
+                  >
                     <PieChart
                       data={pieChartData}
                       donut
                       radius={68}
                       innerRadius={48}
-                      innerCircleColor={COLORS.surface}
+                      innerCircleColor={isDark ? '#101917' : COLORS.surface}
                       centerLabelComponent={() => (
                         <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-                          <Text style={localStyles.pieCenterLabel}>TOTAL</Text>
-                          <Text style={localStyles.pieCenterValue}>
+                          <Text
+                            style={[localStyles.pieCenterLabel, isDark && { color: '#9CA3AF' }]}
+                          >
+                            TOTAL
+                          </Text>
+                          <Text
+                            style={[localStyles.pieCenterValue, isDark && { color: '#F9FAFB' }]}
+                          >
                             {CURRENCY_SYMBOL}
                             {activeSpent > 9999
                               ? `${(activeSpent / 1000).toFixed(1)}k`
@@ -700,27 +814,47 @@ export default function PersonalAnalyticsScreen() {
 
                           <View style={{ flex: 1 }}>
                             <View style={localStyles.categoryMetaRow}>
-                              <Text style={localStyles.categoryNameText}>{item.category}</Text>
-                              <Text style={localStyles.categoryAmountText}>
+                              <Text
+                                style={[
+                                  localStyles.categoryNameText,
+                                  isDark && { color: '#F9FAFB' },
+                                ]}
+                              >
+                                {item.category}
+                              </Text>
+                              <Text
+                                style={[
+                                  localStyles.categoryAmountText,
+                                  isDark && { color: '#F9FAFB' },
+                                ]}
+                              >
                                 {CURRENCY_SYMBOL}
                                 {item.amount.toFixed(2)}
                               </Text>
                             </View>
 
                             {/* Sleek Progress Track */}
-                            <View style={localStyles.progressTrackBg}>
+                            <View
+                              style={[
+                                localStyles.progressTrackBg,
+                                isDark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+                              ]}
+                            >
                               <View
                                 style={[
                                   localStyles.progressTrackFill,
                                   {
                                     width: `${Math.min(100, Math.max(4, pct))}%`,
-                                    backgroundColor: visuals.color || PURPLE_PRIMARY,
+                                    backgroundColor:
+                                      visuals.color || (isDark ? '#818CF8' : PURPLE_PRIMARY),
                                   },
                                 ]}
                               />
                             </View>
 
-                            <Text style={localStyles.categoryPctText}>
+                            <Text
+                              style={[localStyles.categoryPctText, isDark && { color: '#9CA3AF' }]}
+                            >
                               {pct.toFixed(1)}% of total personal spend
                             </Text>
                           </View>
@@ -734,7 +868,9 @@ export default function PersonalAnalyticsScreen() {
 
             {/* Personal Expenses Stream */}
             <View style={{ marginTop: 12 }}>
-              <Text style={localStyles.streamSectionTitle}>Recent Personal Transactions</Text>
+              <Text style={[localStyles.streamSectionTitle, isDark && { color: '#F9FAFB' }]}>
+                Recent Personal Transactions
+              </Text>
               <AnalyticsExpensesList
                 filteredExpenses={filteredExpenses}
                 currentUserId={me?.id}
@@ -755,18 +891,24 @@ export default function PersonalAnalyticsScreen() {
         options={TIMEFRAME_OPTIONS}
         topOffset={insets.top + 70}
         rightOffset={20}
+        variant={isDark ? 'dark' : 'light'}
+        accentColor={isDark ? '#818CF8' : COLORS.secondary}
         isSelected={(opt) => {
           if (opt.value === 'today') return timeframe === 'today' && isTodayDate(refDate);
           if (opt.value === 'month') return timeframe === 'month' && isCurrentMonth(refDate);
+          if (opt.value === 'last_month') return timeframe === 'month' && isLastMonth(refDate);
           if (opt.value === 'custom_month')
-            return timeframe === 'month' && !isCurrentMonth(refDate);
+            return timeframe === 'month' && !isCurrentMonth(refDate) && !isLastMonth(refDate);
           if (opt.value === 'custom_year')
             return timeframe === 'year' && !refDate.startsWith(new Date().getFullYear().toString());
           if (opt.value === 'custom_date') return timeframe === 'today' && !isTodayDate(refDate);
           return timeframe === opt.value;
         }}
         onSelect={(opt) => {
-          if (
+          if (opt.value === 'last_month') {
+            setRefDate(getLastMonthString());
+            setTimeframe('month');
+          } else if (
             opt.value.includes('-') &&
             opt.value.split('-').length === 3 &&
             !opt.value.startsWith('month-')
@@ -811,6 +953,7 @@ export default function PersonalAnalyticsScreen() {
         onConfirmExport={() =>
           exportHook.executeExport(filteredExpenses, me?.name || me?.email || 'User', 'personal')
         }
+        variant={isDark ? 'dark' : 'light'}
       />
 
       {/* Export Progress & Success Modal */}
@@ -833,12 +976,19 @@ const localStyles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  containerDark: {
+    backgroundColor: '#08110F',
+  },
   headerContainer: {
     backgroundColor: COLORS.background,
     paddingHorizontal: 20,
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.surfaceContainerLow,
+  },
+  headerContainerDark: {
+    backgroundColor: '#08110F',
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
   headerRow: {
     flexDirection: 'row',
@@ -858,6 +1008,9 @@ const localStyles = StyleSheet.create({
     fontWeight: '800',
     color: COLORS.onSurface,
     letterSpacing: -0.5,
+  },
+  headerTitleLeftDark: {
+    color: '#F9FAFB',
   },
   aiIconBtn: {
     padding: 6,
@@ -880,6 +1033,10 @@ const localStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e9d5ff',
   },
+  purpleDateBoxDark: {
+    backgroundColor: 'rgba(165, 180, 252, 0.15)',
+    borderColor: 'rgba(165, 180, 252, 0.25)',
+  },
   purpleDateBoxText: {
     fontSize: 12.5,
     fontWeight: '800',
@@ -896,10 +1053,18 @@ const localStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.secondaryFixed,
   },
+  rightDropdownBtnDark: {
+    backgroundColor: 'rgba(165, 180, 252, 0.2)',
+    borderColor: '#818CF8',
+  },
   rightDropdownText: {
     fontSize: 12.5,
     fontWeight: '800',
     color: COLORS.secondary,
+  },
+  cardDark: {
+    backgroundColor: '#101917',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   heroGradientCard: {
     borderRadius: 28,

@@ -4,7 +4,6 @@ import { COLORS } from '../../../constants/theme';
 export const detailStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   heroCard: {
     backgroundColor: COLORS.surface,

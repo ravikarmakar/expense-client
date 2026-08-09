@@ -10,6 +10,8 @@ import { GroupWalletSkeleton } from '../components/group/GroupWalletSkeleton';
 import { EmptyState } from '../../../components/EmptyState';
 import { useRouteParams, idParamSchema } from '../../../hooks/useRouteParams';
 import { walletStyles as styles } from '../../groups/styles/group.styles';
+import { useTheme } from '../../../context/ThemeContext';
+import { AppBackground } from '../../../components/AppBackground';
 
 // Extracted Components
 import { WalletBalanceCard } from '../components/group/WalletBalanceCard';
@@ -27,6 +29,7 @@ import { TargetRulesModal } from '../components/group/TargetRulesModal';
 export default function GroupWalletScreen() {
   const insets = useSafeAreaInsets();
   const { id: groupId } = useRouteParams(idParamSchema);
+  const { isDark } = useTheme();
 
   const controller = useGroupWalletController({
     groupId,
@@ -126,27 +129,45 @@ export default function GroupWalletScreen() {
       (error as Error)?.message ||
       'Failed to load wallet';
     return (
-      <View style={styles.container}>
-        <View style={[styles.header, { paddingTop: insets.top, height: 56 + insets.top }]}>
+      <AppBackground style={[styles.container, isDark && { backgroundColor: '#070E0C' }]}>
+        <View
+          style={[
+            styles.header,
+            isDark && {
+              backgroundColor: '#0D1714',
+              borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+            },
+            { paddingTop: insets.top, height: 56 + insets.top },
+          ]}
+        >
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.onSurface} />
+            <Ionicons name="arrow-back" size={24} color={isDark ? '#F9FAFB' : COLORS.onSurface} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Group Wallet</Text>
+          <Text style={[styles.headerTitle, isDark && { color: '#F9FAFB' }]}>Group Wallet</Text>
         </View>
         <ErrorView message={errorMsg} onRetry={refetch} />
-      </View>
+      </AppBackground>
     );
   }
 
   // ── No Wallet — Setup ──
   if (!wallet) {
     return (
-      <View style={styles.container}>
-        <View style={[styles.header, { paddingTop: insets.top, height: 56 + insets.top }]}>
+      <AppBackground style={[styles.container, isDark && { backgroundColor: '#070E0C' }]}>
+        <View
+          style={[
+            styles.header,
+            isDark && {
+              backgroundColor: '#0D1714',
+              borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+            },
+            { paddingTop: insets.top, height: 56 + insets.top },
+          ]}
+        >
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.onSurface} />
+            <Ionicons name="arrow-back" size={24} color={isDark ? '#F9FAFB' : COLORS.onSurface} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Group Wallet</Text>
+          <Text style={[styles.headerTitle, isDark && { color: '#F9FAFB' }]}>Group Wallet</Text>
         </View>
         <EmptyState
           icon="wallet-outline"
@@ -154,24 +175,34 @@ export default function GroupWalletScreen() {
           description="Set up a shared fund to collect contributions and pay group expenses directly."
           ctaText={isOwner ? 'Set Up Wallet' : undefined}
           ctaIcon="add-circle-outline"
-          ctaColor={COLORS.secondary}
+          ctaColor={isDark ? '#34D399' : COLORS.secondary}
           onCtaPress={isOwner ? handleSetupWallet : undefined}
         />
-      </View>
+      </AppBackground>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <AppBackground style={[styles.container, isDark && { backgroundColor: '#070E0C' }]}>
       {/* ── Header ── */}
-      <View style={[styles.header, { paddingTop: insets.top, height: 56 + insets.top }]}>
+      <View
+        style={[
+          styles.header,
+          isDark && { backgroundColor: '#0D1714', borderBottomColor: 'rgba(255, 255, 255, 0.08)' },
+          { paddingTop: insets.top, height: 56 + insets.top },
+        ]}
+      >
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.onSurface} />
+          <Ionicons name="arrow-back" size={24} color={isDark ? '#F9FAFB' : COLORS.onSurface} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Group Wallet</Text>
+        <Text style={[styles.headerTitle, isDark && { color: '#F9FAFB' }]}>Group Wallet</Text>
         {isManager && (
           <TouchableOpacity onPress={openSettings} style={styles.settingsBtn}>
-            <Ionicons name="settings-outline" size={22} color={COLORS.onSurface} />
+            <Ionicons
+              name="settings-outline"
+              size={22}
+              color={isDark ? '#F9FAFB' : COLORS.onSurface}
+            />
           </TouchableOpacity>
         )}
       </View>
@@ -179,7 +210,13 @@ export default function GroupWalletScreen() {
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={isDark ? '#ffffff' : undefined}
+          />
+        }
       >
         {/* ── Balance Card ── */}
         <WalletBalanceCard balance={wallet.balance} managerName={wallet.manager?.name} />
@@ -269,6 +306,6 @@ export default function GroupWalletScreen() {
 
       {/* ── Target Info Modal ── */}
       <TargetRulesModal visible={infoModalVisible} onClose={() => setInfoModalVisible(false)} />
-    </View>
+    </AppBackground>
   );
 }

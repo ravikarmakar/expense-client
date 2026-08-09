@@ -5,20 +5,29 @@ import { globalStyles } from '../../../styles/globalStyles';
 import { SkeletonLoader } from '../../../components/SkeletonLoader';
 import { TopAppBar } from '../../../components/TopAppBar';
 import { detailStyles as styles } from '../styles/expense.styles';
+import { useTheme } from '../../../context/ThemeContext';
+import { AppBackground } from '../../../components/AppBackground';
 
 export function ExpenseDetailSkeleton() {
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
+  const variant = isDark ? 'dark' : 'light';
 
   return (
-    <View style={styles.container}>
-      <TopAppBar title="Expense Details" showBack />
+    <AppBackground style={styles.container}>
+      <TopAppBar title="Expense Details" showBack variant={variant} />
 
       <ScrollView
         contentContainerStyle={[globalStyles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Hero Card Skeleton */}
-        <View style={styles.heroCard}>
+        <View
+          style={[
+            styles.heroCard,
+            isDark && { backgroundColor: '#101917', borderColor: 'rgba(255, 255, 255, 0.08)' },
+          ]}
+        >
           {/* Icon Circle */}
           <SkeletonLoader width={72} height={72} borderRadius={36} style={{ marginBottom: 16 }} />
           {/* Title Line */}
@@ -37,7 +46,12 @@ export function ExpenseDetailSkeleton() {
         {/* Paid By Section Skeleton */}
         <View style={styles.section}>
           <SkeletonLoader width={80} height={18} borderRadius={6} style={{ marginBottom: 12 }} />
-          <View style={styles.paidByCard}>
+          <View
+            style={[
+              styles.paidByCard,
+              isDark && { backgroundColor: '#101917', borderColor: 'rgba(255, 255, 255, 0.08)' },
+            ]}
+          >
             {/* Avatar */}
             <SkeletonLoader width={48} height={48} borderRadius={24} style={{ marginRight: 16 }} />
             {/* Info Lines */}
@@ -51,7 +65,12 @@ export function ExpenseDetailSkeleton() {
         {/* Notes Section Skeleton */}
         <View style={styles.section}>
           <SkeletonLoader width={60} height={18} borderRadius={6} style={{ marginBottom: 12 }} />
-          <View style={styles.notesCard}>
+          <View
+            style={[
+              styles.notesCard,
+              isDark && { backgroundColor: '#101917', borderColor: 'rgba(255, 255, 255, 0.08)' },
+            ]}
+          >
             <SkeletonLoader width={20} height={20} borderRadius={10} style={{ marginRight: 12 }} />
             <View style={{ flex: 1, gap: 6 }}>
               <SkeletonLoader width="100%" height={14} borderRadius={6} />
@@ -63,7 +82,12 @@ export function ExpenseDetailSkeleton() {
         {/* Split Details Section Skeleton */}
         <View style={styles.section}>
           <SkeletonLoader width={100} height={18} borderRadius={6} style={{ marginBottom: 12 }} />
-          <View style={styles.splitsCard}>
+          <View
+            style={[
+              styles.splitsCard,
+              isDark && { backgroundColor: '#101917', borderColor: 'rgba(255, 255, 255, 0.08)' },
+            ]}
+          >
             {[1, 2].map((id, index) => (
               <View key={id}>
                 <View style={styles.splitRow}>
@@ -82,12 +106,19 @@ export function ExpenseDetailSkeleton() {
                   {/* Split Amount */}
                   <SkeletonLoader width={60} height={16} borderRadius={6} />
                 </View>
-                {index === 0 && <View style={styles.divider} />}
+                {index === 0 && (
+                  <View
+                    style={[
+                      styles.divider,
+                      isDark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+                    ]}
+                  />
+                )}
               </View>
             ))}
           </View>
         </View>
       </ScrollView>
-    </View>
+    </AppBackground>
   );
 }

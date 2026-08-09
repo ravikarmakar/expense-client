@@ -28,6 +28,7 @@ import { getCategoryVisuals } from '../../../constants/categories';
 import { BottomSheetModal } from '../../../components/BottomSheetModal';
 import { DatePickerModal } from '../../../components/DatePickerModal';
 import { MonthPickerModal } from '../../../components/MonthPickerModal';
+import { FloatingDropdownMenu } from '../../../components/FloatingDropdownMenu';
 import { hapticFeedback } from '../../../utils/haptics';
 
 const screenWidth = Dimensions.get('window').width;
@@ -53,6 +54,18 @@ export default function ActivityAnalyticsScreen() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
+  const isTodayDate = (dateStr: string) => {
+    return dateStr === getTodayString();
+  };
+
+  const isCurrentMonth = (dateStr: string) => {
+    if (!dateStr) return true;
+    const parts = dateStr.split('-').map(Number);
+    if (parts.length < 2) return true;
+    const now = new Date();
+    return parts[0] === now.getFullYear() && parts[1] === now.getMonth() + 1;
+  };
+
   type Timeframe =
     | 'today'
     | 'week'
@@ -64,6 +77,7 @@ export default function ActivityAnalyticsScreen() {
     | 'custom_date';
   const [timeframe, setTimeframe] = useState<Timeframe>('month');
   const [refDate, setRefDate] = useState<string>(getTodayString());
+  const [isTimeframeDropdownOpen, setIsTimeframeDropdownOpen] = useState(false);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
   const [isYearPickerOpen, setIsYearPickerOpen] = useState(false);
@@ -471,20 +485,6 @@ export default function ActivityAnalyticsScreen() {
 
   const chartWidth = screenWidth - 72;
 
-  const handleSelectTimeframeOption = (val: string) => {
-    hapticFeedback.selection();
-    if (val === 'custom_date') {
-      setIsDatePickerOpen(true);
-    } else if (val === 'custom_month') {
-      setIsMonthPickerOpen(true);
-    } else if (val === 'custom_year') {
-      setIsYearPickerOpen(true);
-    } else {
-      setTimeframe(val as Timeframe);
-      setRefDate(getTodayString());
-    }
-  };
-
   return (
     <View style={[styles.container, isDark && styles.containerDark]}>
       {/* ── Top Header ── */}
@@ -522,55 +522,6 @@ export default function ActivityAnalyticsScreen() {
         contentContainerStyle={[globalStyles.scrollContent, { paddingTop: 4, paddingBottom: 60 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Timeframe Pill Bar ── */}
-        <View style={styles.timeframeBarContainer}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.timeframePillRow}
-          >
-            {TIMEFRAME_OPTIONS.map((opt) => {
-              const isSelected =
-                opt.value === timeframe ||
-                (opt.value === 'custom_date' && timeframe === 'custom_date') ||
-                (opt.value === 'custom_month' && timeframe === 'custom_month') ||
-                (opt.value === 'custom_year' && timeframe === 'custom_year');
-              return (
-                <TouchableOpacity
-                  key={opt.value}
-                  style={[
-                    styles.timeframePill,
-                    isDark && styles.timeframePillDark,
-                    isSelected && styles.timeframePillActive,
-                  ]}
-                  onPress={() => handleSelectTimeframeOption(opt.value)}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons
-                    name={opt.icon as never}
-                    size={14}
-                    color={isSelected ? '#ffffff' : isDark ? '#9CA3AF' : COLORS.outline}
-                  />
-                  <Text
-                    style={[
-                      styles.timeframePillText,
-                      isDark && styles.timeframePillTextDark,
-                      isSelected && styles.timeframePillTextActive,
-                    ]}
-                  >
-                    {opt.value === timeframe &&
-                    (timeframe === 'custom_date' ||
-                      timeframe === 'custom_month' ||
-                      timeframe === 'custom_year')
-                      ? getDynamicTimeframeLabel()
-                      : opt.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-
         {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#059669" />
@@ -596,9 +547,19 @@ export default function ActivityAnalyticsScreen() {
                     FINANCIAL OVERVIEW
                   </Text>
                 </View>
-                <View style={styles.heroTimeframeBadge}>
+                <TouchableOpacity
+                  style={styles.heroTimeframeBadgeBtn}
+                  onPress={() => setIsTimeframeDropdownOpen(!isTimeframeDropdownOpen)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="calendar-outline" size={13} color="#ffffff" />
                   <Text style={styles.heroTimeframeText}>{getDynamicTimeframeLabel()}</Text>
-                </View>
+                  <Ionicons
+                    name={isTimeframeDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                    size={12}
+                    color="rgba(255, 255, 255, 0.8)"
+                  />
+                </TouchableOpacity>
               </View>
 
               <View style={styles.heroAmountRow}>
@@ -1489,6 +1450,57 @@ export default function ActivityAnalyticsScreen() {
           </View>
         </ScrollView>
       </BottomSheetModal>
+
+      {/* Floating Dropdown Overlay Menu */}
+      <FloatingDropdownMenu
+        visible={isTimeframeDropdownOpen}
+        onClose={() => setIsTimeframeDropdownOpen(false)}
+        title="Timeframe Options"
+        options={TIMEFRAME_OPTIONS}
+        topOffset={insets.top + 155}
+        rightOffset={20}
+        variant={isDark ? 'dark' : 'light'}
+        isSelected={(opt) => {
+          if (opt.value === 'today') return timeframe === 'today' && isTodayDate(refDate);
+          if (opt.value === 'month') return timeframe === 'month' && isCurrentMonth(refDate);
+          if (opt.value === 'custom_month')
+            return timeframe === 'month' && !isCurrentMonth(refDate);
+          if (opt.value === 'custom_year')
+            return timeframe === 'year' && !refDate.startsWith(new Date().getFullYear().toString());
+          if (opt.value === 'custom_date') return timeframe === 'today' && !isTodayDate(refDate);
+          return timeframe === opt.value;
+        }}
+        onSelect={(opt) => {
+          hapticFeedback.selection();
+          if (
+            opt.value.includes('-') &&
+            opt.value.split('-').length === 3 &&
+            !opt.value.startsWith('month-')
+          ) {
+            setRefDate(opt.value);
+            setTimeframe('today');
+          } else if (opt.value.startsWith('month-')) {
+            const parts = opt.value.replace('month-', '').split('-');
+            const y = parts[0];
+            const m = parts[1].padStart(2, '0');
+            setRefDate(`${y}-${m}-01`);
+            setTimeframe('month');
+          } else if (opt.value.startsWith('year-')) {
+            const yearStr = opt.value.replace('year-', '');
+            setRefDate(`${yearStr}-01-01`);
+            setTimeframe('year');
+          } else if (
+            opt.value === 'custom_month' ||
+            opt.value === 'custom_year' ||
+            opt.value === 'custom_date'
+          ) {
+            // Handled inside sub-views of FloatingDropdownMenu
+          } else {
+            setTimeframe(opt.value as Timeframe);
+            setRefDate(getTodayString());
+          }
+        }}
+      />
     </View>
   );
 }
@@ -1561,11 +1573,16 @@ const styles = StyleSheet.create({
   },
   heroTag: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   heroTagText: { fontSize: 11, fontWeight: '800', color: '#A7F3D0', letterSpacing: 0.8 },
-  heroTimeframeBadge: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  heroTimeframeBadgeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
   heroTimeframeText: { fontSize: 11, fontWeight: '700', color: '#ffffff' },
   heroAmountRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4, marginBottom: 4 },

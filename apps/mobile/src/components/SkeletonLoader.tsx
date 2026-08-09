@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, StyleProp, ViewStyle, DimensionValue } from 'react-native';
 import { COLORS } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 interface SkeletonLoaderProps {
   style?: StyleProp<ViewStyle>;
@@ -16,6 +17,7 @@ export const SkeletonLoader = ({
   borderRadius = 12,
 }: SkeletonLoaderProps) => {
   const pulseAnim = useRef(new Animated.Value(0.3)).current;
+  const { isDark } = useTheme();
 
   useEffect(() => {
     const pulse = Animated.sequence([
@@ -38,6 +40,7 @@ export const SkeletonLoader = ({
     <Animated.View
       style={[
         styles.skeleton,
+        isDark && styles.skeletonDark,
         {
           opacity: pulseAnim,
           width: width ?? '100%',
@@ -54,5 +57,9 @@ const styles = StyleSheet.create({
   skeleton: {
     backgroundColor: COLORS.outline,
     opacity: 0.15,
+  },
+  skeletonDark: {
+    backgroundColor: '#FFFFFF',
+    opacity: 0.12,
   },
 });

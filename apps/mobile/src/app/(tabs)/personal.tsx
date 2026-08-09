@@ -18,6 +18,7 @@ import { useExport } from '../../hooks/useExport';
 import { ExportModalBottomSheet } from '../../components/ExportModalBottomSheet';
 import { ExportProgressAndSuccessModal } from '../../components/ExportProgressAndSuccessModal';
 import { FloatingDropdownMenu } from '../../components/FloatingDropdownMenu';
+import { useTheme } from '../../context/ThemeContext';
 
 const PERIOD_OPTIONS = [
   { label: 'This Month', value: 'this-month', icon: 'calendar-number-outline' },
@@ -44,6 +45,9 @@ export default function PersonalTabScreen() {
     refetch,
     handleRefresh,
   } = usePersonalController();
+
+  const { isDark } = useTheme();
+  const variant = isDark ? 'dark' : 'light';
 
   const [selectedDateRange, setSelectedDateRange] = React.useState<string>('this-month');
   const [isPeriodDropdownOpen, setIsPeriodDropdownOpen] = React.useState(false);
@@ -180,28 +184,44 @@ export default function PersonalTabScreen() {
   }, [filteredFeedExpenses]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark && styles.containerDark]}>
       {/* Header section restored */}
-      <View style={[styles.headerContainer, { paddingTop: insets.top + 16 }]}>
+      <View
+        style={[
+          styles.headerContainer,
+          isDark && styles.headerContainerDark,
+          { paddingTop: insets.top + 16 },
+        ]}
+      >
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.headerTitle}>My Expenses</Text>
-            <Text style={styles.headerSubtitle}>Track & manage your personal spending</Text>
+            <Text style={[styles.headerTitle, isDark && styles.headerTitleDark]}>My Expenses</Text>
+            <Text style={[styles.headerSubtitle, isDark && styles.headerSubtitleDark]}>
+              Track & manage your personal spending
+            </Text>
           </View>
           <View style={styles.headerRightActions}>
             <TouchableOpacity
-              style={styles.headerIconBtn}
+              style={[styles.headerIconBtn, isDark && styles.headerIconBtnDark]}
               activeOpacity={0.7}
               onPress={() => router.push('/personal-analytics')}
             >
-              <Ionicons name="bar-chart-outline" size={24} color={COLORS.onSurface} />
+              <Ionicons
+                name="bar-chart-outline"
+                size={24}
+                color={isDark ? '#F9FAFB' : COLORS.onSurface}
+              />
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.headerIconBtn}
+              style={[styles.headerIconBtn, isDark && styles.headerIconBtnDark]}
               activeOpacity={0.7}
               onPress={() => exportHook.setExportModalVisible(true)}
             >
-              <Ionicons name="download-outline" size={26} color={COLORS.onSurface} />
+              <Ionicons
+                name="download-outline"
+                size={26}
+                color={isDark ? '#F9FAFB' : COLORS.onSurface}
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -210,10 +230,16 @@ export default function PersonalTabScreen() {
       <ScrollView
         contentContainerStyle={[styles.scrollContent, styles.scrollContentExtra]}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={isDark ? '#ffffff' : undefined}
+          />
+        }
       >
-        {/* Premium Card: Dynamic Selected Category & Period */}
-        <View style={styles.premiumCard}>
+        {/* Premium Card: Dynamic Selected Category & Period - Kept Purple */}
+        <View style={[styles.premiumCard, isDark && styles.premiumCardDark]}>
           <View style={styles.cardCircle1} />
           <View style={styles.cardCircle2} />
 
@@ -264,10 +290,14 @@ export default function PersonalTabScreen() {
 
         {/* Category breakdown carousel */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Category Spending</Text>
+          <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>
+            Category Spending
+          </Text>
           {selectedCategoryFilter && (
             <TouchableOpacity onPress={() => setSelectedCategoryFilter(null)}>
-              <Text style={styles.clearFilterText}>Clear Filter</Text>
+              <Text style={[styles.clearFilterText, isDark && styles.clearFilterTextDark]}>
+                Clear Filter
+              </Text>
             </TouchableOpacity>
           )}
         </View>
@@ -284,8 +314,9 @@ export default function PersonalTabScreen() {
                 key={cat.name}
                 style={[
                   styles.categoryPill,
-                  { backgroundColor: cat.iconConfig.bg },
-                  isSelected && styles.categoryPillActive,
+                  isDark ? styles.categoryPillDark : { backgroundColor: cat.iconConfig.bg },
+                  isSelected &&
+                    (isDark ? styles.categoryPillActiveDark : styles.categoryPillActive),
                 ]}
                 onPress={() => setSelectedCategoryFilter(isSelected ? null : cat.name)}
                 activeOpacity={0.8}
@@ -294,14 +325,20 @@ export default function PersonalTabScreen() {
                   <View
                     style={[
                       styles.categoryIconBg,
-                      { backgroundColor: isSelected ? '#ffffff' : 'rgba(255, 255, 255, 0.6)' },
+                      {
+                        backgroundColor: isSelected
+                          ? '#ffffff'
+                          : isDark
+                            ? 'rgba(255, 255, 255, 0.12)'
+                            : 'rgba(255, 255, 255, 0.6)',
+                      },
                     ]}
                   >
                     {cat.iconConfig.lib === 'Ionicons' ? (
                       <Ionicons
                         name={cat.iconConfig.icon as React.ComponentProps<typeof Ionicons>['name']}
                         size={14}
-                        color={cat.iconConfig.color}
+                        color={isSelected ? COLORS.secondary : cat.iconConfig.color}
                       />
                     ) : (
                       <MaterialIcons
@@ -309,14 +346,20 @@ export default function PersonalTabScreen() {
                           cat.iconConfig.icon as React.ComponentProps<typeof MaterialIcons>['name']
                         }
                         size={14}
-                        color={cat.iconConfig.color}
+                        color={isSelected ? COLORS.secondary : cat.iconConfig.color}
                       />
                     )}
                   </View>
                   <Text
                     style={[
                       styles.categoryPillLabel,
-                      { color: isSelected ? '#ffffff' : COLORS.onSurfaceVariant },
+                      {
+                        color: isSelected
+                          ? '#ffffff'
+                          : isDark
+                            ? '#E5E7EB'
+                            : COLORS.onSurfaceVariant,
+                      },
                     ]}
                   >
                     {cat.name}
@@ -325,7 +368,9 @@ export default function PersonalTabScreen() {
                 <Text
                   style={[
                     styles.categoryPillAmount,
-                    { color: isSelected ? '#ffffff' : cat.iconConfig.color },
+                    {
+                      color: isSelected ? '#ffffff' : isDark ? '#E5E7EB' : cat.iconConfig.color,
+                    },
                   ]}
                 >
                   {CURRENCY_SYMBOL}
@@ -338,14 +383,20 @@ export default function PersonalTabScreen() {
 
         {/* Recent Expenses Header & View History Action */}
         <View style={[styles.sectionHeader, styles.mtNormal]}>
-          <Text style={styles.sectionTitle}>Recent Expenses</Text>
+          <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>
+            Recent Expenses
+          </Text>
           <TouchableOpacity
             style={styles.seeAllBtn}
             onPress={() => router.push('/personal-history')}
             activeOpacity={0.7}
           >
-            <Text style={styles.seeAllText}>View History</Text>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.secondary} />
+            <Text style={[styles.seeAllText, isDark && styles.seeAllTextDark]}>View History</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={isDark ? '#A5B4FC' : COLORS.secondary}
+            />
           </TouchableOpacity>
         </View>
 
@@ -371,6 +422,7 @@ export default function PersonalTabScreen() {
                 ? `No personal expenses recorded under ${selectedCategoryFilter} for ${periodLabelText}.`
                 : `No personal expenses recorded for ${periodLabelText}. Click the FAB button to add one!`
             }
+            variant={variant}
           />
         )}
 
@@ -387,11 +439,18 @@ export default function PersonalTabScreen() {
                 return (
                   <React.Fragment key={expense.id}>
                     {showHeading && (
-                      <View style={styles.dateHeaderContainer}>
-                        <Text style={styles.dateHeaderText}>{currentHeading}</Text>
+                      <View
+                        style={[
+                          styles.dateHeaderContainer,
+                          isDark && styles.dateHeaderContainerDark,
+                        ]}
+                      >
+                        <Text style={[styles.dateHeaderText, isDark && styles.dateHeaderTextDark]}>
+                          {currentHeading}
+                        </Text>
                       </View>
                     )}
-                    <ExpenseItem expense={expense} currentUserId={user?.id} />
+                    <ExpenseItem expense={expense} currentUserId={user?.id} variant={variant} />
                   </React.Fragment>
                 );
               });
@@ -402,7 +461,7 @@ export default function PersonalTabScreen() {
         {/* Subtle Caught Up & View History Text Link */}
         {!isLoading && !isError && filteredFeedExpenses.length > 0 && (
           <View style={styles.caughtUpContainer}>
-            <Text style={styles.caughtUpText}>
+            <Text style={[styles.caughtUpText, isDark && styles.caughtUpTextDark]}>
               {filteredFeedExpenses.length > 15
                 ? `Showing 15 of ${filteredFeedExpenses.length} personal expenses`
                 : "You're all caught up!"}
@@ -417,16 +476,22 @@ export default function PersonalTabScreen() {
               activeOpacity={0.7}
               style={styles.historyLinkBtn}
             >
-              <Text style={styles.historyLinkText}>See all history</Text>
-              <Ionicons name="arrow-forward" size={15} color={COLORS.secondary} />
+              <Text style={[styles.historyLinkText, isDark && styles.historyLinkTextDark]}>
+                See all history
+              </Text>
+              <Ionicons
+                name="arrow-forward"
+                size={15}
+                color={isDark ? '#A5B4FC' : COLORS.secondary}
+              />
             </TouchableOpacity>
           </View>
         )}
       </ScrollView>
 
-      {/* Floating Action Button (FAB) */}
+      {/* Floating Action Button (FAB) - Signature Purple */}
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, isDark && styles.fabDark]}
         activeOpacity={0.85}
         onPress={() => setAddExpenseVisible(true)}
       >
@@ -439,6 +504,7 @@ export default function PersonalTabScreen() {
         initialExpenseType="PERSONAL"
         onClose={() => setAddExpenseVisible(false)}
         onSuccess={() => refetch()}
+        variant={variant}
       />
 
       {/* Export History Selection Bottom Sheet Modal */}
@@ -456,6 +522,7 @@ export default function PersonalTabScreen() {
         onConfirmExport={() =>
           exportHook.executeExport(allExpenses, user?.name || user?.email || 'User', 'personal')
         }
+        variant={variant}
       />
 
       {/* Export Progress & Success Modal */}
@@ -489,6 +556,8 @@ export default function PersonalTabScreen() {
         onSelect={(opt) => {
           setSelectedDateRange(opt.value);
         }}
+        variant={variant}
+        accentColor={isDark ? '#818CF8' : COLORS.secondary}
       />
     </View>
   );
@@ -499,6 +568,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  containerDark: {
+    backgroundColor: '#08110F',
+  },
   scrollContent: {
     paddingTop: 12,
     paddingBottom: 100,
@@ -508,6 +580,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     paddingHorizontal: 16,
     paddingBottom: 12,
+  },
+  headerContainerDark: {
+    backgroundColor: '#08110F',
   },
   headerRow: {
     flexDirection: 'row',
@@ -520,11 +595,17 @@ const styles = StyleSheet.create({
     color: COLORS.onSurface,
     letterSpacing: -0.5,
   },
+  headerTitleDark: {
+    color: '#F9FAFB',
+  },
   headerSubtitle: {
     fontSize: 11,
     color: COLORS.outline,
     fontWeight: '500',
     marginTop: 2,
+  },
+  headerSubtitleDark: {
+    color: '#9CA3AF',
   },
   headerRightActions: {
     flexDirection: 'row',
@@ -534,6 +615,9 @@ const styles = StyleSheet.create({
   headerIconBtn: {
     padding: 6,
     borderRadius: 8,
+  },
+  headerIconBtnDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
   scrollContentExtra: {
     paddingTop: 16,
@@ -550,6 +634,16 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
+    shadowRadius: 12,
+  },
+  premiumCardDark: {
+    backgroundColor: '#4338ca',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    shadowColor: '#4338ca',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
     shadowRadius: 12,
   },
   cardCircle1: {
@@ -631,6 +725,9 @@ const styles = StyleSheet.create({
     color: COLORS.onSurface,
     letterSpacing: -0.3,
   },
+  sectionTitleDark: {
+    color: '#F9FAFB',
+  },
   seeAllBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -642,10 +739,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.secondary,
   },
+  seeAllTextDark: {
+    color: '#A5B4FC',
+  },
   clearFilterText: {
     fontSize: 12,
     fontWeight: '600',
     color: COLORS.secondary,
+  },
+  clearFilterTextDark: {
+    color: '#A5B4FC',
   },
   carouselContainer: {
     paddingHorizontal: 16,
@@ -664,9 +767,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.03)',
   },
+  categoryPillDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
   categoryPillActive: {
     backgroundColor: COLORS.secondary + 'dd',
     borderColor: COLORS.secondary,
+  },
+  categoryPillActiveDark: {
+    backgroundColor: COLORS.secondary,
+    borderColor: '#818CF8',
   },
   categoryPillLeft: {
     flexDirection: 'row',
@@ -699,12 +810,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.surfaceContainer,
   },
+  dateHeaderContainerDark: {
+    backgroundColor: '#0D1714',
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+  },
   dateHeaderText: {
     fontSize: 11,
     fontWeight: '800',
     color: COLORS.outline,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
+  },
+  dateHeaderTextDark: {
+    color: '#9CA3AF',
   },
   caughtUpContainer: {
     flexDirection: 'row',
@@ -719,6 +837,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.outline,
   },
+  caughtUpTextDark: {
+    color: '#9CA3AF',
+  },
   historyLinkBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -729,6 +850,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: COLORS.secondary,
+  },
+  historyLinkTextDark: {
+    color: '#A5B4FC',
   },
   fab: {
     position: 'absolute',
@@ -746,6 +870,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     zIndex: 40,
+  },
+  fabDark: {
+    backgroundColor: COLORS.secondary,
+    shadowColor: '#818CF8',
+    shadowOpacity: 0.5,
   },
   modalSectionTitle: {
     fontSize: 11,

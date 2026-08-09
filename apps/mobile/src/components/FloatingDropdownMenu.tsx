@@ -24,6 +24,8 @@ export interface FloatingDropdownMenuProps<T extends string = string> {
   rightOffset?: number;
   width?: number;
   enablePickerSubViews?: boolean;
+  variant?: 'light' | 'dark';
+  accentColor?: string;
   children?: React.ReactNode;
 }
 
@@ -71,9 +73,12 @@ export function FloatingDropdownMenu<T extends string = string>({
   rightOffset = 20,
   width = 240,
   enablePickerSubViews = true,
+  variant = 'light',
+  accentColor,
   children,
 }: FloatingDropdownMenuProps<T>) {
   const insets = useSafeAreaInsets();
+  const isDark = variant === 'dark';
   const [currentView, setCurrentView] = useState<'main' | 'month' | 'year' | 'date'>('main');
   const [pickerYear, setPickerYear] = useState<number>(new Date().getFullYear());
 
@@ -140,6 +145,17 @@ export function FloatingDropdownMenu<T extends string = string>({
   const defaultTopOffset = insets.top + 110;
   const finalTopOffset = topOffset !== undefined ? topOffset : defaultTopOffset;
 
+  const activeAccentColor = accentColor || (isDark ? '#34D399' : COLORS.secondary);
+  const activeBgColor = isDark
+    ? accentColor
+      ? `${accentColor}25`
+      : 'rgba(52, 211, 153, 0.15)'
+    : accentColor
+      ? `${accentColor}20`
+      : COLORS.secondaryFixed + '40';
+  const inactiveIconColor = isDark ? '#9CA3AF' : COLORS.outline;
+  const primaryTextColor = isDark ? '#F9FAFB' : COLORS.onSurface;
+
   return (
     <View
       style={[
@@ -148,8 +164,18 @@ export function FloatingDropdownMenu<T extends string = string>({
       ]}
       pointerEvents="box-none"
     >
-      <TouchableOpacity style={styles.absoluteBackdrop} activeOpacity={1} onPress={onClose} />
-      <View style={[styles.floatingMenuCard, { width }]}>
+      <TouchableOpacity
+        style={[styles.absoluteBackdrop, isDark && { backgroundColor: 'rgba(0, 0, 0, 0.4)' }]}
+        activeOpacity={1}
+        onPress={onClose}
+      />
+      <View
+        style={[
+          styles.floatingMenuCard,
+          isDark && { backgroundColor: '#1A2623', borderColor: 'rgba(255, 255, 255, 0.12)' },
+          { width },
+        ]}
+      >
         {children ? (
           children
         ) : (
@@ -159,8 +185,15 @@ export function FloatingDropdownMenu<T extends string = string>({
               <>
                 {title ? (
                   <>
-                    <Text style={styles.floatingMenuTitle}>{title}</Text>
-                    <View style={styles.floatingMenuDivider} />
+                    <Text style={[styles.floatingMenuTitle, isDark && { color: '#9CA3AF' }]}>
+                      {title}
+                    </Text>
+                    <View
+                      style={[
+                        styles.floatingMenuDivider,
+                        isDark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+                      ]}
+                    />
                   </>
                 ) : null}
 
@@ -183,7 +216,13 @@ export function FloatingDropdownMenu<T extends string = string>({
                   return (
                     <TouchableOpacity
                       key={opt.value}
-                      style={[styles.floatingMenuItem, active && styles.floatingMenuItemActive]}
+                      style={[
+                        styles.floatingMenuItem,
+                        active &&
+                          (isDark
+                            ? { backgroundColor: activeBgColor }
+                            : { backgroundColor: activeBgColor }),
+                      ]}
                       onPress={() => {
                         if (subType === 'month') {
                           setCurrentView('month');
@@ -203,27 +242,32 @@ export function FloatingDropdownMenu<T extends string = string>({
                           <Ionicons
                             name={opt.icon as never}
                             size={18}
-                            color={active ? COLORS.secondary : COLORS.outline}
+                            color={active ? activeAccentColor : inactiveIconColor}
                           />
                         )}
                         <View>
                           <Text
                             style={[
                               styles.floatingMenuItemText,
-                              active && styles.floatingMenuItemTextActive,
+                              isDark && { color: primaryTextColor },
+                              active && { color: activeAccentColor, fontWeight: '800' },
                             ]}
                           >
                             {opt.label}
                           </Text>
                           {opt.description ? (
-                            <Text style={styles.floatingMenuItemSub}>{opt.description}</Text>
+                            <Text
+                              style={[styles.floatingMenuItemSub, isDark && { color: '#9CA3AF' }]}
+                            >
+                              {opt.description}
+                            </Text>
                           ) : null}
                         </View>
                       </View>
                       {active ? (
-                        <Ionicons name="checkmark-sharp" size={18} color={COLORS.secondary} />
+                        <Ionicons name="checkmark-sharp" size={18} color={activeAccentColor} />
                       ) : subType ? (
-                        <Ionicons name="chevron-forward" size={16} color={COLORS.outline} />
+                        <Ionicons name="chevron-forward" size={16} color={inactiveIconColor} />
                       ) : null}
                     </TouchableOpacity>
                   );
@@ -240,21 +284,30 @@ export function FloatingDropdownMenu<T extends string = string>({
                     onPress={() => setCurrentView('main')}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="chevron-back" size={18} color={COLORS.secondary} />
-                    <Text style={styles.backBtnText}>Back</Text>
+                    <Ionicons name="chevron-back" size={18} color={activeAccentColor} />
+                    <Text style={[styles.backBtnText, { color: activeAccentColor }]}>Back</Text>
                   </TouchableOpacity>
-                  <Text style={styles.subHeaderTitle}>Select Month</Text>
+                  <Text style={[styles.subHeaderTitle, isDark && { color: primaryTextColor }]}>
+                    Select Month
+                  </Text>
                 </View>
-                <View style={styles.floatingMenuDivider} />
+                <View
+                  style={[
+                    styles.floatingMenuDivider,
+                    isDark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+                  ]}
+                />
 
                 <View style={styles.yearNavRow}>
                   <TouchableOpacity
                     onPress={() => setPickerYear((y) => y - 1)}
                     style={styles.yearNavBtn}
                   >
-                    <Ionicons name="chevron-back" size={18} color={COLORS.onSurface} />
+                    <Ionicons name="chevron-back" size={18} color={primaryTextColor} />
                   </TouchableOpacity>
-                  <Text style={styles.yearTitleText}>{pickerYear}</Text>
+                  <Text style={[styles.yearTitleText, isDark && { color: primaryTextColor }]}>
+                    {pickerYear}
+                  </Text>
                   <TouchableOpacity
                     onPress={() => pickerYear < currentYear && setPickerYear((y) => y + 1)}
                     disabled={pickerYear >= currentYear}
@@ -263,7 +316,7 @@ export function FloatingDropdownMenu<T extends string = string>({
                     <Ionicons
                       name="chevron-forward"
                       size={18}
-                      color={pickerYear >= currentYear ? COLORS.outline : COLORS.onSurface}
+                      color={pickerYear >= currentYear ? inactiveIconColor : primaryTextColor}
                     />
                   </TouchableOpacity>
                 </View>
@@ -289,7 +342,7 @@ export function FloatingDropdownMenu<T extends string = string>({
                         style={[
                           styles.floatingMenuItem,
                           isFutureMonth && { opacity: 0.3 },
-                          itemActive && styles.floatingMenuItemActive,
+                          itemActive && { backgroundColor: activeBgColor },
                         ]}
                         onPress={() => {
                           if (!isFutureMonth) {
@@ -306,19 +359,20 @@ export function FloatingDropdownMenu<T extends string = string>({
                           <Ionicons
                             name="calendar-outline"
                             size={18}
-                            color={itemActive ? COLORS.secondary : COLORS.outline}
+                            color={itemActive ? activeAccentColor : inactiveIconColor}
                           />
                           <Text
                             style={[
                               styles.floatingMenuItemText,
-                              itemActive && styles.floatingMenuItemTextActive,
+                              isDark && { color: primaryTextColor },
+                              itemActive && { color: activeAccentColor, fontWeight: '800' },
                             ]}
                           >
                             {mName}
                           </Text>
                         </View>
                         {itemActive && (
-                          <Ionicons name="checkmark-sharp" size={18} color={COLORS.secondary} />
+                          <Ionicons name="checkmark-sharp" size={18} color={activeAccentColor} />
                         )}
                       </TouchableOpacity>
                     );
@@ -336,12 +390,19 @@ export function FloatingDropdownMenu<T extends string = string>({
                     onPress={() => setCurrentView('main')}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="chevron-back" size={18} color={COLORS.secondary} />
-                    <Text style={styles.backBtnText}>Back</Text>
+                    <Ionicons name="chevron-back" size={18} color={activeAccentColor} />
+                    <Text style={[styles.backBtnText, { color: activeAccentColor }]}>Back</Text>
                   </TouchableOpacity>
-                  <Text style={styles.subHeaderTitle}>Select Year</Text>
+                  <Text style={[styles.subHeaderTitle, isDark && { color: primaryTextColor }]}>
+                    Select Year
+                  </Text>
                 </View>
-                <View style={styles.floatingMenuDivider} />
+                <View
+                  style={[
+                    styles.floatingMenuDivider,
+                    isDark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+                  ]}
+                />
 
                 <ScrollView style={{ maxHeight: 260 }} showsVerticalScrollIndicator={true}>
                   {yearOptions.map((year) => {
@@ -352,7 +413,7 @@ export function FloatingDropdownMenu<T extends string = string>({
                         key={year}
                         style={[
                           styles.floatingMenuItem,
-                          itemActive && styles.floatingMenuItemActive,
+                          itemActive && { backgroundColor: activeBgColor },
                         ]}
                         onPress={() => {
                           onClose();
@@ -367,19 +428,20 @@ export function FloatingDropdownMenu<T extends string = string>({
                           <Ionicons
                             name="ribbon-outline"
                             size={18}
-                            color={itemActive ? COLORS.secondary : COLORS.outline}
+                            color={itemActive ? activeAccentColor : inactiveIconColor}
                           />
                           <Text
                             style={[
                               styles.floatingMenuItemText,
-                              itemActive && styles.floatingMenuItemTextActive,
+                              isDark && { color: primaryTextColor },
+                              itemActive && { color: activeAccentColor, fontWeight: '800' },
                             ]}
                           >
                             {year}
                           </Text>
                         </View>
                         {itemActive && (
-                          <Ionicons name="checkmark-sharp" size={18} color={COLORS.secondary} />
+                          <Ionicons name="checkmark-sharp" size={18} color={activeAccentColor} />
                         )}
                       </TouchableOpacity>
                     );
@@ -397,18 +459,25 @@ export function FloatingDropdownMenu<T extends string = string>({
                     onPress={() => setCurrentView('main')}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="chevron-back" size={18} color={COLORS.secondary} />
-                    <Text style={styles.backBtnText}>Back</Text>
+                    <Ionicons name="chevron-back" size={18} color={activeAccentColor} />
+                    <Text style={[styles.backBtnText, { color: activeAccentColor }]}>Back</Text>
                   </TouchableOpacity>
-                  <Text style={styles.subHeaderTitle}>Choose Date</Text>
+                  <Text style={[styles.subHeaderTitle, isDark && { color: primaryTextColor }]}>
+                    Choose Date
+                  </Text>
                 </View>
-                <View style={styles.floatingMenuDivider} />
+                <View
+                  style={[
+                    styles.floatingMenuDivider,
+                    isDark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+                  ]}
+                />
 
                 <View style={styles.yearNavRow}>
                   <TouchableOpacity onPress={handlePrevCalMonth} style={styles.yearNavBtn}>
-                    <Ionicons name="chevron-back" size={18} color={COLORS.onSurface} />
+                    <Ionicons name="chevron-back" size={18} color={primaryTextColor} />
                   </TouchableOpacity>
-                  <Text style={styles.yearTitleText}>
+                  <Text style={[styles.yearTitleText, isDark && { color: primaryTextColor }]}>
                     {MONTH_NAMES_SHORT[calMonth]} {calYear}
                   </Text>
                   <TouchableOpacity
@@ -431,16 +500,21 @@ export function FloatingDropdownMenu<T extends string = string>({
                       color={
                         calYear > currentYear ||
                         (calYear === currentYear && calMonth >= now.getMonth())
-                          ? COLORS.outline
-                          : COLORS.onSurface
+                          ? inactiveIconColor
+                          : primaryTextColor
                       }
                     />
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.calWeekdayRow}>
+                <View
+                  style={[
+                    styles.calWeekdayRow,
+                    isDark && { borderBottomColor: 'rgba(255, 255, 255, 0.08)' },
+                  ]}
+                >
                   {WEEKDAY_NAMES.map((wd) => (
-                    <Text key={wd} style={styles.calWeekdayText}>
+                    <Text key={wd} style={[styles.calWeekdayText, isDark && { color: '#9CA3AF' }]}>
                       {wd}
                     </Text>
                   ))}
@@ -471,8 +545,19 @@ export function FloatingDropdownMenu<T extends string = string>({
                         style={[
                           styles.calCell,
                           isFuture && { opacity: 0.25 },
-                          isToday && !isSelectedDate && styles.calCellToday,
-                          isSelectedDate && styles.calCellSelected,
+                          isToday &&
+                            !isSelectedDate &&
+                            (isDark
+                              ? {
+                                  borderWidth: 1.5,
+                                  borderColor: activeAccentColor,
+                                  backgroundColor: activeBgColor,
+                                }
+                              : styles.calCellToday),
+                          isSelectedDate &&
+                            (isDark
+                              ? { backgroundColor: activeAccentColor }
+                              : styles.calCellSelected),
                         ]}
                         onPress={() => {
                           if (!isFuture) {
@@ -488,8 +573,16 @@ export function FloatingDropdownMenu<T extends string = string>({
                         <Text
                           style={[
                             styles.calCellText,
-                            isToday && !isSelectedDate && styles.calCellTextToday,
-                            isSelectedDate && styles.calCellTextSelected,
+                            isDark && { color: primaryTextColor },
+                            isToday &&
+                              !isSelectedDate &&
+                              (isDark
+                                ? { color: activeAccentColor, fontWeight: '800' }
+                                : styles.calCellTextToday),
+                            isSelectedDate &&
+                              (isDark
+                                ? { color: '#ffffff', fontWeight: '800' }
+                                : styles.calCellTextSelected),
                           ]}
                         >
                           {cell.day}

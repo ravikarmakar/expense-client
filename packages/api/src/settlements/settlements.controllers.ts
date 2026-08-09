@@ -129,6 +129,25 @@ export function useSettleUpScreenController(config?: SettleUpScreenControllerCon
     return list;
   }, [debts, activeTab]);
 
+  // Calculate total owed to me and total I owe across all debts
+  const { totalOwedToMe, totalIOwe } = useMemo(() => {
+    if (!debts) return { totalOwedToMe: 0, totalIOwe: 0 };
+    let owed = 0;
+    let owe = 0;
+    for (const user of debts) {
+      for (const group of user.groups) {
+        if (group.balance > 0) {
+          owed += group.balance;
+        } else if (group.balance < 0) {
+          owe += Math.abs(group.balance);
+        }
+      }
+    }
+    return { totalOwedToMe: owed, totalIOwe: owe };
+  }, [debts]);
+
+  const netBalance = totalOwedToMe - totalIOwe;
+
   const isConfirmDisabled =
     !settleAmount ||
     parseFloat(settleAmount) <= 0 ||
@@ -138,6 +157,9 @@ export function useSettleUpScreenController(config?: SettleUpScreenControllerCon
   return {
     debts,
     flattenedDebts,
+    totalOwedToMe,
+    totalIOwe,
+    netBalance,
     isLoading,
     activeTab,
     setActiveTab,

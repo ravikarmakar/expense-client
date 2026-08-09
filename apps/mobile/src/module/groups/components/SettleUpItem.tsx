@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, CURRENCY_SYMBOL, resolveAvatar } from '../../../constants/theme';
 import { useSendReminder } from '@workspace/api';
+import { useTheme } from '../../../context/ThemeContext';
 
 export interface SettleUpItemProps {
   userId: string;
@@ -49,6 +50,7 @@ export function SettleUpItem({
   isCooldown,
   onReminderSent,
 }: SettleUpItemProps) {
+  const { isDark } = useTheme();
   const sendReminder = useSendReminder(groupId);
 
   const handleRemindPress = () => {
@@ -76,16 +78,26 @@ export function SettleUpItem({
   const displayBalance = Math.abs(balance);
 
   return (
-    <View style={styles.userCard}>
+    <View
+      style={[
+        styles.userCard,
+        isDark && {
+          backgroundColor: '#0D1A16',
+          borderColor: '#1E2F2B',
+        },
+      ]}
+    >
       <View style={styles.userHeader}>
         <View style={styles.userInfo}>
           <Image source={{ uri: resolveAvatar(image) }} style={styles.avatarImage} />
           <View style={styles.userDetails}>
-            <Text style={styles.userName}>{name}</Text>
-            <Text style={styles.userEmail}>{email}</Text>
-            <View style={styles.groupMeta}>
+            <Text style={[styles.userName, isDark && { color: '#ffffff' }]}>{name}</Text>
+            <Text style={[styles.userEmail, isDark && { color: '#9CA3AF' }]}>{email}</Text>
+            <View
+              style={[styles.groupMeta, isDark && { backgroundColor: 'rgba(255, 255, 255, 0.06)' }]}
+            >
               <Text style={styles.groupEmoji}>{groupEmoji}</Text>
-              <Text style={styles.groupName} numberOfLines={1}>
+              <Text style={[styles.groupName, isDark && { color: '#E5E7EB' }]} numberOfLines={1}>
                 {groupName}
               </Text>
             </View>
@@ -96,7 +108,16 @@ export function SettleUpItem({
           <Text
             style={[
               styles.balanceText,
-              { color: activeTab === 'owed' ? COLORS.primaryContainer : COLORS.error },
+              {
+                color:
+                  activeTab === 'owed'
+                    ? isDark
+                      ? '#34D399'
+                      : COLORS.primary
+                    : isDark
+                      ? '#F87171'
+                      : COLORS.error,
+              },
             ]}
           >
             {activeTab === 'owed' ? '+' : '-'}
@@ -109,6 +130,7 @@ export function SettleUpItem({
               style={[
                 styles.inlineButton,
                 styles.remindButton,
+                isDark && { borderColor: isCooldown ? 'rgba(255,255,255,0.15)' : '#34D399' },
                 isCooldown && styles.disabledButton,
               ]}
               onPress={handleRemindPress}
@@ -116,19 +138,39 @@ export function SettleUpItem({
               activeOpacity={0.7}
             >
               {sendReminder.isPending ? (
-                <ActivityIndicator size="small" color={COLORS.primary} style={{ marginRight: 3 }} />
+                <ActivityIndicator
+                  size="small"
+                  color={isDark ? '#34D399' : COLORS.primary}
+                  style={{ marginRight: 3 }}
+                />
               ) : (
                 <Ionicons
                   name={isCooldown ? 'notifications' : 'notifications-outline'}
                   size={12}
-                  color={isCooldown ? COLORS.outline : COLORS.primary}
+                  color={
+                    isCooldown
+                      ? isDark
+                        ? '#6B7280'
+                        : COLORS.outline
+                      : isDark
+                        ? '#34D399'
+                        : COLORS.primary
+                  }
                   style={{ marginRight: 3 }}
                 />
               )}
               <Text
                 style={[
                   styles.inlineButtonText,
-                  { color: isCooldown ? COLORS.outline : COLORS.primary },
+                  {
+                    color: isCooldown
+                      ? isDark
+                        ? '#6B7280'
+                        : COLORS.outline
+                      : isDark
+                        ? '#34D399'
+                        : COLORS.primary,
+                  },
                 ]}
               >
                 {isCooldown ? 'Reminded' : 'Remind'}
@@ -136,7 +178,11 @@ export function SettleUpItem({
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              style={[styles.inlineButton, styles.settleButton]}
+              style={[
+                styles.inlineButton,
+                styles.settleButton,
+                isDark && { backgroundColor: '#DC2626' },
+              ]}
               onPress={() =>
                 onSettlePress(groupId, userId, name, groupName, groupEmoji, balance, activeTab)
               }
@@ -200,6 +246,11 @@ const styles = StyleSheet.create({
   userBalance: {
     alignItems: 'flex-end',
     justifyContent: 'center',
+    gap: 6,
+  },
+  actionButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
   },
   balanceText: {

@@ -3,6 +3,7 @@ import { Modal, Pressable, Text, TouchableOpacity, StyleSheet } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../../../constants/theme';
 import { walletStyles as styles } from '../../../groups/styles/group.styles';
+import { useTheme } from '../../../../context/ThemeContext';
 
 interface WalletOptionsModalProps {
   visible: boolean;
@@ -19,29 +20,86 @@ export function WalletOptionsModal({
   onSetTarget,
   onShowRules,
 }: WalletOptionsModalProps) {
+  const { isDark } = useTheme();
+
   return (
     <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.modalOverlay} onPress={onClose}>
-        <Pressable style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Wallet Options</Text>
+        <Pressable
+          style={[
+            styles.modalContent,
+            isDark && {
+              backgroundColor: '#101917',
+              borderColor: '#1E2F2B',
+            },
+          ]}
+        >
+          <Text style={[styles.modalTitle, isDark && { color: '#F9FAFB' }]}>Wallet Options</Text>
 
-          <TouchableOpacity style={localStyles.menuItemRow} onPress={onTransferManager}>
-            <Ionicons name="people-outline" size={20} color={COLORS.primary} />
-            <Text style={localStyles.menuItemText}>Transfer Manager Role</Text>
+          <TouchableOpacity
+            style={[
+              localStyles.menuItemRow,
+              isDark && {
+                backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+              },
+            ]}
+            onPress={onTransferManager}
+          >
+            <Ionicons name="people-outline" size={20} color={isDark ? '#34D399' : COLORS.primary} />
+            <Text style={[localStyles.menuItemText, isDark && { color: '#F9FAFB' }]}>
+              Transfer Manager Role
+            </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={localStyles.menuItemRow} onPress={onSetTarget}>
-            <Ionicons name="flag-outline" size={20} color={COLORS.primary} />
-            <Text style={localStyles.menuItemText}>Set Target Contribution</Text>
+          <TouchableOpacity
+            style={[
+              localStyles.menuItemRow,
+              isDark && {
+                backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+              },
+            ]}
+            onPress={onSetTarget}
+          >
+            <Ionicons name="flag-outline" size={20} color={isDark ? '#34D399' : COLORS.primary} />
+            <Text style={[localStyles.menuItemText, isDark && { color: '#F9FAFB' }]}>
+              Set Target Contribution
+            </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={localStyles.menuItemRow} onPress={onShowRules}>
-            <Ionicons name="information-circle-outline" size={20} color={COLORS.primary} />
-            <Text style={localStyles.menuItemText}>Wallet Rules</Text>
+          <TouchableOpacity
+            style={[
+              localStyles.menuItemRow,
+              isDark && {
+                backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+              },
+            ]}
+            onPress={onShowRules}
+          >
+            <Ionicons
+              name="information-circle-outline"
+              size={20}
+              color={isDark ? '#34D399' : COLORS.primary}
+            />
+            <Text style={[localStyles.menuItemText, isDark && { color: '#F9FAFB' }]}>
+              Wallet Rules
+            </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.modalCancelBtn, { marginTop: 12 }]} onPress={onClose}>
-            <Text style={styles.modalCancelText}>Close</Text>
+          <TouchableOpacity
+            style={[
+              styles.modalCancelBtn,
+              { marginTop: 12 },
+              isDark && {
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                borderColor: 'rgba(255, 255, 255, 0.12)',
+              },
+            ]}
+            onPress={onClose}
+          >
+            <Text style={[styles.modalCancelText, isDark && { color: '#9CA3AF' }]}>Close</Text>
           </TouchableOpacity>
         </Pressable>
       </Pressable>

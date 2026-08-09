@@ -10,8 +10,10 @@ import { ExpenseItemSkeleton } from '../../../../components/ExpenseItemSkeleton'
 import { getDateHeading } from '../../../../utils/date';
 import { detailStyles as styles } from '../../styles/group.styles';
 import { useGroupDetail } from '../../contexts/GroupDetailContext';
+import { useTheme } from '../../../../context/ThemeContext';
 
 export function GroupRecentActivity() {
+  const { isDark } = useTheme();
   const {
     isLoading,
     isFetching,
@@ -48,7 +50,7 @@ export function GroupRecentActivity() {
             globalStyles.sectionTitle,
             {
               fontSize: 22,
-              color: COLORS.onSurface,
+              color: isDark ? '#F9FAFB' : COLORS.onSurface,
               textTransform: 'none',
               letterSpacing: 0,
               fontWeight: '800',
@@ -69,11 +71,19 @@ export function GroupRecentActivity() {
             style={{ flexDirection: 'row', alignItems: 'center' }}
             activeOpacity={0.7}
           >
-            <Text style={{ fontSize: 15, fontWeight: '700', color: COLORS.primary }}>See All</Text>
+            <Text
+              style={{
+                fontSize: 15,
+                fontWeight: '700',
+                color: isDark ? '#34D399' : COLORS.primary,
+              }}
+            >
+              See All
+            </Text>
             <Ionicons
               name="chevron-forward"
               size={16}
-              color={COLORS.primary}
+              color={isDark ? '#34D399' : COLORS.primary}
               style={{ marginLeft: 2 }}
             />
           </TouchableOpacity>
@@ -92,6 +102,7 @@ export function GroupRecentActivity() {
           icon="receipt-outline"
           title="No activity yet"
           description="Add the first expense or settle up to start!"
+          variant={isDark ? 'dark' : 'light'}
         />
       ) : (
         <View style={styles.expensesList}>
@@ -107,8 +118,16 @@ export function GroupRecentActivity() {
               return (
                 <React.Fragment key={item.data.id}>
                   {showHeading && (
-                    <View style={[styles.dateHeaderContainer, { marginHorizontal: -20 }]}>
-                      <Text style={styles.dateHeaderText}>{currentHeading}</Text>
+                    <View
+                      style={[
+                        styles.dateHeaderContainer,
+                        isDark && styles.dateHeaderContainerDark,
+                        { marginHorizontal: -20 },
+                      ]}
+                    >
+                      <Text style={[styles.dateHeaderText, isDark && styles.dateHeaderTextDark]}>
+                        {currentHeading}
+                      </Text>
                     </View>
                   )}
                   <ActivityFeedItem
@@ -121,6 +140,7 @@ export function GroupRecentActivity() {
                     }
                     isSettled={item.type === 'expense' ? item.data.isSettled : undefined}
                     fullBleed={true}
+                    variant={isDark ? 'dark' : 'light'}
                   />
                 </React.Fragment>
               );
@@ -140,15 +160,22 @@ export function GroupRecentActivity() {
                 borderRadius: 0,
                 borderWidth: 0,
                 borderBottomWidth: 1,
-                borderBottomColor: '#f1f3f4',
+                borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#f1f3f4',
+                backgroundColor: isDark ? '#101917' : COLORS.surface,
                 marginTop: 0,
                 paddingVertical: 18,
               },
             ]}
             activeOpacity={0.7}
           >
-            <Text style={styles.viewHistoryBtnText}>View Full Activity</Text>
-            <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
+            <Text style={[styles.viewHistoryBtnText, isDark && { color: '#34D399' }]}>
+              View Full Activity
+            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={isDark ? '#34D399' : COLORS.primary}
+            />
           </TouchableOpacity>
         </View>
       )}

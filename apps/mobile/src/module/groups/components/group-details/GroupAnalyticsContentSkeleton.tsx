@@ -9,11 +9,27 @@ import { SkeletonLoader } from '../../../../components/SkeletonLoader';
  * The header (TopAppBar) and timeframe tabs are rendered by the parent
  * screen so the user can still interact with them while data loads.
  */
+import { useTheme } from '../../../../context/ThemeContext';
+
+/**
+ * Skeleton for the analytics content area (hero card, trend chart,
+ * member pie, category breakdown, share progress).
+ *
+ * The header (TopAppBar) and timeframe tabs are rendered by the parent
+ * screen so the user can still interact with them while data loads.
+ */
 export function GroupAnalyticsContentSkeleton() {
+  const { isDark } = useTheme();
+
   return (
     <View style={styles.container}>
       {/* ── Hero Card ── */}
-      <View style={styles.card}>
+      <View
+        style={[
+          styles.card,
+          isDark && { backgroundColor: '#101917', borderColor: 'rgba(255, 255, 255, 0.08)' },
+        ]}
+      >
         <SkeletonLoader width={120} height={13} borderRadius={6} style={styles.mb6} />
         <SkeletonLoader width={160} height={32} borderRadius={8} style={styles.mb16} />
         <SkeletonLoader width="100%" height={1} borderRadius={0} style={styles.mb16} />
@@ -22,7 +38,12 @@ export function GroupAnalyticsContentSkeleton() {
             <SkeletonLoader width={80} height={11} borderRadius={5} style={styles.mb6} />
             <SkeletonLoader width={100} height={20} borderRadius={6} />
           </View>
-          <View style={styles.verticalDivider} />
+          <View
+            style={[
+              styles.verticalDivider,
+              isDark && { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+            ]}
+          />
           <View style={styles.flex1}>
             <SkeletonLoader width={60} height={11} borderRadius={5} style={styles.mb6} />
             <SkeletonLoader width={100} height={20} borderRadius={6} />
@@ -31,7 +52,12 @@ export function GroupAnalyticsContentSkeleton() {
       </View>
 
       {/* ── Spending Trend Card ── */}
-      <View style={styles.card}>
+      <View
+        style={[
+          styles.card,
+          isDark && { backgroundColor: '#101917', borderColor: 'rgba(255, 255, 255, 0.08)' },
+        ]}
+      >
         <SkeletonLoader width={130} height={16} borderRadius={6} style={styles.mb16} />
         <View style={styles.barsRow}>
           {[60, 90, 50, 120, 70, 100, 55, 85, 65, 110].map((h, i) => (
@@ -41,13 +67,18 @@ export function GroupAnalyticsContentSkeleton() {
       </View>
 
       {/* ── Expenses by Member Card ── */}
-      <View style={styles.card}>
+      <View
+        style={[
+          styles.card,
+          isDark && { backgroundColor: '#101917', borderColor: 'rgba(255, 255, 255, 0.08)' },
+        ]}
+      >
         <SkeletonLoader width={160} height={16} borderRadius={6} style={styles.mb20} />
         <View style={styles.pieRow}>
           {/* Donut ring */}
           <View style={styles.donutOuter}>
             <SkeletonLoader width={160} height={160} borderRadius={80} />
-            <View style={styles.donutHole} />
+            <View style={[styles.donutHole, isDark && { backgroundColor: '#101917' }]} />
           </View>
           {/* Legend */}
           <View style={styles.legendList}>
@@ -62,7 +93,12 @@ export function GroupAnalyticsContentSkeleton() {
       </View>
 
       {/* ── Spending by Category Card ── */}
-      <View style={styles.card}>
+      <View
+        style={[
+          styles.card,
+          isDark && { backgroundColor: '#101917', borderColor: 'rgba(255, 255, 255, 0.08)' },
+        ]}
+      >
         <SkeletonLoader width={180} height={16} borderRadius={6} style={styles.mb16} />
         {Array.from({ length: 4 }).map((_, i) => (
           <View key={i} style={styles.categoryRow}>
@@ -78,7 +114,13 @@ export function GroupAnalyticsContentSkeleton() {
       </View>
 
       {/* ── My Share Progress Card ── */}
-      <View style={[styles.card, styles.lastCard]}>
+      <View
+        style={[
+          styles.card,
+          styles.lastCard,
+          isDark && { backgroundColor: '#101917', borderColor: 'rgba(255, 255, 255, 0.08)' },
+        ]}
+      >
         <SkeletonLoader width={140} height={16} borderRadius={6} style={styles.mb16} />
         <SkeletonLoader width="100%" height={16} borderRadius={8} style={styles.mb12} />
         <View style={styles.row}>

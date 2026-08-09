@@ -1,12 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Dimensions } from 'react-native';
 import Svg, { Path, Line, Text as SvgText, G } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { COLORS, CURRENCY_SYMBOL } from '../constants/theme';
 import { getCategoryVisuals } from '../constants/categories';
 import { useCategories, type Income, type Settlement, type Expense } from '@workspace/api';
-import { BottomSheetModal } from './BottomSheetModal';
 import { hapticFeedback } from '../utils/haptics';
 
 const screenWidth = Dimensions.get('window').width;
@@ -35,14 +34,6 @@ const PALETTE_FALLBACKS = [
   '#F43F5E',
   '#84CC16',
 ];
-
-const PERIOD_OPTIONS = [
-  { label: 'This Month', value: 'this-month', icon: 'calendar-number-outline' },
-  { label: 'Last 7 Days', value: 'last-7-days', icon: 'time-outline' },
-  { label: 'Last 30 Days', value: 'last-30-days', icon: 'timer-outline' },
-  { label: 'Last Month', value: 'last-month', icon: 'play-back-outline' },
-  { label: 'All Time', value: 'all-time', icon: 'infinite-outline' },
-] as const;
 
 export function getDateRangeLabel(range?: string): string {
   if (!range || range === 'this-month') return 'This Month';
@@ -209,11 +200,8 @@ export const ActivityOverviewChartCard = React.memo(function ActivityOverviewCha
   settlements,
   variant = 'light',
   dateRange = 'this-month',
-  onDateRangeChange,
 }: ActivityOverviewChartCardProps) {
   const [chartTab, setChartTab] = useState<'category' | 'type'>('category');
-  const [datePickerModalVisible, setDatePickerModalVisible] = useState(false);
-  const [pickerYear, setPickerYear] = useState<number>(new Date().getFullYear());
 
   const { data: categoriesData } = useCategories();
   const customCategories = categoriesData?.custom || [];
@@ -496,207 +484,6 @@ export const ActivityOverviewChartCard = React.memo(function ActivityOverviewCha
           </Svg>
         </View>
       )}
-
-      {/* Period Filter BottomSheet Modal — matches personal tab design */}
-      <BottomSheetModal
-        visible={datePickerModalVisible}
-        onClose={() => setDatePickerModalVisible(false)}
-        title="Filter Period"
-        description="Select a timeframe or specific month to filter your spending"
-        variant={variant}
-      >
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.periodModalScroll}
-        >
-          {/* Presets Section */}
-          <Text style={[styles.modalSectionTitle, isDark && styles.modalSectionTitleDark]}>
-            Quick Presets
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.pillsContainer}
-          >
-            {PERIOD_OPTIONS.map((opt) => {
-              const isSelected = dateRange === opt.value;
-
-              return (
-                <TouchableOpacity
-                  key={opt.value}
-                  style={[
-                    styles.pillCard,
-                    isDark && styles.pillCardDark,
-                    isSelected && (isDark ? styles.pillCardActiveDark : styles.pillCardActive),
-                  ]}
-                  activeOpacity={0.75}
-                  onPress={() => {
-                    setDatePickerModalVisible(false);
-                    onDateRangeChange?.(opt.value);
-                  }}
-                >
-                  <Ionicons
-                    name={opt.icon as never}
-                    size={15}
-                    color={
-                      isSelected
-                        ? isDark
-                          ? '#101917'
-                          : COLORS.secondary
-                        : isDark
-                          ? '#9CA3AF'
-                          : COLORS.outline
-                    }
-                  />
-                  <Text
-                    style={[
-                      styles.pillText,
-                      isDark && styles.pillTextDark,
-                      isSelected && (isDark ? styles.pillTextActiveDark : styles.pillTextActive),
-                    ]}
-                  >
-                    {opt.label}
-                  </Text>
-                  {opt.value === 'all-time' && (
-                    <Ionicons
-                      name="open-outline"
-                      size={13}
-                      color={
-                        isSelected
-                          ? isDark
-                            ? '#101917'
-                            : COLORS.secondary
-                          : isDark
-                            ? '#9CA3AF'
-                            : COLORS.outline
-                      }
-                      style={{ marginLeft: 1 }}
-                    />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-
-          {/* Specific Month Selector */}
-          <Text
-            style={[
-              styles.modalSectionTitle,
-              isDark && styles.modalSectionTitleDark,
-              { marginTop: 14 },
-            ]}
-          >
-            Specific Month
-          </Text>
-
-          {/* Year Switcher Header */}
-          <View style={[styles.yearSelectorRow, isDark && styles.yearSelectorRowDark]}>
-            <TouchableOpacity onPress={() => setPickerYear((y) => y - 1)} style={styles.yearNavBtn}>
-              <Ionicons
-                name="chevron-back"
-                size={20}
-                color={isDark ? '#E5E7EB' : COLORS.onSurface}
-              />
-            </TouchableOpacity>
-            <Text style={[styles.yearText, isDark && styles.yearTextDark]}>{pickerYear}</Text>
-            <TouchableOpacity
-              onPress={() => pickerYear < new Date().getFullYear() && setPickerYear((y) => y + 1)}
-              disabled={pickerYear >= new Date().getFullYear()}
-              style={[
-                styles.yearNavBtn,
-                pickerYear >= new Date().getFullYear() && { opacity: 0.3 },
-              ]}
-            >
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={
-                  pickerYear >= new Date().getFullYear()
-                    ? isDark
-                      ? '#4B5563'
-                      : COLORS.outline
-                    : isDark
-                      ? '#E5E7EB'
-                      : COLORS.onSurface
-                }
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* 12 Month Grid */}
-          <View style={styles.monthGrid}>
-            {[
-              'Jan',
-              'Feb',
-              'Mar',
-              'Apr',
-              'May',
-              'Jun',
-              'Jul',
-              'Aug',
-              'Sep',
-              'Oct',
-              'Nov',
-              'Dec',
-            ].map((mName, idx) => {
-              const mNum = idx + 1;
-              const monthVal = `month-${pickerYear}-${mNum}`;
-              const now = new Date();
-              const isCurrentMonthNow = pickerYear === now.getFullYear() && idx === now.getMonth();
-              const isFutureMonth =
-                pickerYear > now.getFullYear() ||
-                (pickerYear === now.getFullYear() && idx > now.getMonth());
-              const isSelected =
-                !isFutureMonth &&
-                (dateRange === monthVal || (isCurrentMonthNow && dateRange === 'this-month'));
-
-              return (
-                <TouchableOpacity
-                  key={mName}
-                  disabled={isFutureMonth}
-                  style={[
-                    styles.monthGridCell,
-                    isDark && styles.monthGridCellDark,
-                    isFutureMonth && {
-                      opacity: 0.35,
-                      backgroundColor: isDark ? '#0D1513' : COLORS.surfaceContainerLow,
-                    },
-                    isSelected &&
-                      (isDark ? styles.monthCellSelectedDark : styles.monthCellSelected),
-                  ]}
-                  onPress={() => {
-                    if (!isFutureMonth) {
-                      onDateRangeChange?.(isCurrentMonthNow ? 'this-month' : monthVal);
-                      setDatePickerModalVisible(false);
-                    }
-                  }}
-                  activeOpacity={0.75}
-                >
-                  <Text
-                    style={[
-                      styles.monthCellText,
-                      isDark && styles.monthCellTextDark,
-                      isFutureMonth && { color: isDark ? '#4B5563' : COLORS.outline },
-                      isSelected &&
-                        (isDark ? styles.monthCellTextSelectedDark : styles.monthCellTextSelected),
-                    ]}
-                  >
-                    {mName}
-                  </Text>
-                  {isCurrentMonthNow && (
-                    <View
-                      style={[
-                        styles.currentMonthDot,
-                        isSelected && { backgroundColor: isDark ? '#101917' : '#ffffff' },
-                      ]}
-                    />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </ScrollView>
-      </BottomSheetModal>
     </View>
   );
 });
@@ -841,147 +628,5 @@ const styles = StyleSheet.create({
   },
   emptyChartSubDark: {
     color: '#9CA3AF',
-  },
-  // --- Period Filter BottomSheet styles (matching personal tab) ---
-  periodModalScroll: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 16,
-  },
-  modalSectionTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.outline,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 6,
-    marginTop: 2,
-  },
-  modalSectionTitleDark: {
-    color: '#9CA3AF',
-  },
-  pillsContainer: {
-    gap: 10,
-    paddingRight: 10,
-    paddingBottom: 4,
-  },
-  pillCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: COLORS.surfaceContainerLow,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceContainer,
-  },
-  pillCardDark: {
-    backgroundColor: '#131D1A',
-    borderColor: '#1E292B',
-  },
-  pillCardActive: {
-    backgroundColor: COLORS.secondaryFixed + '50',
-    borderColor: COLORS.secondary,
-  },
-  pillCardActiveDark: {
-    backgroundColor: '#34D399',
-    borderColor: '#34D399',
-  },
-  pillText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.onSurfaceVariant,
-  },
-  pillTextDark: {
-    color: '#9CA3AF',
-  },
-  pillTextActive: {
-    fontWeight: '800',
-    color: COLORS.secondary,
-  },
-  pillTextActiveDark: {
-    fontWeight: '800',
-    color: '#101917',
-  },
-  yearSelectorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: COLORS.surfaceContainerLow,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginTop: 4,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceContainer,
-  },
-  yearSelectorRowDark: {
-    backgroundColor: '#131D1A',
-    borderColor: '#1E292B',
-  },
-  yearNavBtn: {
-    padding: 3,
-  },
-  yearText: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: COLORS.onSurface,
-  },
-  yearTextDark: {
-    color: '#F3F4F6',
-  },
-  monthGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  monthGridCell: {
-    width: '31.5%',
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: COLORS.surfaceContainerLow,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.surfaceContainer,
-    position: 'relative',
-  },
-  monthGridCellDark: {
-    backgroundColor: '#131D1A',
-    borderColor: '#1E292B',
-  },
-  monthCellSelected: {
-    backgroundColor: COLORS.secondary,
-    borderColor: COLORS.secondary,
-  },
-  monthCellSelectedDark: {
-    backgroundColor: '#34D399',
-    borderColor: '#34D399',
-  },
-  monthCellText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.onSurface,
-  },
-  monthCellTextDark: {
-    color: '#D1D5DB',
-  },
-  monthCellTextSelected: {
-    color: '#ffffff',
-    fontWeight: '800',
-  },
-  monthCellTextSelectedDark: {
-    color: '#101917',
-    fontWeight: '800',
-  },
-  currentMonthDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.secondary,
-    position: 'absolute',
-    bottom: 3,
   },
 });

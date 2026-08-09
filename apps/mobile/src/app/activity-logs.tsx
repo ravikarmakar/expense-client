@@ -438,7 +438,13 @@ export default function ActivityLogsScreen() {
   return (
     <View style={[styles.container, isDark && styles.containerDark]}>
       {/* Header Bar */}
-      <View style={[styles.headerContainer, { paddingTop: insets.top + 12 }]}>
+      <View
+        style={[
+          styles.headerContainer,
+          isDark && styles.headerContainerDark,
+          { paddingTop: insets.top + 12 },
+        ]}
+      >
         <View style={styles.tabHeaderRow}>
           <View style={styles.headerLeftRow}>
             <TouchableOpacity
@@ -456,7 +462,7 @@ export default function ActivityLogsScreen() {
           <View style={styles.headerRightActions}>
             {/* Analytics Icon Button */}
             <TouchableOpacity
-              style={styles.iconBtn}
+              style={[styles.iconBtn, isDark && styles.iconBtnDark]}
               activeOpacity={0.7}
               onPress={() => {
                 hapticFeedback.selection();
@@ -472,7 +478,11 @@ export default function ActivityLogsScreen() {
 
             {/* Filter Icon Button */}
             <TouchableOpacity
-              style={[styles.iconBtn, isFiltered && styles.filterBtnActive]}
+              style={[
+                styles.iconBtn,
+                isDark && styles.iconBtnDark,
+                isFiltered && (isDark ? styles.filterBtnActiveDark : styles.filterBtnActive),
+              ]}
               onPress={() => {
                 hapticFeedback.selection();
                 setFilterModalVisible(true);
@@ -482,13 +492,21 @@ export default function ActivityLogsScreen() {
               <Ionicons
                 name="options-outline"
                 size={24}
-                color={isFiltered ? COLORS.primary : isDark ? '#F3F4F6' : COLORS.onSurface}
+                color={
+                  isFiltered
+                    ? isDark
+                      ? '#34D399'
+                      : COLORS.primary
+                    : isDark
+                      ? '#F3F4F6'
+                      : COLORS.onSurface
+                }
               />
             </TouchableOpacity>
 
             {/* Download / Export Icon Button */}
             <TouchableOpacity
-              style={styles.iconBtn}
+              style={[styles.iconBtn, isDark && styles.iconBtnDark]}
               activeOpacity={0.7}
               onPress={() => {
                 hapticFeedback.selection();
@@ -541,36 +559,60 @@ export default function ActivityLogsScreen() {
             contentContainerStyle={styles.activeFiltersRow}
           >
             {dateRange !== 'all-time' && (
-              <View style={styles.activeFilterBadge}>
-                <Text style={styles.activeFilterBadgeText}>
+              <View style={[styles.activeFilterBadge, isDark && styles.activeFilterBadgeDark]}>
+                <Text
+                  style={[styles.activeFilterBadgeText, isDark && styles.activeFilterBadgeTextDark]}
+                >
                   {dateRange.startsWith('year-')
                     ? `Year ${dateRange.replace('year-', '')}`
                     : getDateRangeLabel(dateRange)}
                 </Text>
                 <TouchableOpacity onPress={() => setDateRange('all-time')}>
-                  <Ionicons name="close-circle" size={14} color={COLORS.primary} />
+                  <Ionicons
+                    name="close-circle"
+                    size={14}
+                    color={isDark ? '#34D399' : COLORS.primary}
+                  />
                 </TouchableOpacity>
               </View>
             )}
             {activeFilter !== 'All' && (
-              <View style={styles.activeFilterBadge}>
-                <Text style={styles.activeFilterBadgeText}>{activeFilter}</Text>
+              <View style={[styles.activeFilterBadge, isDark && styles.activeFilterBadgeDark]}>
+                <Text
+                  style={[styles.activeFilterBadgeText, isDark && styles.activeFilterBadgeTextDark]}
+                >
+                  {activeFilter}
+                </Text>
                 <TouchableOpacity onPress={() => setActiveFilter('All')}>
-                  <Ionicons name="close-circle" size={14} color={COLORS.primary} />
+                  <Ionicons
+                    name="close-circle"
+                    size={14}
+                    color={isDark ? '#34D399' : COLORS.primary}
+                  />
                 </TouchableOpacity>
               </View>
             )}
             {useWalletOnly && (
-              <View style={styles.activeFilterBadge}>
-                <Text style={styles.activeFilterBadgeText}>Wallet</Text>
+              <View style={[styles.activeFilterBadge, isDark && styles.activeFilterBadgeDark]}>
+                <Text
+                  style={[styles.activeFilterBadgeText, isDark && styles.activeFilterBadgeTextDark]}
+                >
+                  Wallet
+                </Text>
                 <TouchableOpacity onPress={() => setUseWalletOnly(false)}>
-                  <Ionicons name="close-circle" size={14} color={COLORS.primary} />
+                  <Ionicons
+                    name="close-circle"
+                    size={14}
+                    color={isDark ? '#34D399' : COLORS.primary}
+                  />
                 </TouchableOpacity>
               </View>
             )}
             {sortBy !== 'date-desc' && (
-              <View style={styles.activeFilterBadge}>
-                <Text style={styles.activeFilterBadgeText}>
+              <View style={[styles.activeFilterBadge, isDark && styles.activeFilterBadgeDark]}>
+                <Text
+                  style={[styles.activeFilterBadgeText, isDark && styles.activeFilterBadgeTextDark]}
+                >
                   {sortBy === 'date-asc'
                     ? 'Oldest'
                     : sortBy === 'amount-asc'
@@ -578,7 +620,11 @@ export default function ActivityLogsScreen() {
                       : 'Amount: High-Low'}
                 </Text>
                 <TouchableOpacity onPress={() => setSortBy('date-desc')}>
-                  <Ionicons name="close-circle" size={14} color={COLORS.primary} />
+                  <Ionicons
+                    name="close-circle"
+                    size={14}
+                    color={isDark ? '#34D399' : COLORS.primary}
+                  />
                 </TouchableOpacity>
               </View>
             )}
@@ -641,8 +687,15 @@ export default function ActivityLogsScreen() {
                 return (
                   <React.Fragment key={`${entry.kind}-${entry.id}`}>
                     {showHeading && (
-                      <View style={styles.dateHeaderContainer}>
-                        <Text style={styles.dateHeaderText}>{currentHeading}</Text>
+                      <View
+                        style={[
+                          styles.dateHeaderContainer,
+                          isDark && styles.dateHeaderContainerDark,
+                        ]}
+                      >
+                        <Text style={[styles.dateHeaderText, isDark && styles.dateHeaderTextDark]}>
+                          {currentHeading}
+                        </Text>
                       </View>
                     )}
                     <ActivityFeedItem
@@ -1051,6 +1104,7 @@ export default function ActivityLogsScreen() {
         setCustomEndDate={exportHook.setCustomEndDate}
         format={exportHook.format}
         setFormat={exportHook.setFormat}
+        variant={variant}
         onConfirmExport={() =>
           exportHook.executeExport(exportItems, user?.name || user?.email || 'User', 'activity')
         }
@@ -1156,6 +1210,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f1f1f1',
   },
+  headerContainerDark: {
+    backgroundColor: '#0D1714',
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+  },
   tabHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1187,8 +1245,14 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 12,
   },
+  iconBtnDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
   filterBtnActive: {
     backgroundColor: '#e2dfff',
+  },
+  filterBtnActiveDark: {
+    backgroundColor: 'rgba(52, 211, 153, 0.25)',
   },
   alwaysSearchContainer: {
     flexDirection: 'row',
@@ -1230,10 +1294,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#c5c1ff',
   },
+  activeFilterBadgeDark: {
+    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+    borderColor: 'rgba(52, 211, 153, 0.3)',
+  },
   activeFilterBadgeText: {
     fontSize: 11.5,
     fontWeight: '700',
     color: COLORS.primary,
+  },
+  activeFilterBadgeTextDark: {
+    color: '#34D399',
   },
   scrollContent: {
     paddingTop: 0,
@@ -1261,12 +1332,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.surfaceContainer,
   },
+  dateHeaderContainerDark: {
+    backgroundColor: '#131D1A',
+    borderBottomColor: '#1E292B',
+  },
   dateHeaderText: {
     fontSize: 11,
     fontWeight: '800',
     color: COLORS.outline,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
+  },
+  dateHeaderTextDark: {
+    color: '#34D399',
   },
   modalOverlay: {
     flex: 1,

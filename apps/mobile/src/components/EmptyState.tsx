@@ -13,6 +13,7 @@ interface EmptyStateProps {
   onCtaPress?: () => void;
   ctaIcon?: React.ComponentProps<typeof Ionicons>['name'];
   ctaColor?: string;
+  variant?: 'light' | 'dark';
 }
 
 export const EmptyState = React.memo(function EmptyState({
@@ -25,7 +26,10 @@ export const EmptyState = React.memo(function EmptyState({
   onCtaPress,
   ctaIcon,
   ctaColor,
+  variant = 'light',
 }: EmptyStateProps) {
+  const isDark = variant === 'dark';
+
   return (
     <View style={styles.emptyState}>
       {emoji ? (
@@ -36,19 +40,19 @@ export const EmptyState = React.memo(function EmptyState({
             <Ionicons
               name={icon as React.ComponentProps<typeof Ionicons>['name']}
               size={48}
-              color={COLORS.outlineVariant}
+              color={isDark ? 'rgba(255, 255, 255, 0.3)' : COLORS.outlineVariant}
             />
           ) : (
             <MaterialIcons
               name={icon as React.ComponentProps<typeof MaterialIcons>['name']}
               size={48}
-              color={COLORS.outlineVariant}
+              color={isDark ? 'rgba(255, 255, 255, 0.3)' : COLORS.outlineVariant}
             />
           )}
         </View>
       ) : null}
-      <Text style={styles.emptyTitle}>{title}</Text>
-      <Text style={styles.emptySubtitle}>{description}</Text>
+      <Text style={[styles.emptyTitle, isDark && { color: '#F9FAFB' }]}>{title}</Text>
+      <Text style={[styles.emptySubtitle, isDark && { color: '#9CA3AF' }]}>{description}</Text>
       {ctaText && onCtaPress && (
         <TouchableOpacity
           style={[

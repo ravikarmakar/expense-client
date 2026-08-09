@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'reac
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, CURRENCY_SYMBOL } from '../../../../constants/theme';
 import { walletStyles as styles } from '../../../groups/styles/group.styles';
+import { useTheme } from '../../../../context/ThemeContext';
 
 interface YourContributionCardProps {
   myPaid: number;
@@ -29,20 +30,32 @@ export function YourContributionCard({
   isPending,
   contributeError,
 }: YourContributionCardProps) {
+  const { isDark } = useTheme();
+
   return (
-    <View style={styles.yourContribCard}>
+    <View
+      style={[
+        styles.yourContribCard,
+        isDark && {
+          backgroundColor: '#101917',
+          borderColor: 'rgba(255, 255, 255, 0.08)',
+        },
+      ]}
+    >
       <View style={styles.yourContribInfo}>
-        <Text style={styles.yourContribLabel}>Your Contribution</Text>
-        <Text style={styles.yourContribAmount}>
+        <Text style={[styles.yourContribLabel, isDark && { color: '#9CA3AF' }]}>
+          Your Contribution
+        </Text>
+        <Text style={[styles.yourContribAmount, isDark && { color: '#F9FAFB' }]}>
           {CURRENCY_SYMBOL}
           {myPaid.toFixed(2)}{' '}
-          <Text style={styles.yourContribTarget}>
+          <Text style={[styles.yourContribTarget, isDark && { color: '#6B7280' }]}>
             / {CURRENCY_SYMBOL}
             {shareTarget.toFixed(2)}
           </Text>
         </Text>
         {myPending > 0 && (
-          <Text style={styles.yourContribPending}>
+          <Text style={[styles.yourContribPending, isDark && { color: '#F87171' }]}>
             Remaining: {CURRENCY_SYMBOL}
             {myPending.toFixed(2)}
           </Text>

@@ -3,9 +3,15 @@ import { StyleSheet, View } from 'react-native';
 import { COLORS } from '../../../constants/theme';
 import { SkeletonLoader } from '../../../components/SkeletonLoader';
 
-export function GroupCardSkeleton() {
+interface GroupCardSkeletonProps {
+  variant?: 'light' | 'dark';
+}
+
+export function GroupCardSkeleton({ variant = 'light' }: GroupCardSkeletonProps) {
+  const isDark = variant === 'dark';
+
   return (
-    <View style={styles.groupCard}>
+    <View style={[styles.groupCard, isDark && styles.groupCardDark]}>
       {/* Left circle avatar skeleton */}
       <SkeletonLoader width={48} height={48} borderRadius={24} />
 
@@ -42,6 +48,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
+  },
+  groupCardDark: {
+    backgroundColor: '#131D1A',
+    borderColor: '#1E292B',
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 12,
   },
   centerContainer: {
     flex: 1,

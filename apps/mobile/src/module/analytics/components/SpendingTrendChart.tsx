@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { LineChart, BarChart } from 'react-native-gifted-charts';
 import { COLORS, CURRENCY_SYMBOL } from '../../../constants/theme';
+import { useTheme } from '../../../context/ThemeContext';
 
 interface SpendingTrendChartProps {
   activeSpent: number;
@@ -19,7 +20,8 @@ export const SpendingTrendChart: React.FC<SpendingTrendChartProps> = ({
   chartWidth,
   themeColor,
 }) => {
-  const primaryColor = themeColor || COLORS.secondary;
+  const { isDark } = useTheme();
+  const primaryColor = themeColor || (isDark ? '#818CF8' : COLORS.secondary);
   const [chartType, setChartType] = useState<'area' | 'bar'>('area');
 
   const pointerConfig = useMemo(
@@ -44,9 +46,13 @@ export const SpendingTrendChart: React.FC<SpendingTrendChartProps> = ({
         const item = items[0];
         const displayLabel = item.dateLabel || item.label;
         return (
-          <View style={styles.chartTooltipCard}>
-            {displayLabel && <Text style={styles.chartTooltipLabel}>{displayLabel}</Text>}
-            <Text style={styles.chartTooltipValue}>
+          <View style={[styles.chartTooltipCard, isDark && styles.chartTooltipCardDark]}>
+            {displayLabel && (
+              <Text style={[styles.chartTooltipLabel, isDark && { color: '#A5B4FC' }]}>
+                {displayLabel}
+              </Text>
+            )}
+            <Text style={[styles.chartTooltipValue, isDark && { color: '#F9FAFB' }]}>
               {CURRENCY_SYMBOL}
               {item.value.toLocaleString('en-IN', {
                 minimumFractionDigits: 2,
@@ -57,7 +63,7 @@ export const SpendingTrendChart: React.FC<SpendingTrendChartProps> = ({
         );
       },
     }),
-    [primaryColor]
+    [primaryColor, isDark]
   );
 
   const avgValue = useMemo(() => {
@@ -76,9 +82,11 @@ export const SpendingTrendChart: React.FC<SpendingTrendChartProps> = ({
       {/* Chart Header Row with View Switcher */}
       <View style={styles.headerRow}>
         <View>
-          <Text style={styles.sectionTitleText}>Spending Trend</Text>
+          <Text style={[styles.sectionTitleText, isDark && { color: '#F9FAFB' }]}>
+            Spending Trend
+          </Text>
           {activeSpent > 0 && (
-            <Text style={styles.sectionSubtitleText}>
+            <Text style={[styles.sectionSubtitleText, isDark && { color: '#9CA3AF' }]}>
               Avg: {CURRENCY_SYMBOL}
               {avgValue.toFixed(0)} / period point
             </Text>
@@ -86,33 +94,69 @@ export const SpendingTrendChart: React.FC<SpendingTrendChartProps> = ({
         </View>
 
         {activeSpent > 0 && (
-          <View style={styles.toggleContainer}>
+          <View style={[styles.toggleContainer, isDark && styles.toggleContainerDark]}>
             <TouchableOpacity
-              style={[styles.toggleBtn, chartType === 'area' && styles.toggleBtnActive]}
+              style={[
+                styles.toggleBtn,
+                chartType === 'area' &&
+                  (isDark ? styles.toggleBtnActiveDark : styles.toggleBtnActive),
+              ]}
               onPress={() => setChartType('area')}
               activeOpacity={0.75}
             >
               <Ionicons
                 name="stats-chart"
                 size={14}
-                color={chartType === 'area' ? COLORS.secondary : COLORS.outline}
+                color={
+                  chartType === 'area'
+                    ? isDark
+                      ? '#A5B4FC'
+                      : COLORS.secondary
+                    : isDark
+                      ? '#9CA3AF'
+                      : COLORS.outline
+                }
               />
-              <Text style={[styles.toggleText, chartType === 'area' && styles.toggleTextActive]}>
+              <Text
+                style={[
+                  styles.toggleText,
+                  isDark && { color: '#9CA3AF' },
+                  chartType === 'area' && (isDark ? { color: '#A5B4FC' } : styles.toggleTextActive),
+                ]}
+              >
                 Line
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.toggleBtn, chartType === 'bar' && styles.toggleBtnActive]}
+              style={[
+                styles.toggleBtn,
+                chartType === 'bar' &&
+                  (isDark ? styles.toggleBtnActiveDark : styles.toggleBtnActive),
+              ]}
               onPress={() => setChartType('bar')}
               activeOpacity={0.75}
             >
               <Ionicons
                 name="bar-chart"
                 size={14}
-                color={chartType === 'bar' ? COLORS.secondary : COLORS.outline}
+                color={
+                  chartType === 'bar'
+                    ? isDark
+                      ? '#A5B4FC'
+                      : COLORS.secondary
+                    : isDark
+                      ? '#9CA3AF'
+                      : COLORS.outline
+                }
               />
-              <Text style={[styles.toggleText, chartType === 'bar' && styles.toggleTextActive]}>
+              <Text
+                style={[
+                  styles.toggleText,
+                  isDark && { color: '#9CA3AF' },
+                  chartType === 'bar' && (isDark ? { color: '#A5B4FC' } : styles.toggleTextActive),
+                ]}
+              >
                 Bars
               </Text>
             </TouchableOpacity>
@@ -120,11 +164,17 @@ export const SpendingTrendChart: React.FC<SpendingTrendChartProps> = ({
         )}
       </View>
 
-      <View style={styles.chartCard}>
+      <View style={[styles.chartCard, isDark && styles.chartCardDark]}>
         {activeSpent === 0 ? (
           <View style={styles.emptyChartContainer}>
-            <Ionicons name="analytics-outline" size={36} color={COLORS.outlineVariant} />
-            <Text style={styles.emptyChartText}>No spending record in this period</Text>
+            <Ionicons
+              name="analytics-outline"
+              size={36}
+              color={isDark ? '#9CA3AF' : COLORS.outlineVariant}
+            />
+            <Text style={[styles.emptyChartText, isDark && { color: '#9CA3AF' }]}>
+              No spending record in this period
+            </Text>
           </View>
         ) : chartType === 'bar' ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -143,11 +193,11 @@ export const SpendingTrendChart: React.FC<SpendingTrendChartProps> = ({
                 noOfSections={4}
                 yAxisThickness={0}
                 xAxisThickness={1}
-                xAxisColor={COLORS.surfaceContainerLow}
-                rulesColor={COLORS.surfaceContainerLow}
+                xAxisColor={isDark ? 'rgba(255,255,255,0.08)' : COLORS.surfaceContainerLow}
+                rulesColor={isDark ? 'rgba(255,255,255,0.08)' : COLORS.surfaceContainerLow}
                 rulesType="dashed"
-                yAxisTextStyle={styles.axisLabelText}
-                xAxisLabelTextStyle={styles.axisLabelText}
+                yAxisTextStyle={[styles.axisLabelText, isDark && { color: '#9CA3AF' }]}
+                xAxisLabelTextStyle={[styles.axisLabelText, isDark && { color: '#9CA3AF' }]}
                 maxValue={maxVal * 1.15}
               />
             </View>
@@ -169,13 +219,13 @@ export const SpendingTrendChart: React.FC<SpendingTrendChartProps> = ({
                 noOfSections={4}
                 yAxisThickness={0}
                 xAxisThickness={1}
-                xAxisColor={COLORS.surfaceContainerLow}
-                rulesColor={COLORS.surfaceContainerLow}
+                xAxisColor={isDark ? 'rgba(255,255,255,0.08)' : COLORS.surfaceContainerLow}
+                rulesColor={isDark ? 'rgba(255,255,255,0.08)' : COLORS.surfaceContainerLow}
                 rulesType="dashed"
                 showReferenceLine1={avgValue > 0}
                 referenceLine1Position={avgValue}
                 referenceLine1Config={{
-                  color: COLORS.secondary + '80',
+                  color: isDark ? '#818CF880' : COLORS.secondary + '80',
                   dashWidth: 4,
                   dashGap: 4,
                   thickness: 1.5,
@@ -184,8 +234,8 @@ export const SpendingTrendChart: React.FC<SpendingTrendChartProps> = ({
                 initialSpacing={14}
                 dataPointsColor={primaryColor}
                 dataPointsRadius={4}
-                xAxisLabelTextStyle={styles.axisLabelText}
-                yAxisTextStyle={styles.axisLabelText}
+                xAxisLabelTextStyle={[styles.axisLabelText, isDark && { color: '#9CA3AF' }]}
+                yAxisTextStyle={[styles.axisLabelText, isDark && { color: '#9CA3AF' }]}
                 maxValue={maxVal * 1.15}
                 pointerConfig={pointerConfig}
               />
@@ -208,13 +258,13 @@ export const SpendingTrendChart: React.FC<SpendingTrendChartProps> = ({
               noOfSections={4}
               yAxisThickness={0}
               xAxisThickness={1}
-              xAxisColor={COLORS.surfaceContainerLow}
-              rulesColor={COLORS.surfaceContainerLow}
+              xAxisColor={isDark ? 'rgba(255,255,255,0.08)' : COLORS.surfaceContainerLow}
+              rulesColor={isDark ? 'rgba(255,255,255,0.08)' : COLORS.surfaceContainerLow}
               rulesType="dashed"
               showReferenceLine1={avgValue > 0}
               referenceLine1Position={avgValue}
               referenceLine1Config={{
-                color: COLORS.secondary + '80',
+                color: isDark ? '#818CF880' : COLORS.secondary + '80',
                 dashWidth: 4,
                 dashGap: 4,
                 thickness: 1.5,
@@ -229,8 +279,8 @@ export const SpendingTrendChart: React.FC<SpendingTrendChartProps> = ({
               initialSpacing={10}
               dataPointsColor={primaryColor}
               dataPointsRadius={4}
-              xAxisLabelTextStyle={styles.axisLabelText}
-              yAxisTextStyle={styles.axisLabelText}
+              xAxisLabelTextStyle={[styles.axisLabelText, isDark && { color: '#9CA3AF' }]}
+              yAxisTextStyle={[styles.axisLabelText, isDark && { color: '#9CA3AF' }]}
               maxValue={maxVal * 1.15}
               pointerConfig={pointerConfig}
             />
@@ -271,6 +321,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 2,
   },
+  toggleContainerDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
   toggleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -286,6 +339,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 2,
     elevation: 1,
+  },
+  toggleBtnActiveDark: {
+    backgroundColor: 'rgba(165, 180, 252, 0.2)',
   },
   toggleText: {
     fontSize: 11.5,
@@ -308,6 +364,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.02,
     shadowRadius: 6,
+  },
+  chartCardDark: {
+    backgroundColor: '#101917',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   axisLabelText: {
     color: COLORS.outline,
@@ -340,6 +400,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
     minWidth: 90,
+  },
+  chartTooltipCardDark: {
+    backgroundColor: '#1A2623',
+    borderColor: 'rgba(165, 180, 252, 0.3)',
   },
   chartTooltipLabel: {
     fontSize: 9.5,

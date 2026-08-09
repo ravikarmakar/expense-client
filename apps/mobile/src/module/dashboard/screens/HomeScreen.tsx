@@ -90,7 +90,7 @@ export default function HomeScreen() {
 
   // Balance card navigation handlers (wrapped with singlePress for debounce)
   const handleTotalSpentPress = useCallback(
-    () => singlePress(() => router.push('/total-spent'))(),
+    () => singlePress(() => router.push('/activity-analytics'))(),
     []
   );
   const handleOwedPress = useCallback(
@@ -104,7 +104,7 @@ export default function HomeScreen() {
     []
   );
   const handleNetBalancePress = useCallback(
-    () => singlePress(() => router.push('/(tabs)/groups'))(),
+    () => singlePress(() => router.push('/groups/settle-up'))(),
     []
   );
   const handleGroupSpentPress = useCallback(

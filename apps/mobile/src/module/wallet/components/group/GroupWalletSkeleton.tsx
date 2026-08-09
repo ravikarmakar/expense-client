@@ -6,18 +6,27 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../../../constants/theme';
 import { SkeletonLoader } from '../../../../components/SkeletonLoader';
 import { walletStyles as styles } from '../../../groups/styles/group.styles';
+import { useTheme } from '../../../../context/ThemeContext';
+import { AppBackground } from '../../../../components/AppBackground';
 
 export function GroupWalletSkeleton() {
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
 
   return (
-    <View style={styles.container}>
+    <AppBackground style={[styles.container, isDark && { backgroundColor: '#070E0C' }]}>
       {/* ── Header ── */}
-      <View style={[styles.header, { paddingTop: insets.top, height: 56 + insets.top }]}>
+      <View
+        style={[
+          styles.header,
+          isDark && { backgroundColor: '#0D1714', borderBottomColor: 'rgba(255, 255, 255, 0.08)' },
+          { paddingTop: insets.top, height: 56 + insets.top },
+        ]}
+      >
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.onSurface} />
+          <Ionicons name="arrow-back" size={24} color={isDark ? '#F9FAFB' : COLORS.onSurface} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Group Wallet</Text>
+        <Text style={[styles.headerTitle, isDark && { color: '#F9FAFB' }]}>Group Wallet</Text>
         <SkeletonLoader width={22} height={22} borderRadius={11} style={{ opacity: 0.2 }} />
       </View>
 
@@ -26,34 +35,40 @@ export function GroupWalletSkeleton() {
         showsVerticalScrollIndicator={false}
       >
         {/* ── Balance Card Skeleton ── */}
-        <View style={[styles.balanceCard, { opacity: 0.85 }]}>
+        <View
+          style={[
+            styles.balanceCard,
+            isDark && {
+              backgroundColor: '#101917',
+              borderWidth: 1,
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+            },
+          ]}
+        >
           <View style={[styles.abstractCircle, styles.circleTopRight]} />
           <View style={[styles.abstractCircle, styles.circleBottomLeft]} />
-          <SkeletonLoader
-            width={100}
-            height={12}
-            borderRadius={4}
-            style={{ marginBottom: 12, backgroundColor: '#fff', opacity: 0.3 }}
-          />
-          <SkeletonLoader
-            width={180}
-            height={38}
-            borderRadius={8}
-            style={{ marginBottom: 16, backgroundColor: '#fff', opacity: 0.3 }}
-          />
+          <SkeletonLoader width={100} height={12} borderRadius={4} style={{ marginBottom: 12 }} />
+          <SkeletonLoader width={180} height={38} borderRadius={8} style={{ marginBottom: 16 }} />
           <View style={styles.balanceRow}>
-            <Ionicons name="person" size={14} color="rgba(255,255,255,0.6)" />
-            <SkeletonLoader
-              width={130}
-              height={14}
-              borderRadius={4}
-              style={{ backgroundColor: '#fff', opacity: 0.3 }}
+            <Ionicons
+              name="person"
+              size={14}
+              color={isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.6)'}
             />
+            <SkeletonLoader width={130} height={14} borderRadius={4} />
           </View>
         </View>
 
         {/* ── Your Contribution Quick Action Skeleton ── */}
-        <View style={styles.yourContribCard}>
+        <View
+          style={[
+            styles.yourContribCard,
+            isDark && {
+              backgroundColor: '#101917',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+            },
+          ]}
+        >
           <View style={styles.yourContribInfo}>
             <SkeletonLoader width={110} height={11} borderRadius={4} style={{ marginBottom: 8 }} />
             <SkeletonLoader width={130} height={20} borderRadius={6} style={{ marginBottom: 6 }} />
@@ -69,7 +84,15 @@ export function GroupWalletSkeleton() {
           borderRadius={4}
           style={{ marginBottom: 12, marginHorizontal: 16 }}
         />
-        <View style={styles.membersListContainer}>
+        <View
+          style={[
+            styles.membersListContainer,
+            isDark && {
+              backgroundColor: '#101917',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+            },
+          ]}
+        >
           {[1, 2, 3].map((key, index) => (
             <React.Fragment key={key}>
               <View style={styles.memberItem}>
@@ -87,7 +110,14 @@ export function GroupWalletSkeleton() {
                 </View>
                 <SkeletonLoader width={60} height={16} borderRadius={4} />
               </View>
-              {index < 2 && <View style={styles.divider} />}
+              {index < 2 && (
+                <View
+                  style={[
+                    styles.divider,
+                    isDark && { backgroundColor: 'rgba(255, 255, 255, 0.06)' },
+                  ]}
+                />
+              )}
             </React.Fragment>
           ))}
         </View>
@@ -99,7 +129,15 @@ export function GroupWalletSkeleton() {
           borderRadius={4}
           style={{ marginTop: 28, marginBottom: 12, marginHorizontal: 16 }}
         />
-        <View style={styles.historyListContainer}>
+        <View
+          style={[
+            styles.historyListContainer,
+            isDark && {
+              backgroundColor: '#101917',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+            },
+          ]}
+        >
           {[1, 2].map((key, index) => (
             <React.Fragment key={key}>
               <View style={styles.txItem}>
@@ -120,11 +158,18 @@ export function GroupWalletSkeleton() {
                 </View>
                 <SkeletonLoader width={50} height={15} borderRadius={4} />
               </View>
-              {index < 1 && <View style={styles.divider} />}
+              {index < 1 && (
+                <View
+                  style={[
+                    styles.divider,
+                    isDark && { backgroundColor: 'rgba(255, 255, 255, 0.06)' },
+                  ]}
+                />
+              )}
             </React.Fragment>
           ))}
         </View>
       </ScrollView>
-    </View>
+    </AppBackground>
   );
 }

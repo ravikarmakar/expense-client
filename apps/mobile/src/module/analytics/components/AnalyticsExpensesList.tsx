@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ExpenseItem } from '../../../components/ExpenseItem';
 import { getDateHeading } from '../../../utils/date';
 import { COLORS } from '../../../constants/theme';
+import { useTheme } from '../../../context/ThemeContext';
 import { globalStyles } from '../../../styles/globalStyles';
 import { type Expense } from '@workspace/api';
 
@@ -22,16 +23,27 @@ export const AnalyticsExpensesList: React.FC<AnalyticsExpensesListProps> = ({
   isFetchingNextPage,
   onLoadMore,
 }) => {
+  const { isDark } = useTheme();
+  const variant = isDark ? 'dark' : 'light';
+
   return (
     <View style={[styles.sectionContainer, { marginBottom: 40 }]}>
-      <Text style={globalStyles.sectionTitle}>Expenses in Period</Text>
+      <Text style={[globalStyles.sectionTitle, isDark && { color: '#ffffff' }]}>
+        Expenses in Period
+      </Text>
       {filteredExpenses.length === 0 ? (
-        <View style={styles.emptyExpensesContainer}>
-          <Ionicons name="receipt-outline" size={32} color={COLORS.outlineVariant} />
-          <Text style={styles.emptyExpensesText}>No expenses logged in this period</Text>
+        <View style={[styles.emptyExpensesContainer, isDark && styles.emptyExpensesContainerDark]}>
+          <Ionicons
+            name="receipt-outline"
+            size={32}
+            color={isDark ? '#9CA3AF' : COLORS.outlineVariant}
+          />
+          <Text style={[styles.emptyExpensesText, isDark && { color: '#9CA3AF' }]}>
+            No expenses logged in this period
+          </Text>
         </View>
       ) : (
-        <View style={styles.listContainer}>
+        <View style={[styles.listContainer, isDark && styles.listContainerDark]}>
           {(() => {
             let lastDateHeading = '';
             return filteredExpenses.map((expense) => {
@@ -42,11 +54,15 @@ export const AnalyticsExpensesList: React.FC<AnalyticsExpensesListProps> = ({
               return (
                 <React.Fragment key={expense.id}>
                   {showHeading && (
-                    <View style={styles.dateHeaderContainer}>
-                      <Text style={styles.dateHeaderText}>{currentHeading}</Text>
+                    <View
+                      style={[styles.dateHeaderContainer, isDark && styles.dateHeaderContainerDark]}
+                    >
+                      <Text style={[styles.dateHeaderText, isDark && styles.dateHeaderTextDark]}>
+                        {currentHeading}
+                      </Text>
                     </View>
                   )}
-                  <ExpenseItem expense={expense} currentUserId={currentUserId} />
+                  <ExpenseItem expense={expense} currentUserId={currentUserId} variant={variant} />
                 </React.Fragment>
               );
             });
@@ -54,15 +70,17 @@ export const AnalyticsExpensesList: React.FC<AnalyticsExpensesListProps> = ({
 
           {hasNextPage && (
             <TouchableOpacity
-              style={styles.loadMoreRow}
+              style={[styles.loadMoreRow, isDark && styles.loadMoreRowDark]}
               onPress={onLoadMore}
               disabled={isFetchingNextPage}
               activeOpacity={0.6}
             >
               {isFetchingNextPage ? (
-                <ActivityIndicator size="small" color={COLORS.primary} />
+                <ActivityIndicator size="small" color={isDark ? '#A5B4FC' : COLORS.primary} />
               ) : (
-                <Text style={styles.loadMoreText}>Load More</Text>
+                <Text style={[styles.loadMoreText, isDark && styles.loadMoreTextDark]}>
+                  Load More
+                </Text>
               )}
             </TouchableOpacity>
           )}
@@ -80,6 +98,9 @@ const styles = StyleSheet.create({
     marginHorizontal: -20,
     backgroundColor: COLORS.surface,
   },
+  listContainerDark: {
+    backgroundColor: 'transparent',
+  },
   dateHeaderContainer: {
     backgroundColor: COLORS.surfaceContainerLow,
     paddingHorizontal: 16,
@@ -87,12 +108,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.surfaceContainer,
   },
+  dateHeaderContainerDark: {
+    backgroundColor: '#0D1714',
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+  },
   dateHeaderText: {
     fontSize: 11,
     fontWeight: '800',
     color: COLORS.outline,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
+  },
+  dateHeaderTextDark: {
+    color: '#9CA3AF',
   },
   emptyExpensesContainer: {
     backgroundColor: COLORS.surface,
@@ -109,6 +137,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.02,
     shadowRadius: 6,
   },
+  emptyExpensesContainerDark: {
+    backgroundColor: '#101917',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
   emptyExpensesText: {
     fontSize: 12,
     color: COLORS.outline,
@@ -124,10 +156,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f1f3f4',
   },
+  loadMoreRowDark: {
+    backgroundColor: 'transparent',
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+  },
   loadMoreText: {
     color: COLORS.primary,
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  loadMoreTextDark: {
+    color: '#A5B4FC',
   },
 });

@@ -10,20 +10,27 @@ interface GroupsHeaderProps {
   searchQuery: string;
   setSearchQuery: (text: string) => void;
   onCreateGroupPress: () => void;
+  variant?: 'light' | 'dark';
 }
 
 export function GroupsHeader({
   searchQuery,
   setSearchQuery,
   onCreateGroupPress,
+  variant = 'light',
 }: GroupsHeaderProps) {
   const insets = useSafeAreaInsets();
   const [searchVisible, setSearchVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
+  const isDark = variant === 'dark';
 
   return (
     <LinearGradient
-      colors={['rgba(75, 65, 225, 0.08)', 'rgba(75, 65, 225, 0.02)', 'transparent']}
+      colors={
+        isDark
+          ? ['rgba(52, 211, 153, 0.08)', 'rgba(52, 211, 153, 0.02)', 'transparent']
+          : ['rgba(75, 65, 225, 0.08)', 'rgba(75, 65, 225, 0.02)', 'transparent']
+      }
       style={[styles.headerContainer, { paddingTop: insets.top + 12, paddingBottom: 16 }]}
     >
       <View style={styles.tabHeaderRow}>
@@ -31,27 +38,29 @@ export function GroupsHeader({
           /* Search Active: Search Input stretch with Cancel Back button */
           <View style={localStyles.searchBarContainer}>
             <TouchableOpacity
-              style={localStyles.backButton}
+              style={[localStyles.backButton, isDark && localStyles.backButtonDark]}
               onPress={() => {
                 setSearchVisible(false);
                 setSearchQuery('');
               }}
               activeOpacity={0.7}
             >
-              <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
+              <Ionicons name="arrow-back" size={24} color={isDark ? '#34D399' : COLORS.primary} />
             </TouchableOpacity>
 
-            <View style={localStyles.searchInputInner}>
+            <View
+              style={[localStyles.searchInputInner, isDark && localStyles.searchInputInnerDark]}
+            >
               <Ionicons
                 name="search-outline"
                 size={18}
-                color={COLORS.outline}
+                color={isDark ? '#9CA3AF' : COLORS.outline}
                 style={localStyles.searchIconInline}
               />
               <TextInput
                 placeholder="Search groups..."
-                placeholderTextColor={COLORS.outline}
-                style={localStyles.searchInput}
+                placeholderTextColor={isDark ? '#9CA3AF' : COLORS.outline}
+                style={[localStyles.searchInput, isDark && { color: '#ffffff' }]}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 autoCorrect={false}
@@ -59,7 +68,11 @@ export function GroupsHeader({
               />
               {searchQuery.trim() !== '' && (
                 <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
-                  <Ionicons name="close-circle" size={16} color={COLORS.outline} />
+                  <Ionicons
+                    name="close-circle"
+                    size={16}
+                    color={isDark ? '#9CA3AF' : COLORS.outline}
+                  />
                 </TouchableOpacity>
               )}
             </View>
@@ -68,25 +81,31 @@ export function GroupsHeader({
           /* Search Inactive: Title "My Groups" & Action Buttons */
           <>
             <View>
-              <Text style={styles.tabTitle}>My Groups</Text>
-              <Text style={styles.tabSubtitle}>Shared Ledger</Text>
+              <Text style={[styles.tabTitle, isDark && { color: '#ffffff' }]}>My Groups</Text>
+              <Text style={[styles.tabSubtitle, isDark && { color: '#9CA3AF' }]}>
+                Shared Ledger
+              </Text>
             </View>
 
             <View style={localStyles.headerRightActions}>
               <TouchableOpacity
-                style={localStyles.iconButton}
+                style={[localStyles.iconButton, isDark && localStyles.iconButtonDark]}
                 activeOpacity={0.7}
                 onPress={() => setSearchVisible(true)}
               >
-                <Ionicons name="search" size={22} color={COLORS.primary} />
+                <Ionicons name="search" size={22} color={isDark ? '#34D399' : COLORS.primary} />
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={localStyles.iconButton}
+                style={[localStyles.iconButton, isDark && localStyles.iconButtonDark]}
                 activeOpacity={0.7}
                 onPress={() => setMenuVisible(true)}
               >
-                <Ionicons name="ellipsis-vertical" size={22} color={COLORS.primary} />
+                <Ionicons
+                  name="ellipsis-vertical"
+                  size={22}
+                  color={isDark ? '#34D399' : COLORS.primary}
+                />
               </TouchableOpacity>
             </View>
           </>
@@ -105,7 +124,13 @@ export function GroupsHeader({
           activeOpacity={1}
           onPress={() => setMenuVisible(false)}
         >
-          <View style={[localStyles.dropdownMenu, { top: insets.top + 56 }]}>
+          <View
+            style={[
+              localStyles.dropdownMenu,
+              { top: insets.top + 56 },
+              isDark && localStyles.dropdownMenuDark,
+            ]}
+          >
             <TouchableOpacity
               style={localStyles.dropdownItem}
               activeOpacity={0.7}
@@ -114,8 +139,14 @@ export function GroupsHeader({
                 onCreateGroupPress();
               }}
             >
-              <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
-              <Text style={localStyles.dropdownItemText}>New Group</Text>
+              <Ionicons
+                name="add-circle-outline"
+                size={20}
+                color={isDark ? '#34D399' : COLORS.primary}
+              />
+              <Text style={[localStyles.dropdownItemText, isDark && { color: '#ffffff' }]}>
+                New Group
+              </Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -145,6 +176,10 @@ const localStyles = StyleSheet.create({
     shadowOpacity: 0.03,
     shadowRadius: 2,
   },
+  iconButtonDark: {
+    backgroundColor: '#131D1A',
+    borderColor: '#1E292B',
+  },
   searchBarContainer: {
     flex: 1,
     flexDirection: 'row',
@@ -162,6 +197,10 @@ const localStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e8ece9',
   },
+  backButtonDark: {
+    backgroundColor: '#131D1A',
+    borderColor: '#1E292B',
+  },
   searchInputInner: {
     flex: 1,
     flexDirection: 'row',
@@ -172,6 +211,10 @@ const localStyles = StyleSheet.create({
     height: 48,
     borderWidth: 1,
     borderColor: '#e8ece9',
+  },
+  searchInputInnerDark: {
+    backgroundColor: '#131D1A',
+    borderColor: '#1E292B',
   },
   searchIconInline: {
     marginRight: 8,
@@ -202,6 +245,10 @@ const localStyles = StyleSheet.create({
     shadowRadius: 8,
     borderWidth: 1,
     borderColor: '#e8ece9',
+  },
+  dropdownMenuDark: {
+    backgroundColor: '#131D1A',
+    borderColor: '#1E292B',
   },
   dropdownItem: {
     flexDirection: 'row',

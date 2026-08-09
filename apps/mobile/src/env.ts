@@ -10,7 +10,7 @@ export const env = {
   API_URL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000',
   NODE_ENV: process.env.NODE_ENV || 'development',
   EXPO_PROJECT_ID: Constants.expoConfig?.extra?.eas?.projectId || '',
-  APP_VERSION: Application.nativeApplicationVersion || '1.0.0',
+  APP_VERSION: Constants.expoConfig?.version || Application.nativeApplicationVersion || '2.0.1',
   BUILD_NUMBER: Application.nativeBuildVersion ? parseInt(Application.nativeBuildVersion, 10) : 1,
 } as const;
 

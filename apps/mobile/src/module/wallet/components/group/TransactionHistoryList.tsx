@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, CURRENCY_SYMBOL } from '../../../../constants/theme';
 import { walletStyles as styles } from '../../../groups/styles/group.styles';
 import { EmptyState } from '../../../../components/EmptyState';
+import { useTheme } from '../../../../context/ThemeContext';
 
 interface TransactionHistoryListProps {
   transactions: Array<{
@@ -27,9 +28,13 @@ export function TransactionHistoryList({
   isFetchingNextPage,
   onLoadMore,
 }: TransactionHistoryListProps) {
+  const { isDark } = useTheme();
+
   return (
     <View>
-      <Text style={[styles.sectionTitle, { marginTop: 28 }]}>Group Activity</Text>
+      <Text style={[styles.sectionTitle, { marginTop: 28 }, isDark && { color: '#F9FAFB' }]}>
+        Group Activity
+      </Text>
       {transactions.length === 0 ? (
         <View style={{ marginHorizontal: 16 }}>
           <EmptyState
@@ -39,7 +44,15 @@ export function TransactionHistoryList({
           />
         </View>
       ) : (
-        <View style={styles.historyListContainer}>
+        <View
+          style={[
+            styles.historyListContainer,
+            isDark && {
+              backgroundColor: '#101917',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+            },
+          ]}
+        >
           {transactions.map((tx, index) => (
             <React.Fragment key={tx.id}>
               <View style={styles.txItem}>
@@ -49,12 +62,20 @@ export function TransactionHistoryList({
                     {
                       backgroundColor:
                         tx.type === 'DEPOSIT'
-                          ? COLORS.secondaryFixed
+                          ? isDark
+                            ? 'rgba(129, 140, 248, 0.18)'
+                            : COLORS.secondaryFixed
                           : tx.type === 'EXPENSE'
-                            ? COLORS.errorContainer
+                            ? isDark
+                              ? 'rgba(239, 68, 68, 0.18)'
+                              : COLORS.errorContainer
                             : tx.type === 'TARGET_CHANGE'
-                              ? '#e6f4ea'
-                              : COLORS.surfaceContainer,
+                              ? isDark
+                                ? 'rgba(52, 211, 153, 0.18)'
+                                : '#e6f4ea'
+                              : isDark
+                                ? 'rgba(255, 255, 255, 0.08)'
+                                : COLORS.surfaceContainer,
                     },
                   ]}
                 >
@@ -71,21 +92,29 @@ export function TransactionHistoryList({
                     size={16}
                     color={
                       tx.type === 'DEPOSIT'
-                        ? COLORS.secondary
+                        ? isDark
+                          ? '#818CF8'
+                          : COLORS.secondary
                         : tx.type === 'EXPENSE'
-                          ? COLORS.error
+                          ? isDark
+                            ? '#F87171'
+                            : COLORS.error
                           : tx.type === 'TARGET_CHANGE'
-                            ? COLORS.primary
-                            : COLORS.outline
+                            ? isDark
+                              ? '#34D399'
+                              : COLORS.primary
+                            : isDark
+                              ? '#9CA3AF'
+                              : COLORS.outline
                     }
                   />
                 </View>
                 <View style={styles.txInfo}>
-                  <Text style={styles.txDesc}>
+                  <Text style={[styles.txDesc, isDark && { color: '#F9FAFB' }]}>
                     {tx.description}
                     {tx.user?.name ? ` (by ${tx.user.name})` : ''}
                   </Text>
-                  <Text style={styles.txDate}>
+                  <Text style={[styles.txDate, isDark && { color: '#9CA3AF' }]}>
                     {new Date(tx.createdAt).toLocaleDateString('en-IN', {
                       day: 'numeric',
                       month: 'short',
@@ -97,7 +126,16 @@ export function TransactionHistoryList({
                   <Text
                     style={[
                       styles.txAmount,
-                      { color: tx.amount > 0 ? COLORS.primary : COLORS.error },
+                      {
+                        color:
+                          tx.amount > 0
+                            ? isDark
+                              ? '#34D399'
+                              : COLORS.primary
+                            : isDark
+                              ? '#F87171'
+                              : COLORS.error,
+                      },
                     ]}
                   >
                     {tx.amount > 0 ? '+' : ''}
@@ -106,7 +144,14 @@ export function TransactionHistoryList({
                   </Text>
                 )}
               </View>
-              {index < transactions.length - 1 && <View style={styles.divider} />}
+              {index < transactions.length - 1 && (
+                <View
+                  style={[
+                    styles.divider,
+                    isDark && { backgroundColor: 'rgba(255, 255, 255, 0.06)' },
+                  ]}
+                />
+              )}
             </React.Fragment>
           ))}
 
@@ -114,12 +159,17 @@ export function TransactionHistoryList({
             <TouchableOpacity
               onPress={onLoadMore}
               disabled={isFetchingNextPage}
-              style={localStyles.loadMoreBtn}
+              style={[
+                localStyles.loadMoreBtn,
+                isDark && { borderTopColor: 'rgba(255, 255, 255, 0.08)' },
+              ]}
             >
               {isFetchingNextPage ? (
-                <ActivityIndicator size="small" color={COLORS.primary} />
+                <ActivityIndicator size="small" color={isDark ? '#34D399' : COLORS.primary} />
               ) : (
-                <Text style={localStyles.loadMoreText}>Load More</Text>
+                <Text style={[localStyles.loadMoreText, isDark && { color: '#34D399' }]}>
+                  Load More
+                </Text>
               )}
             </TouchableOpacity>
           )}

@@ -1,4 +1,10 @@
-export type ExportDateRange = 'last-7-days' | 'last-30-days' | 'last-3-months' | 'custom';
+export type ExportDateRange =
+  | 'this-month'
+  | 'last-month'
+  | 'last-7-days'
+  | 'last-30-days'
+  | 'last-3-months'
+  | 'custom';
 export type ExportFormat = 'pdf' | 'excel' | 'csv' | 'json';
 export type ExportContext = 'personal' | 'income' | 'group' | 'activity';
 
