@@ -32,9 +32,10 @@ export const ExpenseItem = React.memo(function TransactionItem({
   const payerDisplayName = isMyExpense ? 'You' : expense.paidBy.name.split(' ')[0] || 'User';
 
   // Format payment source subtitle
+  const methodText = expense.paymentMethod ? ` • ${expense.paymentMethod}` : '';
   const sourceSubtitle = expense.group
-    ? `${expense.group.emoji} ${expense.group.name} • ${expense.isWalletPayment ? 'Paid via Wallet' : `Paid by ${payerDisplayName}`}`
-    : `Personal • ${expense.category} • Paid by You`;
+    ? `${expense.group.emoji} ${expense.group.name}${methodText} • ${expense.isWalletPayment ? 'Paid via Wallet' : `Paid by ${payerDisplayName}`}`
+    : `Personal • ${expense.category}${methodText} • Paid by You`;
 
   // Look up category icon configuration
   const { data: categoriesData } = useCategories();

@@ -14,6 +14,7 @@ interface DropdownSelectorProps<T> {
   renderOptionContent: (item: T) => React.ReactNode;
   getOptionKey: (item: T) => string;
   onSelect: (item: T) => void;
+  variant?: 'light' | 'dark';
 }
 
 export function DropdownSelector<T>({
@@ -27,29 +28,50 @@ export function DropdownSelector<T>({
   renderOptionContent,
   getOptionKey,
   onSelect,
+  variant = 'light',
 }: DropdownSelectorProps<T>) {
+  const isDark = variant === 'dark';
+
   return (
     <View style={styles.container}>
-      <Text style={styles.inputLabel}>{label}</Text>
+      <Text style={[styles.inputLabel, isDark && { color: '#9CA3AF' }]}>{label}</Text>
       <View style={styles.dropdownWrapper}>
-        <TouchableOpacity style={styles.dropdownHeader} onPress={onToggle} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={[
+            styles.dropdownHeader,
+            isDark && {
+              backgroundColor: '#101917',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+            },
+          ]}
+          onPress={onToggle}
+          activeOpacity={0.8}
+        >
           <View style={styles.dropdownHeaderLeft}>
             {selectedItem ? (
               renderHeaderContent(selectedItem)
             ) : (
-              <Text style={styles.placeholderText}>{placeholder}</Text>
+              <Text style={[styles.placeholderText, isDark && { color: '#74817B' }]}>
+                {placeholder}
+              </Text>
             )}
           </View>
           <Ionicons
             name={isOpen ? 'chevron-up' : 'chevron-down'}
             size={18}
-            color={COLORS.outline}
+            color={isDark ? '#9CA3AF' : COLORS.outline}
           />
         </TouchableOpacity>
 
         {isOpen && (
           <ScrollView
-            style={styles.dropdownList}
+            style={[
+              styles.dropdownList,
+              isDark && {
+                backgroundColor: '#131D1A',
+                borderColor: 'rgba(255, 255, 255, 0.08)',
+              },
+            ]}
             nestedScrollEnabled={true}
             showsVerticalScrollIndicator={true}
           >
@@ -59,12 +81,25 @@ export function DropdownSelector<T>({
               return (
                 <TouchableOpacity
                   key={key}
-                  style={[styles.dropdownItem, isSelected && styles.dropdownItemActive]}
+                  style={[
+                    styles.dropdownItem,
+                    isDark && { backgroundColor: 'transparent' },
+                    isSelected &&
+                      (isDark
+                        ? { backgroundColor: 'rgba(16, 185, 129, 0.15)' }
+                        : styles.dropdownItemActive),
+                  ]}
                   onPress={() => onSelect(option)}
                   activeOpacity={0.7}
                 >
                   <View style={styles.dropdownItemLeft}>{renderOptionContent(option)}</View>
-                  {isSelected && <Ionicons name="checkmark" size={16} color={COLORS.primary} />}
+                  {isSelected && (
+                    <Ionicons
+                      name="checkmark"
+                      size={16}
+                      color={isDark ? '#10B981' : COLORS.primary}
+                    />
+                  )}
                 </TouchableOpacity>
               );
             })}

@@ -14,6 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { hapticFeedback } from '../../../utils/haptics';
 import { ScalePressable } from '../../../components/ScalePressable';
 import { CategorySpendingCard } from '../components/CategorySpendingCard';
+import { MonthlyProjectionsCard } from '../components/MonthlyProjectionsCard';
+import { QuickFeatureLinksCard } from '../components/QuickFeatureLinksCard';
 import { QuickActionsCard } from '../components/QuickActionsCard';
 import { ActiveGroupsCard } from '../components/ActiveGroupsCard';
 import { BalanceCard } from '../components/BalanceCard';
@@ -21,6 +23,7 @@ import { BudgetProgressCard } from '../components/BudgetProgressCard';
 import { SetLimitModal } from '../components/SetLimitModal';
 import { AddExpenseModal } from '../../../components/AddExpenseModal';
 import { AddIncomeModal } from '../../../components/AddIncomeModal';
+import { AddLoanModal } from '../../../components/AddLoanModal';
 import { CreateGroupModal } from '../../groups/components/CreateGroupModal';
 import { CreateCategoryModal } from '../../../components/CreateCategoryModal';
 import { GroupCardSkeleton } from '../../groups/components/GroupCardSkeleton';
@@ -29,7 +32,7 @@ import { EmptyState } from '../../../components/EmptyState';
 import { SkeletonLoader } from '../../../components/SkeletonLoader';
 import { useDashboardController } from '@workspace/api';
 import { router } from 'expo-router';
-import { resolveAvatar } from '../../../constants/theme';
+import { resolveAvatar, CURRENCY_SYMBOL } from '../../../constants/theme';
 import { globalStyles } from '../../../styles/globalStyles';
 import { TopAppBar } from '../../../components/TopAppBar';
 import { RecentExpenses } from '../components/RecentExpenses';
@@ -67,6 +70,7 @@ export default function HomeScreen() {
   const { isDark } = useTheme();
   const variant = isDark ? 'dark' : 'light';
   const [addIncomeVisible, setAddIncomeVisible] = useState(false);
+  const [addLoanVisible, setAddLoanVisible] = useState(false);
 
   // ─── Stable handlers (won't create new closures on each render) ───────
   const handleNotificationPress = useCallback(() => router.push('/notifications'), []);
@@ -76,6 +80,8 @@ export default function HomeScreen() {
   const handleCloseAddExpense = useCallback(() => setAddExpenseVisible(false), []);
   const handleOpenAddIncome = useCallback(() => setAddIncomeVisible(true), []);
   const handleCloseAddIncome = useCallback(() => setAddIncomeVisible(false), []);
+  const handleOpenAddLoan = useCallback(() => setAddLoanVisible(true), []);
+  const handleCloseAddLoan = useCallback(() => setAddLoanVisible(false), []);
   const handleOpenCreateGroup = useCallback(() => setCreateGroupVisible(true), []);
   const handleCloseCreateGroup = useCallback(() => setCreateGroupVisible(false), []);
   const handleCreateGroupSuccess = useCallback(() => {
@@ -248,21 +254,83 @@ export default function HomeScreen() {
         <QuickActionsCard
           onAddExpensePress={handleOpenAddExpense}
           onAddIncomePress={handleOpenAddIncome}
+          onLendBorrowPress={handleOpenAddLoan}
           onCreateGroupPress={handleOpenCreateGroup}
           onCreateCategoryPress={handleOpenCreateCategory}
           onScanReceiptPress={handleScanReceipt}
           variant={variant}
         />
 
-        {/* Budget Progress Card */}
-        <BudgetProgressCard
-          spent={filteredTotalSpent}
-          limit={activeLimit}
-          period={budgetPeriod}
-          onPeriodChange={setBudgetPeriod}
-          onEditLimitPress={() => setSetLimitModalVisible(true)}
-          variant={variant}
-        />
+        {/* Premium Lend & Borrow Tracker Card */}
+        <ScalePressable
+          style={[
+            styles.lendBorrowCard,
+            isDark ? styles.lendBorrowCardDark : styles.lendBorrowCardLight,
+          ]}
+          onPress={() => {
+            hapticFeedback.lightImpact();
+            router.push('/lend-borrow');
+          }}
+        >
+          {/* Decorative background glow elements */}
+          <View style={styles.lbCircle1} />
+          <View style={styles.lbCircle2} />
+
+          {/* Header Row: Badge Tag & Action Arrow */}
+          <View style={styles.lbHeaderRow}>
+            <View style={[styles.lbBadge, isDark ? styles.lbBadgeDark : styles.lbBadgeLight]}>
+              <Ionicons name="hand-left" size={12} color={isDark ? '#34D399' : '#0F766E'} />
+              <Text
+                style={[styles.lbBadgeText, isDark ? { color: '#34D399' } : { color: '#0F766E' }]}
+              >
+                LEND & BORROW
+              </Text>
+            </View>
+
+            <View
+              style={[styles.lbArrowContainer, isDark ? styles.lbArrowDark : styles.lbArrowLight]}
+            >
+              <Ionicons name="arrow-forward" size={14} color={isDark ? '#34D399' : '#0F766E'} />
+            </View>
+          </View>
+
+          {/* Card Title & Subtitle */}
+          <Text style={[styles.lbTitle, isDark ? { color: '#FFFFFF' } : { color: '#0F172A' }]}>
+            Lend & Borrow Tracker
+          </Text>
+          <Text style={[styles.lbSub, isDark ? { color: '#9CA3AF' } : { color: '#64748B' }]}>
+            Track debts, loans to friends, banks & loan apps
+          </Text>
+
+          {/* Live Balance Summary Chips */}
+          <View style={styles.lbMetricsRow}>
+            <View
+              style={[
+                styles.lbMetricChip,
+                isDark ? styles.lbMetricChipOwedDark : styles.lbMetricChipOwedLight,
+              ]}
+            >
+              <Ionicons name="arrow-down-circle" size={13} color="#10B981" />
+              <Text style={styles.lbMetricOwedText}>
+                Owed to you: {CURRENCY_SYMBOL}
+                {filteredTotalOwedToMe.toFixed(0)}
+              </Text>
+            </View>
+
+            <View
+              style={[
+                styles.lbMetricChip,
+                isDark ? styles.lbMetricChipOweDark : styles.lbMetricChipOweLight,
+              ]}
+            >
+              <Ionicons name="arrow-up-circle" size={13} color="#EF4444" />
+              <Text style={styles.lbMetricOweText}>
+                You owe: {CURRENCY_SYMBOL}
+                {filteredTotalIOwe.toFixed(0)}
+              </Text>
+            </View>
+          </View>
+        </ScalePressable>
 
         {/* Active Groups */}
         {groupsLoading && groups.length === 0 ? (
@@ -287,6 +355,16 @@ export default function HomeScreen() {
         ) : (
           <ActiveGroupsCard recentGroups={recentGroups} variant={variant} />
         )}
+
+        {/* Budget & Spending Limit Progress Card */}
+        <BudgetProgressCard
+          spent={filteredTotalSpent}
+          limit={activeLimit}
+          period={budgetPeriod}
+          onPeriodChange={setBudgetPeriod}
+          onEditLimitPress={() => setSetLimitModalVisible(true)}
+          variant={variant}
+        />
 
         {/* Recent Expenses */}
         {expensesLoading && expenses.length === 0 ? (
@@ -349,6 +427,17 @@ export default function HomeScreen() {
         ) : (
           <CategorySpendingCard summary={stats} totalSpent={totalSpent} variant={variant} />
         )}
+
+        {/* Financial Health & Safe-to-Spend Projection Card */}
+        <MonthlyProjectionsCard
+          totalSpent={totalSpent}
+          monthlyLimit={activeLimit}
+          variant={variant}
+          onEditLimitPress={() => setSetLimitModalVisible(true)}
+        />
+
+        {/* You're All Caught Up - Quick Feature Navigation Links */}
+        <QuickFeatureLinksCard variant={variant} />
       </ScrollView>
 
       {/* Floating Action Button */}
@@ -378,6 +467,13 @@ export default function HomeScreen() {
       <AddIncomeModal
         visible={addIncomeVisible}
         onClose={handleCloseAddIncome}
+        onSuccess={refetchDashboard}
+        variant={variant}
+      />
+
+      <AddLoanModal
+        visible={addLoanVisible}
+        onClose={handleCloseAddLoan}
         onSuccess={refetchDashboard}
         variant={variant}
       />

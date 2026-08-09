@@ -647,6 +647,7 @@ export function useAddGroupExpenseController({
   const [amount, setAmount] = useState('');
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<string>('UPI');
 
   const getLocalTodayString = () => {
     const d = new Date();
@@ -779,6 +780,7 @@ export function useAddGroupExpenseController({
     setAmount('');
     setTitle('');
     setNotes('');
+    setPaymentMethod('UPI');
     setDate(getLocalTodayString());
     setSplitMemberIds(groupMembers.map((m) => m.userId));
     setCustomSplits({});
@@ -875,6 +877,7 @@ export function useAddGroupExpenseController({
       category: category as ExpenseCategory,
       date,
       notes: notes.trim() || undefined,
+      paymentMethod,
       groupId: activeGroupId || undefined,
       splitMemberIds: splitMemberIds,
       useWallet: useWalletBalance,
@@ -917,6 +920,8 @@ export function useAddGroupExpenseController({
     setTitle,
     notes,
     setNotes,
+    paymentMethod,
+    setPaymentMethod,
     date,
     setDate,
     errorMessage,

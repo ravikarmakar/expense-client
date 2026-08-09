@@ -174,7 +174,8 @@ export const RecentExpenses = React.memo(function RecentExpenses({
 
 const styles = StyleSheet.create({
   pbHighlight: {
-    paddingBottom: 24,
+    paddingBottom: 4,
+    marginBottom: 12,
   },
   highlightsContainer: {},
   sectionHeaderRow: {

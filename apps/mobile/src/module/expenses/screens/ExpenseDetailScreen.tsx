@@ -237,6 +237,24 @@ export default function ExpenseDetailScreen() {
               </Text>
             </View>
 
+            {/* Payment Method Badge */}
+            <View
+              style={[
+                styles.metaBadge,
+                { backgroundColor: isDark ? 'rgba(52, 211, 153, 0.15)' : '#dcfce7' },
+              ]}
+            >
+              <Ionicons name="card-outline" size={14} color={isDark ? '#34D399' : '#15803d'} />
+              <Text
+                style={[
+                  styles.metaBadgeText,
+                  { color: isDark ? '#34D399' : '#15803d', fontWeight: '700' },
+                ]}
+              >
+                {expense.paymentMethod || 'UPI'}
+              </Text>
+            </View>
+
             {/* Expense Type Badge (Group vs Personal) */}
             {expense.groupId ? (
               <View

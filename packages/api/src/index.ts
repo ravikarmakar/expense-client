@@ -381,3 +381,26 @@ export {
   useUpdateIncome,
   useDeleteIncome,
 } from './income/income.hooks';
+
+// ── Lend & Borrow module ──────────────────────────────
+export type {
+  Loan,
+  LoanPayment,
+  LoanSummary,
+  LoanType,
+  LoanStatus,
+  CreateLoanInput,
+  UpdateLoanInput,
+  AddLoanPaymentInput,
+  GetLoansQueryParams,
+} from './loans/loan.types';
+export {
+  useLoans,
+  useLoanSummary,
+  useLoanDetail,
+  useCreateLoan,
+  useUpdateLoan,
+  useDeleteLoan,
+  useRecordLoanPayment,
+  useSendLoanReminder,
+} from './loans/loan.hooks';

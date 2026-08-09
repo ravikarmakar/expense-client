@@ -229,7 +229,27 @@ export default function ProfileTabScreen() {
             <Text style={[styles.hubCardSub, isDark && styles.hubCardSubDark]}>Feed History</Text>
           </TouchableOpacity>
 
-          {/* Card 4: Change Password */}
+          {/* Card 4: Lend & Borrow */}
+          <TouchableOpacity
+            style={[styles.hubCard, isDark && styles.hubCardDark]}
+            activeOpacity={0.75}
+            onPress={() => router.push('/lend-borrow')}
+          >
+            <View
+              style={[
+                styles.hubIconBg,
+                { backgroundColor: isDark ? 'rgba(52, 211, 153, 0.15)' : '#e6f4ea' },
+              ]}
+            >
+              <Ionicons name="hand-left-outline" size={22} color={isDark ? '#34D399' : '#059669'} />
+            </View>
+            <Text style={[styles.hubCardTitle, isDark && styles.hubCardTitleDark]}>
+              Lend & Borrow
+            </Text>
+            <Text style={[styles.hubCardSub, isDark && styles.hubCardSubDark]}>Track Loans</Text>
+          </TouchableOpacity>
+
+          {/* Card 5: Change Password */}
           <TouchableOpacity
             style={[styles.hubCard, isDark && styles.hubCardDark]}
             activeOpacity={0.75}

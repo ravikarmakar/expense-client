@@ -319,6 +319,22 @@ export default function ActivityTabScreen() {
             </Text>
           </View>
           <View style={styles.headerRightActions}>
+            {/* Lend & Borrow Tracker Button */}
+            <TouchableOpacity
+              style={[styles.headerIconBtn, isDark && styles.headerIconBtnDark]}
+              activeOpacity={0.7}
+              onPress={() => {
+                hapticFeedback.selection();
+                router.push('/lend-borrow');
+              }}
+            >
+              <Ionicons
+                name="hand-left-outline"
+                size={22}
+                color={isDark ? '#34D399' : COLORS.primary}
+              />
+            </TouchableOpacity>
+
             {/* AI Smart Insights Button */}
             <TouchableOpacity
               style={[

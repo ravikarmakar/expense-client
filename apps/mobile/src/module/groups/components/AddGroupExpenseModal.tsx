@@ -16,6 +16,8 @@ import { formatRupees } from '../../../utils/format';
 import { DatePickerModal } from '../../../components/DatePickerModal';
 import { ExpenseSuccessView } from '../../../components/ExpenseSuccessView';
 
+import { PaymentMethodSelector } from '../../../components/PaymentMethodSelector';
+
 interface AddGroupExpenseModalProps {
   visible: boolean;
   onClose: () => void;
@@ -54,6 +56,8 @@ export function AddGroupExpenseModal({
     setTitle,
     notes,
     setNotes,
+    paymentMethod,
+    setPaymentMethod,
     date,
     setDate,
     errorMessage,
@@ -369,6 +373,12 @@ export function AddGroupExpenseModal({
             category={category}
             onSelect={handleSelectCategory}
             groupId={(groupId || selectedGroupId) ?? undefined}
+            variant={variant}
+          />
+
+          <PaymentMethodSelector
+            selectedMethod={paymentMethod}
+            onSelect={setPaymentMethod}
             variant={variant}
           />
 

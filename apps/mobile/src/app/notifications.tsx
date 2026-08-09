@@ -22,8 +22,12 @@ import {
 } from '@workspace/api';
 import { SkeletonLoader } from '../components/SkeletonLoader';
 
+import { useTheme } from '../context/ThemeContext';
+import { AppBackground } from '../components/AppBackground';
+
 const getNotificationTypeConfig = (
-  type: string
+  type: string,
+  isDark = false
 ): {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   color: string;
@@ -33,32 +37,32 @@ const getNotificationTypeConfig = (
     case 'GROUP_INVITATION':
       return {
         icon: 'people-sharp',
-        color: '#1a73e8',
-        bg: '#e8f0fe',
+        color: isDark ? '#60A5FA' : '#1a73e8',
+        bg: isDark ? 'rgba(96, 165, 250, 0.15)' : '#e8f0fe',
       };
     case 'EXPENSE_CREATED':
       return {
         icon: 'receipt-sharp',
-        color: '#137333',
-        bg: '#e6f4ea',
+        color: isDark ? '#34D399' : '#137333',
+        bg: isDark ? 'rgba(52, 211, 153, 0.15)' : '#e6f4ea',
       };
     case 'SETTLEMENT_COMPLETED':
       return {
         icon: 'checkmark-circle-sharp',
-        color: '#0f9d58',
-        bg: '#e8f5e9',
+        color: isDark ? '#10B981' : '#0f9d58',
+        bg: isDark ? 'rgba(16, 185, 129, 0.15)' : '#e8f5e9',
       };
     case 'REMINDER':
       return {
         icon: 'alarm-sharp',
-        color: '#b06000',
-        bg: '#fef7e0',
+        color: isDark ? '#FBBF24' : '#b06000',
+        bg: isDark ? 'rgba(251, 191, 36, 0.15)' : '#fef7e0',
       };
     default:
       return {
         icon: 'notifications-sharp',
-        color: '#7b1fa2',
-        bg: '#f3e5f5',
+        color: isDark ? '#A78BFA' : '#7b1fa2',
+        bg: isDark ? 'rgba(167, 139, 250, 0.15)' : '#f3e5f5',
       };
   }
 };
@@ -83,11 +87,20 @@ const formatNotificationTime = (dateStr: string) => {
   }
 };
 
-function NotificationSkeleton() {
+function NotificationSkeleton({ isDark = false }: { isDark?: boolean }) {
   return (
     <View style={styles.skeletonContainer}>
       {[1, 2, 3, 4].map((i) => (
-        <View key={i} style={styles.skeletonCard}>
+        <View
+          key={i}
+          style={[
+            styles.skeletonCard,
+            isDark && {
+              backgroundColor: '#101917',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+            },
+          ]}
+        >
           <SkeletonLoader width={40} height={40} borderRadius={14} />
           <View style={{ flex: 1, gap: 8 }}>
             <View
@@ -109,9 +122,19 @@ function NotificationSkeleton() {
   );
 }
 
+type NotificationFilter = 'all' | 'unread' | 'invitations' | 'activity';
+
+const NOTIFICATION_FILTERS: { id: NotificationFilter; label: string; icon: string }[] = [
+  { id: 'all', label: 'All', icon: 'layers-outline' },
+  { id: 'unread', label: 'Unread', icon: 'mail-unread-outline' },
+  { id: 'invitations', label: 'Invites', icon: 'person-add-outline' },
+  { id: 'activity', label: 'Activity', icon: 'receipt-outline' },
+];
+
 export default function NotificationsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
 
   const { data, isLoading, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useNotifications(15);
@@ -119,6 +142,22 @@ export default function NotificationsScreen() {
   const notifications = useMemo(() => {
     return data?.pages.flatMap((page) => page.notifications) ?? [];
   }, [data]);
+
+  const [activeFilter, setActiveFilter] = useState<NotificationFilter>('all');
+
+  const filteredNotifications = useMemo(() => {
+    if (activeFilter === 'unread') {
+      return notifications.filter((n) => !n.read);
+    }
+    if (activeFilter === 'invitations') {
+      return notifications.filter((n) => n.type === 'GROUP_INVITATION');
+    }
+    if (activeFilter === 'activity') {
+      return notifications.filter((n) => n.type !== 'GROUP_INVITATION');
+    }
+    return notifications;
+  }, [notifications, activeFilter]);
+
   const acceptInvitation = useAcceptInvitation();
   const declineInvitation = useDeclineInvitation();
   const readNotifications = useReadNotifications();
@@ -163,26 +202,169 @@ export default function NotificationsScreen() {
     });
   };
 
+  const getEmptyStateMessage = () => {
+    switch (activeFilter) {
+      case 'unread':
+        return {
+          title: 'No Unread Notifications',
+          subtitle: 'You have read all your recent notifications.',
+        };
+      case 'invitations':
+        return {
+          title: 'No Pending Invitations',
+          subtitle: 'You do not have any pending group invitations.',
+        };
+      case 'activity':
+        return {
+          title: 'No Recent Activity',
+          subtitle: 'New expense, wallet, or settlement notifications will appear here.',
+        };
+      case 'all':
+      default:
+        return {
+          title: 'All caught up!',
+          subtitle:
+            "We'll notify you when you have new group splits, wallet transactions, or settle-up activity.",
+        };
+    }
+  };
+
+  const handleMarkAllRead = () => {
+    readNotifications.mutate(undefined, {
+      onSuccess: () => {
+        refetch();
+      },
+    });
+  };
+
   return (
-    <View style={styles.container}>
-      <TopAppBar title="Notifications" showBack={true} onBack={() => router.back()} />
+    <AppBackground style={[styles.container, isDark && { backgroundColor: '#070E0C' }]}>
+      <TopAppBar
+        title="Notifications"
+        showBack={true}
+        onBack={() => router.back()}
+        rightActionIcon="checkmark-done-outline"
+        onRightActionPress={handleMarkAllRead}
+        variant={isDark ? 'dark' : 'light'}
+      />
+
+      {/* Filter Horizontal Pills */}
+      <View style={styles.filterBarContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterScrollContent}
+        >
+          {NOTIFICATION_FILTERS.map((filter) => {
+            const isSelected = activeFilter === filter.id;
+            const count =
+              filter.id === 'unread'
+                ? notifications.filter((n) => !n.read).length
+                : filter.id === 'invitations'
+                  ? notifications.filter((n) => n.type === 'GROUP_INVITATION').length
+                  : filter.id === 'activity'
+                    ? notifications.filter((n) => n.type !== 'GROUP_INVITATION').length
+                    : notifications.length;
+
+            return (
+              <TouchableOpacity
+                key={filter.id}
+                style={[
+                  styles.filterPill,
+                  isDark && styles.filterPillDark,
+                  isSelected &&
+                    (isDark ? styles.filterPillActiveDark : styles.filterPillActiveLight),
+                ]}
+                activeOpacity={0.8}
+                onPress={() => setActiveFilter(filter.id)}
+              >
+                <Ionicons
+                  name={filter.icon as never}
+                  size={15}
+                  color={
+                    isSelected
+                      ? isDark
+                        ? '#34D399'
+                        : '#006948'
+                      : isDark
+                        ? '#9CA3AF'
+                        : COLORS.outline
+                  }
+                />
+                <Text
+                  style={[
+                    styles.filterPillText,
+                    isDark && { color: '#9CA3AF' },
+                    isSelected &&
+                      (isDark
+                        ? { color: '#34D399', fontWeight: '800' }
+                        : { color: '#006948', fontWeight: '800' }),
+                  ]}
+                >
+                  {filter.label}
+                </Text>
+                {count > 0 && (
+                  <View
+                    style={[
+                      styles.filterBadge,
+                      isDark && styles.filterBadgeDark,
+                      isSelected &&
+                        (isDark ? styles.filterBadgeActiveDark : styles.filterBadgeActiveLight),
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.filterBadgeText,
+                        isDark && { color: '#9CA3AF' },
+                        isSelected && (isDark ? { color: '#34D399' } : { color: '#006948' }),
+                      ]}
+                    >
+                      {count}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
 
       {isLoading ? (
-        <NotificationSkeleton />
-      ) : notifications.length > 0 ? (
+        <NotificationSkeleton isDark={isDark} />
+      ) : filteredNotifications.length > 0 ? (
         <ScrollView
           contentContainerStyle={[styles.scrollContent, { paddingBottom: 20 + insets.bottom }]}
-          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              tintColor={isDark ? '#10B981' : COLORS.primary}
+              colors={[isDark ? '#10B981' : COLORS.primary]}
+            />
+          }
         >
-          {notifications.map((item) => {
+          {filteredNotifications.map((item) => {
             const isInvitation = item.type === 'GROUP_INVITATION';
-            const config = getNotificationTypeConfig(item.type);
+            const config = getNotificationTypeConfig(item.type, isDark);
             const timeAgo = formatNotificationTime(item.createdAt);
 
             return (
               <View
                 key={item.id}
-                style={[styles.notificationCard, !item.read && styles.unreadCard]}
+                style={[
+                  styles.notificationCard,
+                  isDark && {
+                    backgroundColor: '#101917',
+                    borderColor: 'rgba(255, 255, 255, 0.08)',
+                  },
+                  !item.read &&
+                    (isDark
+                      ? {
+                          backgroundColor: 'rgba(96, 165, 250, 0.08)',
+                          borderColor: 'rgba(96, 165, 250, 0.25)',
+                        }
+                      : styles.unreadCard),
+                ]}
               >
                 <View style={[styles.iconBadge, { backgroundColor: config.bg }]}>
                   <Ionicons name={config.icon} size={20} color={config.color} />
@@ -190,19 +372,36 @@ export default function NotificationsScreen() {
                 <View style={styles.cardContent}>
                   <View style={styles.cardHeaderRow}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
-                      <Text style={styles.cardTitle} numberOfLines={1}>
+                      <Text
+                        style={[styles.cardTitle, isDark && { color: '#F9FAFB' }]}
+                        numberOfLines={1}
+                      >
                         {item.title}
                       </Text>
-                      {!item.read && <View style={styles.unreadDot} />}
+                      {!item.read && (
+                        <View
+                          style={[styles.unreadDot, isDark && { backgroundColor: '#60A5FA' }]}
+                        />
+                      )}
                     </View>
-                    {timeAgo ? <Text style={styles.cardTime}>{timeAgo}</Text> : null}
+                    {timeAgo ? (
+                      <Text style={[styles.cardTime, isDark && { color: '#74817B' }]}>
+                        {timeAgo}
+                      </Text>
+                    ) : null}
                   </View>
-                  <Text style={styles.cardBody}>{item.message}</Text>
+                  <Text style={[styles.cardBody, isDark && { color: '#9CA3AF' }]}>
+                    {item.message}
+                  </Text>
 
                   {isInvitation && item.invitationId && (
                     <View style={styles.actionRow}>
                       <TouchableOpacity
-                        style={[styles.actionBtn, styles.acceptBtn]}
+                        style={[
+                          styles.actionBtn,
+                          styles.acceptBtn,
+                          isDark && { backgroundColor: '#10B981' },
+                        ]}
                         onPress={() => handleAccept(item.invitationId!)}
                         disabled={acceptInvitation.isPending || declineInvitation.isPending}
                         activeOpacity={0.8}
@@ -223,22 +422,31 @@ export default function NotificationsScreen() {
                       </TouchableOpacity>
 
                       <TouchableOpacity
-                        style={[styles.actionBtn, styles.declineBtn]}
+                        style={[
+                          styles.actionBtn,
+                          styles.declineBtn,
+                          isDark && {
+                            backgroundColor: 'transparent',
+                            borderColor: 'rgba(239, 68, 68, 0.4)',
+                          },
+                        ]}
                         onPress={() => handleDecline(item.invitationId!)}
                         disabled={acceptInvitation.isPending || declineInvitation.isPending}
                         activeOpacity={0.8}
                       >
                         {declineInvitation.isPending ? (
-                          <ActivityIndicator size="small" color="#c5221f" />
+                          <ActivityIndicator size="small" color={isDark ? '#F87171' : '#c5221f'} />
                         ) : (
                           <>
                             <Ionicons
                               name="close"
                               size={14}
-                              color="#c5221f"
+                              color={isDark ? '#F87171' : '#c5221f'}
                               style={{ marginRight: 4 }}
                             />
-                            <Text style={styles.declineBtnText}>Decline</Text>
+                            <Text style={[styles.declineBtnText, isDark && { color: '#F87171' }]}>
+                              Decline
+                            </Text>
                           </>
                         )}
                       </TouchableOpacity>
@@ -250,15 +458,21 @@ export default function NotificationsScreen() {
           })}
           {hasNextPage && (
             <TouchableOpacity
-              style={styles.loadMoreBtn}
+              style={[
+                styles.loadMoreBtn,
+                isDark && {
+                  backgroundColor: '#101917',
+                  borderColor: 'rgba(255, 255, 255, 0.08)',
+                },
+              ]}
               onPress={() => fetchNextPage()}
               disabled={isFetchingNextPage}
               activeOpacity={0.8}
             >
               {isFetchingNextPage ? (
-                <ActivityIndicator size="small" color={COLORS.primary} />
+                <ActivityIndicator size="small" color={isDark ? '#10B981' : COLORS.primary} />
               ) : (
-                <Text style={styles.loadMoreText}>Load More</Text>
+                <Text style={[styles.loadMoreText, isDark && { color: '#10B981' }]}>Load More</Text>
               )}
             </TouchableOpacity>
           )}
@@ -266,24 +480,43 @@ export default function NotificationsScreen() {
       ) : (
         <ScrollView
           contentContainerStyle={[styles.emptyContainer, { paddingBottom: 60 + insets.bottom }]}
-          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              tintColor={isDark ? '#10B981' : COLORS.primary}
+              colors={[isDark ? '#10B981' : COLORS.primary]}
+            />
+          }
         >
           <View style={styles.bellBadgeContainer}>
-            <View style={styles.bellOuterCircle}>
-              <View style={styles.bellInnerCircle}>
-                <Ionicons name="notifications-off" size={40} color={COLORS.outline} />
+            <View
+              style={[
+                styles.bellOuterCircle,
+                isDark && {
+                  backgroundColor: '#101917',
+                  borderColor: 'rgba(255, 255, 255, 0.08)',
+                },
+              ]}
+            >
+              <View style={[styles.bellInnerCircle, isDark && { backgroundColor: '#14231E' }]}>
+                <Ionicons
+                  name="notifications-off"
+                  size={40}
+                  color={isDark ? '#74817B' : COLORS.outline}
+                />
               </View>
             </View>
           </View>
-          <Text style={styles.emptyTitle}>All caught up!</Text>
-          <Text style={styles.emptySubtitle}>
-            {
-              "We'll notify you when you have new group splits, wallet transactions, or settle-up activity."
-            }
+          <Text style={[styles.emptyTitle, isDark && { color: '#F9FAFB' }]}>
+            {getEmptyStateMessage().title}
+          </Text>
+          <Text style={[styles.emptySubtitle, isDark && { color: '#9CA3AF' }]}>
+            {getEmptyStateMessage().subtitle}
           </Text>
         </ScrollView>
       )}
-    </View>
+    </AppBackground>
   );
 }
 
@@ -291,6 +524,61 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  filterBarContainer: {
+    paddingVertical: 12,
+  },
+  filterScrollContent: {
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  filterPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: COLORS.surfaceContainerLow,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
+  },
+  filterPillDark: {
+    backgroundColor: '#101917',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  filterPillActiveLight: {
+    backgroundColor: '#E6F4EA',
+    borderColor: '#006948',
+  },
+  filterPillActiveDark: {
+    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+    borderColor: '#34D399',
+  },
+  filterPillText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: COLORS.onSurface,
+  },
+  filterBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 10,
+    backgroundColor: COLORS.surfaceContainer,
+  },
+  filterBadgeDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  filterBadgeActiveLight: {
+    backgroundColor: '#006948' + '20',
+  },
+  filterBadgeActiveDark: {
+    backgroundColor: 'rgba(52, 211, 153, 0.2)',
+  },
+  filterBadgeText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: COLORS.outline,
   },
   loadingContainer: {
     flex: 1,

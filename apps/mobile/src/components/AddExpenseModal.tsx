@@ -25,6 +25,7 @@ import { formatRupees } from '../utils/format';
 import { ExpenseSuccessView } from './ExpenseSuccessView';
 import { hapticFeedback } from '../utils/haptics';
 import { BottomSheetModal } from './BottomSheetModal';
+import { PaymentMethodSelector } from './PaymentMethodSelector';
 
 interface AddExpenseModalProps {
   visible: boolean;
@@ -88,6 +89,7 @@ export function AddExpenseModal({
 
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<string>('UPI');
 
   const renderModeSwitcher = () => {
     if (groupId || initialExpenseType) return null;
@@ -216,6 +218,7 @@ export function AddExpenseModal({
     setAmount('');
     setTitle('');
     setNotes('');
+    setPaymentMethod('UPI');
     setDate(getLocalTodayString());
     setErrorMessage('');
     setIsSuccess(false);
@@ -257,6 +260,7 @@ export function AddExpenseModal({
       category: category as ExpenseCategory,
       date,
       notes: notes.trim() || undefined,
+      paymentMethod,
     });
 
     if (!validation.success) {
@@ -406,6 +410,12 @@ export function AddExpenseModal({
               category={category}
               onSelect={handleSelectCategory}
               groupId={groupId}
+              variant={variant}
+            />
+
+            <PaymentMethodSelector
+              selectedMethod={paymentMethod}
+              onSelect={setPaymentMethod}
               variant={variant}
             />
 

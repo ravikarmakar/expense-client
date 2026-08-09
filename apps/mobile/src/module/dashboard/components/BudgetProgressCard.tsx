@@ -13,8 +13,8 @@ interface BudgetProgressCardProps {
 }
 
 /**
- * Premium Weekly / Monthly Budget Tracking Card.
- * Linear / Revolut inspired minimal progress design with dynamic alert thresholds.
+ * Premium Glassmorphic Budget & Spending Limit Card.
+ * Features segmented timeframes, dynamic alert indicators, and hero progress metrics.
  */
 export const BudgetProgressCard = React.memo(function BudgetProgressCard({
   spent,
@@ -25,54 +25,66 @@ export const BudgetProgressCard = React.memo(function BudgetProgressCard({
   variant = 'light',
 }: BudgetProgressCardProps) {
   const isDark = variant === 'dark';
-  const percentage = Math.min((spent / Math.max(limit, 1)) * 100, 100);
-  const displayFillWidth = Math.max(percentage, 3); // Ensure track fill is visible
+  const rawPercentage = (spent / Math.max(limit, 1)) * 100;
+  const percentage = Math.min(rawPercentage, 100);
+  const displayFillWidth = Math.max(percentage, 4);
   const remaining = Math.max(limit - spent, 0);
+  const isExceeded = spent >= limit;
 
-  // Dynamic alert colors
-  const getProgressColor = () => {
-    if (spent >= limit) return isDark ? '#EF4444' : '#DC2626'; // Red Exceeded
-    if (percentage >= 75) return isDark ? '#F59E0B' : '#D97706'; // Amber Warning
-    return isDark ? '#10B981' : '#006948'; // Emerald Normal
+  // Dynamic alert colors & badge styles
+  const getAlertTheme = () => {
+    if (isExceeded) {
+      return {
+        color: '#EF4444',
+        badgeBg: isDark ? 'rgba(239, 68, 68, 0.18)' : '#FCE8E6',
+        badgeText: isDark ? '#F87171' : '#DC2626',
+        label: 'EXCEEDED',
+        icon: 'alert-circle',
+      };
+    }
+    if (rawPercentage >= 75) {
+      return {
+        color: '#F59E0B',
+        badgeBg: isDark ? 'rgba(245, 158, 11, 0.18)' : '#FEF3C7',
+        badgeText: isDark ? '#FBBF24' : '#D97706',
+        label: `${rawPercentage.toFixed(0)}% USED`,
+        icon: 'warning-outline',
+      };
+    }
+    return {
+      color: isDark ? '#10B981' : '#0F766E',
+      badgeBg: isDark ? 'rgba(16, 185, 129, 0.15)' : '#E6F4EA',
+      badgeText: isDark ? '#34D399' : '#0F766E',
+      label: `${rawPercentage.toFixed(0)}% USED`,
+      icon: 'checkmark-circle-outline',
+    };
   };
 
-  const progressColor = getProgressColor();
+  const alertTheme = getAlertTheme();
 
   return (
-    <View
-      style={[
-        styles.card,
-        !isDark && {
-          backgroundColor: '#ffffff',
-          borderColor: '#d0e5dd',
-          borderWidth: 1.5,
-          elevation: 3,
-          shadowColor: '#006948',
-          shadowOffset: { width: 0, height: 3 },
-          shadowOpacity: 0.08,
-          shadowRadius: 8,
-        },
-      ]}
-    >
-      {/* Header Row */}
+    <View style={[styles.card, isDark ? styles.cardDark : styles.cardLight]}>
+      {/* Background glow decoration */}
+      <View style={styles.bgGlow} />
+
+      {/* Header Row: Title Badge, Period Switcher & Edit Button */}
       <View style={styles.header}>
-        <View style={styles.titleWrapper}>
-          <View style={[styles.iconBg, !isDark && { backgroundColor: 'rgba(0, 105, 72, 0.12)' }]}>
-            <Ionicons name="compass" size={16} color={isDark ? '#10B981' : '#006948'} />
+        <View style={styles.titleBadgeRow}>
+          <View style={[styles.badgePill, isDark ? styles.badgePillDark : styles.badgePillLight]}>
+            <Ionicons name="speedometer-outline" size={13} color={isDark ? '#34D399' : '#0F766E'} />
+            <Text style={[styles.badgeText, isDark ? { color: '#34D399' } : { color: '#0F766E' }]}>
+              {period === 'weekly' ? 'WEEKLY LIMIT' : 'MONTHLY LIMIT'}
+            </Text>
           </View>
-          <Text style={[styles.title, !isDark && { color: '#191c1d' }]}>
-            {period === 'weekly' ? 'Weekly Limit' : 'Monthly Limit'} • {CURRENCY_SYMBOL}
-            {limit.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-          </Text>
         </View>
 
-        {/* Period Segmented Switcher & Edit Button */}
         <View style={styles.headerRight}>
+          {/* Segmented Switcher */}
           <View
             style={[styles.segmentContainer, isDark ? styles.segmentDark : styles.segmentLight]}
           >
             <TouchableOpacity
-              activeOpacity={0.7}
+              activeOpacity={0.8}
               onPress={() => onPeriodChange('weekly')}
               style={[
                 styles.segmentPill,
@@ -84,15 +96,16 @@ export const BudgetProgressCard = React.memo(function BudgetProgressCard({
                 style={[
                   styles.segmentText,
                   period === 'weekly'
-                    ? { color: isDark ? '#10B981' : '#006948', fontWeight: '800' }
-                    : { color: isDark ? '#9CA3AF' : '#4B5563' },
+                    ? { color: '#FFFFFF', fontWeight: '800' }
+                    : { color: isDark ? '#9CA3AF' : '#64748B' },
                 ]}
               >
-                W
+                Weekly
               </Text>
             </TouchableOpacity>
+
             <TouchableOpacity
-              activeOpacity={0.7}
+              activeOpacity={0.8}
               onPress={() => onPeriodChange('monthly')}
               style={[
                 styles.segmentPill,
@@ -104,46 +117,64 @@ export const BudgetProgressCard = React.memo(function BudgetProgressCard({
                 style={[
                   styles.segmentText,
                   period === 'monthly'
-                    ? { color: isDark ? '#10B981' : '#006948', fontWeight: '800' }
-                    : { color: isDark ? '#9CA3AF' : '#4B5563' },
+                    ? { color: '#FFFFFF', fontWeight: '800' }
+                    : { color: isDark ? '#9CA3AF' : '#64748B' },
                 ]}
               >
-                M
+                Monthly
               </Text>
             </TouchableOpacity>
           </View>
 
+          {/* Edit Limit Button */}
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={onEditLimitPress}
             style={[styles.editBtn, isDark ? styles.editBtnDark : styles.editBtnLight]}
           >
-            <Ionicons name="pencil" size={12} color={isDark ? '#10B981' : '#006948'} />
+            <Ionicons name="pencil" size={13} color={isDark ? '#34D399' : '#0F766E'} />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Progress Track */}
-      <View style={[styles.progressTrack, !isDark && { backgroundColor: '#e6f4ea' }]}>
+      {/* Hero Figures Row */}
+      <View style={styles.heroRow}>
+        <View style={styles.amountGroup}>
+          <Text style={[styles.spentAmount, isDark ? { color: '#FFFFFF' } : { color: '#0F172A' }]}>
+            {CURRENCY_SYMBOL}
+            {spent.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+          </Text>
+          <Text style={[styles.limitSubText, isDark ? { color: '#9CA3AF' } : { color: '#64748B' }]}>
+            of {CURRENCY_SYMBOL}
+            {limit.toLocaleString('en-IN', { maximumFractionDigits: 0 })} limit
+          </Text>
+        </View>
+
+        {/* Dynamic Percentage Badge */}
+        <View style={[styles.statusBadge, { backgroundColor: alertTheme.badgeBg }]}>
+          <Ionicons name={alertTheme.icon as never} size={13} color={alertTheme.badgeText} />
+          <Text style={[styles.statusBadgeText, { color: alertTheme.badgeText }]}>
+            {alertTheme.label}
+          </Text>
+        </View>
+      </View>
+
+      {/* Enhanced Progress Track */}
+      <View style={[styles.progressTrack, isDark ? styles.trackDark : styles.trackLight]}>
         <View
           style={[
             styles.progressFill,
-            { width: `${displayFillWidth}%`, backgroundColor: progressColor },
+            { width: `${displayFillWidth}%`, backgroundColor: alertTheme.color },
           ]}
         />
       </View>
 
-      {/* Footer Details */}
-      <View style={styles.footer}>
-        <Text style={[styles.spentText, !isDark && { color: '#191c1d' }]}>
-          {CURRENCY_SYMBOL}
-          {spent.toLocaleString('en-IN', { maximumFractionDigits: 0 })} spent of {CURRENCY_SYMBOL}
-          {limit.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-        </Text>
-        <Text style={[styles.remainingText, { color: progressColor }]}>
-          {spent >= limit
-            ? `Exceeded by ${CURRENCY_SYMBOL}${(spent - limit).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
-            : `${CURRENCY_SYMBOL}${remaining.toLocaleString('en-IN', { maximumFractionDigits: 0 })} left`}
+      {/* Footer Info */}
+      <View style={styles.footerRow}>
+        <Text style={[styles.footerStatusText, { color: alertTheme.color }]}>
+          {isExceeded
+            ? `Limit exceeded by ${CURRENCY_SYMBOL}${(spent - limit).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
+            : `${CURRENCY_SYMBOL}${remaining.toLocaleString('en-IN', { maximumFractionDigits: 0 })} remaining for this ${period === 'weekly' ? 'week' : 'month'}`}
         </Text>
       </View>
     </View>
@@ -152,113 +183,179 @@ export const BudgetProgressCard = React.memo(function BudgetProgressCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#131D1A',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    padding: 18,
+    borderRadius: 22,
+    padding: 20,
     marginBottom: 24,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  cardDark: {
+    backgroundColor: '#101917',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  cardLight: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(15, 118, 110, 0.12)',
+    shadowColor: '#0F766E',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  bgGlow: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    top: -50,
+    right: -40,
+    backgroundColor: 'rgba(16, 185, 129, 0.05)',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 16,
   },
-  titleWrapper: {
+  titleBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+  },
+  badgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  badgePillDark: {
+    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.25)',
+  },
+  badgePillLight: {
+    backgroundColor: 'rgba(15, 118, 110, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(15, 118, 110, 0.16)',
+  },
+  badgeText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 0.8,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  iconBg: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#74817B',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
   segmentContainer: {
     flexDirection: 'row',
-    borderRadius: 10,
-    padding: 2,
+    borderRadius: 12,
+    padding: 3,
     borderWidth: 1,
   },
   segmentLight: {
-    backgroundColor: '#f3f4f6',
-    borderColor: '#e5e7eb',
+    backgroundColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
   },
   segmentDark: {
-    backgroundColor: '#101917',
-    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#0D1714',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   segmentPill: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 9,
   },
   segmentPillActiveLight: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#0F766E',
   },
   segmentPillActiveDark: {
-    backgroundColor: '#131D1A',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#10B981',
   },
   segmentText: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 11.5,
+    fontWeight: '600',
   },
   editBtn: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
   },
   editBtnLight: {
-    backgroundColor: '#e6f4ea',
-    borderColor: '#006948',
+    backgroundColor: 'rgba(15, 118, 110, 0.08)',
+    borderColor: 'rgba(15, 118, 110, 0.18)',
   },
   editBtnDark: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+    borderColor: 'rgba(52, 211, 153, 0.3)',
+  },
+  heroRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: 14,
+  },
+  amountGroup: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+  },
+  spentAmount: {
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: -0.6,
+  },
+  limitSubText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
   progressTrack: {
-    height: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 3,
+    height: 10,
+    borderRadius: 5,
     overflow: 'hidden',
-    marginBottom: 12,
+    marginBottom: 10,
+  },
+  trackLight: {
+    backgroundColor: '#E2E8F0',
+  },
+  trackDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 5,
   },
-  footer: {
+  footerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  spentText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  remainingText: {
+  footerStatusText: {
     fontSize: 12,
     fontWeight: '700',
   },

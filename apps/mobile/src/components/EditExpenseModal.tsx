@@ -23,6 +23,8 @@ import { FormInput } from './FormInput';
 import { CategoryDropdown } from '../module/groups/components/CategoryDropdown';
 import { formatRupees } from '../utils/format';
 
+import { PaymentMethodSelector } from './PaymentMethodSelector';
+
 interface EditExpenseModalProps {
   visible: boolean;
   onClose: () => void;
@@ -45,6 +47,7 @@ export function EditExpenseModal({
   const [title, setTitle] = useState(() => expense.title);
   const [notes, setNotes] = useState(() => expense.notes || '');
   const [date, setDate] = useState(() => expense.date);
+  const [paymentMethod, setPaymentMethod] = useState<string>(() => expense.paymentMethod || 'UPI');
   const [errorMessage, setErrorMessage] = useState('');
 
   const updateExpense = useUpdateExpense();
@@ -57,6 +60,7 @@ export function EditExpenseModal({
       setTitle(expense.title);
       setNotes(expense.notes || '');
       setDate(expense.date);
+      setPaymentMethod(expense.paymentMethod || 'UPI');
       setErrorMessage('');
     }
   }, [visible, expense]);
@@ -95,6 +99,7 @@ export function EditExpenseModal({
       category,
       date,
       notes: notes.trim() || undefined,
+      paymentMethod,
     });
 
     if (!validation.success) {
@@ -154,6 +159,12 @@ export function EditExpenseModal({
             onToggle={handleToggleCategoryDropdown}
             category={category}
             onSelect={handleSelectCategory}
+          />
+
+          <PaymentMethodSelector
+            selectedMethod={paymentMethod}
+            onSelect={setPaymentMethod}
+            variant={variant}
           />
 
           <FormInput

@@ -8,6 +8,8 @@ import { FormInput } from '../../../components/FormInput';
 import { DropdownSelector } from '../../../components/DropdownSelector';
 import { createGroupStyles as styles } from '../styles/create-group.styles';
 
+import { useTheme } from '../../../context/ThemeContext';
+
 export const TYPE_EMOJIS: Record<GroupType, string> = {
   Roommates: '🏠',
   Travel: '✈️',
@@ -26,9 +28,19 @@ interface CreateGroupModalProps {
   visible: boolean;
   onClose: () => void;
   onSuccess?: (groupId: string) => void;
+  variant?: 'light' | 'dark';
 }
 
-export function CreateGroupModal({ visible, onClose, onSuccess }: CreateGroupModalProps) {
+export function CreateGroupModal({
+  visible,
+  onClose,
+  onSuccess,
+  variant: customVariant,
+}: CreateGroupModalProps) {
+  const { isDark: contextIsDark } = useTheme();
+  const variant = customVariant ?? (contextIsDark ? 'dark' : 'light');
+  const isDark = variant === 'dark';
+
   const {
     name,
     description,
@@ -48,13 +60,27 @@ export function CreateGroupModal({ visible, onClose, onSuccess }: CreateGroupMod
   });
 
   return (
-    <BottomSheetModal visible={visible} onClose={handleClose} title="Create Group">
+    <BottomSheetModal
+      visible={visible}
+      onClose={handleClose}
+      title="Create Group"
+      variant={variant}
+    >
       {/* Error Banner */}
       {errorMessage ? (
-        <View style={styles.errorBanner}>
-          <Ionicons name="alert-circle" size={16} color={COLORS.error} />
+        <View
+          style={[
+            styles.errorBanner,
+            isDark && {
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              borderColor: 'rgba(239, 68, 68, 0.2)',
+              borderWidth: 1,
+            },
+          ]}
+        >
+          <Ionicons name="alert-circle" size={16} color={isDark ? '#EF4444' : COLORS.error} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.errorText}>{errorMessage}</Text>
+            <Text style={[styles.errorText, isDark && { color: '#EF4444' }]}>{errorMessage}</Text>
           </View>
         </View>
       ) : null}
@@ -74,6 +100,7 @@ export function CreateGroupModal({ visible, onClose, onSuccess }: CreateGroupMod
           maxLength={50}
           showCharCount
           autoFocus
+          variant={variant}
         />
 
         <FormInput
@@ -84,6 +111,7 @@ export function CreateGroupModal({ visible, onClose, onSuccess }: CreateGroupMod
           multiline
           numberOfLines={3}
           maxLength={200}
+          variant={variant}
         />
 
         <DropdownSelector
@@ -97,13 +125,14 @@ export function CreateGroupModal({ visible, onClose, onSuccess }: CreateGroupMod
           onSelect={(item) => {
             handleChangeType(item);
           }}
+          variant={variant}
           renderHeaderContent={(item) => (
-            <Text style={styles.dropdownHeaderText}>
+            <Text style={[styles.dropdownHeaderText, isDark && { color: '#F9FAFB' }]}>
               {TYPE_EMOJIS[item]} {item}
             </Text>
           )}
           renderOptionContent={(item) => (
-            <Text style={styles.dropdownItemLabel}>
+            <Text style={[styles.dropdownItemLabel, isDark && { color: '#F9FAFB' }]}>
               {TYPE_EMOJIS[item]} {item}
             </Text>
           )}
@@ -112,7 +141,9 @@ export function CreateGroupModal({ visible, onClose, onSuccess }: CreateGroupMod
         <TouchableOpacity
           style={[
             styles.primaryBtn,
-            (name.trim().length < 3 || isPending) && styles.primaryBtnDisabled,
+            isDark && { backgroundColor: '#10B981' },
+            (name.trim().length < 3 || isPending) &&
+              (isDark ? { backgroundColor: '#1F2937', opacity: 0.5 } : styles.primaryBtnDisabled),
           ]}
           onPress={handleSubmit}
           disabled={name.trim().length < 3 || isPending}

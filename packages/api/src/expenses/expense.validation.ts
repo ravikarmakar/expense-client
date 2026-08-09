@@ -20,6 +20,7 @@ export const clientCreateExpenseSchema = z.object({
     .min(1, 'Date is required')
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Please select a valid date (YYYY-MM-DD)'),
   notes: z.string().max(500, 'Notes must be at most 500 characters').optional(),
+  paymentMethod: z.string().optional(),
   groupId: z.string().optional(),
   useWallet: z.boolean().optional(),
   splitMemberIds: z

@@ -169,7 +169,8 @@ export const RecentIncome = React.memo(function RecentIncome({
 
 const styles = StyleSheet.create({
   pbHighlight: {
-    paddingBottom: 24,
+    paddingBottom: 8,
+    marginBottom: 12,
   },
   highlightsContainer: {},
   sectionHeaderRow: {

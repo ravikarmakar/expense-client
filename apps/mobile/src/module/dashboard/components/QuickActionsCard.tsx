@@ -8,6 +8,7 @@ import { ScalePressable } from '../../../components/ScalePressable';
 interface QuickActionsCardProps {
   onAddExpensePress: () => void;
   onAddIncomePress?: () => void;
+  onLendBorrowPress?: () => void;
   onCreateGroupPress: () => void;
   onCreateCategoryPress: () => void;
   onScanReceiptPress?: () => void;
@@ -21,6 +22,7 @@ interface QuickActionsCardProps {
 export const QuickActionsCard = React.memo(function QuickActionsCard({
   onAddExpensePress,
   onAddIncomePress,
+  onLendBorrowPress,
   onCreateGroupPress,
   onCreateCategoryPress,
   onScanReceiptPress,
@@ -87,6 +89,29 @@ export const QuickActionsCard = React.memo(function QuickActionsCard({
             </Text>
           </ScalePressable>
         )}
+
+        {/* Lend & Borrow */}
+        <ScalePressable
+          style={styles.quickActionItem}
+          onPress={onLendBorrowPress ?? (() => router.push('/lend-borrow'))}
+        >
+          <View
+            style={[
+              styles.quickActionIconContainer,
+              isDark
+                ? styles.darkIconContainer
+                : { backgroundColor: '#e6f4ea', borderColor: '#a7f3d0', borderWidth: 1 },
+            ]}
+          >
+            <Ionicons name="hand-left" size={24} color={isDark ? '#34D399' : '#059669'} />
+          </View>
+          <Text
+            style={[styles.quickActionLabel, { color: isDark ? '#ffffff' : '#191c1d' }]}
+            numberOfLines={2}
+          >
+            Lend & Borrow
+          </Text>
+        </ScalePressable>
 
         {/* My Wallet */}
         <ScalePressable

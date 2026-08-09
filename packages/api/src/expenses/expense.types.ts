@@ -43,6 +43,7 @@ export const expenseSchema = z.object({
     if (typeof val === 'string' && val.trim() !== '') return val.trim();
     return 'Other';
   }, z.string().default('Other')),
+  paymentMethod: z.string().nullable().optional(),
   date: z.string(), // ISO date string
   notes: z.string().nullable().optional(),
   paidBy: z.object({
@@ -119,6 +120,7 @@ export interface CreateExpenseInput {
   category: ExpenseCategory;
   date: string;
   notes?: string;
+  paymentMethod?: string;
   groupId?: string;
   useWallet?: boolean;
   splitMemberIds?: string[];
