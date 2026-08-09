@@ -1,17 +1,22 @@
 import React from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import {
   ExportDateRange,
   ExportFormat,
   ExpenseExportItem,
   ExportResult,
+  ExportContext,
 } from '../services/export/types';
 import { generatePdfReport } from '../services/export/pdf';
 import { generateExcelWorkbook } from '../services/export/excel';
 import { generateCsvContent } from '../services/export/csv';
 import { generateJsonContent } from '../services/export/json';
-import { saveExportFile } from '../services/export/saveFile';
+import { saveExportFile, getSubfolderName } from '../services/export/saveFile';
 import { shareExportFile, openExportFile } from '../services/export/shareFile';
+import {
+  saveToAndroidDownloads,
+  isAndroidDownloadsAvailable,
+} from '../services/export/androidDownloadService';
 
 export const getDateRangeLabelText = (
   range: ExportDateRange,
@@ -76,12 +81,18 @@ export const useExport = () => {
   );
   const [customEndDate, setCustomEndDate] = React.useState<Date>(new Date());
   const [format, setFormat] = React.useState<ExportFormat>('pdf');
+  const [, setActiveContext] = React.useState<ExportContext>('personal');
 
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [progressMessage, setProgressMessage] = React.useState('');
   const [exportResult, setExportResult] = React.useState<ExportResult | null>(null);
 
-  const executeExport = async (allExpenses: ExpenseExportItem[], userName = 'User') => {
+  const executeExport = async (
+    allExpenses: ExpenseExportItem[],
+    userName = 'User',
+    context: ExportContext = 'personal'
+  ) => {
+    setActiveContext(context);
     setExportModalVisible(false);
     setIsGenerating(true);
     setProgressMessage('Filtering expense records...');
@@ -109,24 +120,25 @@ export const useExport = () => {
       let isBase64 = false;
 
       if (format === 'pdf') {
-        setProgressMessage('Generating professional PDF report with charts & summary...');
+        setProgressMessage('Generating PDF report...');
         contentOrUri = await generatePdfReport(filteredExpenses, periodLabel, userName);
       } else if (format === 'excel') {
-        setProgressMessage('Building Excel XLSX workbook with custom columns...');
+        setProgressMessage('Building Excel workbook...');
         contentOrUri = generateExcelWorkbook(filteredExpenses);
         isBase64 = true;
       } else if (format === 'csv') {
-        setProgressMessage('Formatting CSV dataset with UTF-8 encoding...');
+        setProgressMessage('Formatting CSV data...');
         contentOrUri = generateCsvContent(filteredExpenses);
       } else if (format === 'json') {
-        setProgressMessage('Formatting pretty JSON document...');
+        setProgressMessage('Formatting JSON document...');
         contentOrUri = generateJsonContent(filteredExpenses);
       }
 
-      setProgressMessage('Saving file & requesting storage permission...');
+      const subFolder = getSubfolderName(context);
+      setProgressMessage(`Saving to SplitShare / ${subFolder}...`);
 
-      // Save file to storage
-      const result = await saveExportFile(contentOrUri, format, dateRange, isBase64);
+      // Save file cleanly to device storage
+      const result = await saveExportFile(contentOrUri, format, dateRange, isBase64, context);
 
       setIsGenerating(false);
 
@@ -143,14 +155,73 @@ export const useExport = () => {
     }
   };
 
+  /**
+   * Open the exported file via native viewer / Excel / PDF app
+   */
   const handleOpenFile = async () => {
     if (exportResult?.fileUri && exportResult.mimeType) {
       await openExportFile(exportResult.fileUri, exportResult.mimeType, exportResult.fileName);
     }
   };
 
+  /**
+   * Share the exported file via native share sheet
+   */
   const handleShareFile = async () => {
     if (exportResult?.fileUri && exportResult.mimeType) {
+      await shareExportFile(exportResult.fileUri, exportResult.mimeType, exportResult.fileName);
+    }
+  };
+
+  /**
+   * Save file directly to phone storage folder without SAF picker
+   */
+  const handleSaveToDownloads = async () => {
+    if (!exportResult?.fileUri || !exportResult.mimeType) return;
+
+    if (Platform.OS === 'android') {
+      if (!isAndroidDownloadsAvailable()) {
+        Alert.alert(
+          'Dev Build Required ℹ️',
+          'Direct auto-saving to Internal Storage/Download/SplitShare/Transactions/ requires an Expo Development Build (npx expo run:android).\n\nOpening share option so you can save or view the file now...',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                if (exportResult.fileUri && exportResult.mimeType) {
+                  shareExportFile(
+                    exportResult.fileUri,
+                    exportResult.mimeType,
+                    exportResult.fileName
+                  );
+                }
+              },
+            },
+          ]
+        );
+        return;
+      }
+
+      try {
+        const mimeType = exportResult.mimeType;
+        const fileName = exportResult.fileName || 'export_file';
+
+        await saveToAndroidDownloads({
+          sourceUri: exportResult.fileUri,
+          fileName,
+          mimeType,
+          relativePath: 'Download/SplitShare/Transactions/',
+        });
+
+        Alert.alert(
+          'Saved to Downloads! 💾',
+          `${fileName} is saved directly to your phone storage:\n\nInternal Storage/Download/SplitShare/Transactions/`
+        );
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Could not save file to storage';
+        Alert.alert('Save Failed', msg);
+      }
+    } else {
       await shareExportFile(exportResult.fileUri, exportResult.mimeType, exportResult.fileName);
     }
   };
@@ -174,5 +245,6 @@ export const useExport = () => {
     executeExport,
     handleOpenFile,
     handleShareFile,
+    handleSaveToDownloads,
   };
 };

@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
-import { ExportFormat, ExportResult } from './types';
+import { ExportFormat, ExportResult, ExportContext } from './types';
+import { saveToAndroidDownloads, isAndroidDownloadsAvailable } from './androidDownloadService';
 
 declare const document: {
   body: {
@@ -14,24 +15,6 @@ declare const document: {
     setAttribute(name: string, value: string): void;
   };
 };
-
-interface FileSystemExtended {
-  StorageAccessFramework?: {
-    requestDirectoryPermissionsAsync: (
-      initialUri?: string
-    ) => Promise<{ granted: boolean; directoryUri: string }>;
-    createFileAsync: (directoryUri: string, fileName: string, mimeType: string) => Promise<string>;
-  };
-  documentDirectory?: string;
-  cacheDirectory?: string;
-  EncodingType?: { UTF8: string; Base64: string };
-  writeAsStringAsync?: (
-    uri: string,
-    contents: string,
-    options?: { encoding?: string }
-  ) => Promise<void>;
-  getInfoAsync?: (uri: string) => Promise<{ exists: boolean; size?: number; uri: string }>;
-}
 
 export const getMimeType = (format: ExportFormat): string => {
   switch (format) {
@@ -48,7 +31,11 @@ export const getMimeType = (format: ExportFormat): string => {
   }
 };
 
-export const getFileName = (format: ExportFormat, dateRangeStr: string): string => {
+export const getFileName = (
+  format: ExportFormat,
+  _dateRangeStr: string,
+  context: ExportContext = 'personal'
+): string => {
   const todayStr = new Date().toISOString().split('T')[0];
   const extensionMap: Record<ExportFormat, string> = {
     pdf: 'pdf',
@@ -56,24 +43,51 @@ export const getFileName = (format: ExportFormat, dateRangeStr: string): string 
     csv: 'csv',
     json: 'json',
   };
-  return `Expenses_${dateRangeStr}_${todayStr}.${extensionMap[format]}`;
+
+  const prefixMap: Record<ExportContext, string> = {
+    personal: 'SplitShare_Transactions',
+    income: 'SplitShare_Income',
+    group: 'SplitShare_Group_Expenses',
+    activity: 'SplitShare_Activity',
+  };
+
+  const prefix = prefixMap[context] || 'SplitShare_Transactions';
+  return `${prefix}_${todayStr}.${extensionMap[format]}`;
 };
 
+export const getSubfolderName = (context: ExportContext = 'personal'): string => {
+  switch (context) {
+    case 'income':
+      return 'Income Statements';
+    case 'group':
+      return 'Group Expenses';
+    case 'activity':
+      return 'Activity Logs';
+    case 'personal':
+    default:
+      return 'Transactions';
+  }
+};
+
+/**
+ * Save export file into local device storage cleanly & automatically.
+ * On Android, uses Android MediaStore.Downloads to save directly to Download/SplitShare/Transactions/
+ * without SAF folder picker prompts ("Can't use this folder").
+ */
 export const saveExportFile = async (
   fileContentOrUri: string,
   format: ExportFormat,
   dateRangeStr: string,
-  isBase64 = false
+  isBase64 = false,
+  context: ExportContext = 'personal'
 ): Promise<ExportResult> => {
-  const fileName = getFileName(format, dateRangeStr);
+  const fileName = getFileName(format, dateRangeStr, context);
   const mimeType = getMimeType(format);
-  const fs = FileSystem as unknown as FileSystemExtended;
 
   // 1. WEB ENVIRONMENT
   if (Platform.OS === 'web') {
     try {
       if (format === 'pdf' && fileContentOrUri.startsWith('file://')) {
-        // If generated via expo-print
         const link = document.createElement('a');
         link.href = fileContentOrUri;
         link.download = fileName;
@@ -103,7 +117,7 @@ export const saveExportFile = async (
         success: true,
         fileName,
         mimeType,
-        displayPath: `Downloads/${fileName}`,
+        displayPath: `Download/SplitShare/Transactions/${fileName}`,
       };
     } catch (err: unknown) {
       return {
@@ -113,145 +127,55 @@ export const saveExportFile = async (
     }
   }
 
-  // 2. ANDROID ENVIRONMENT (Storage Access Framework or Cache + Verification)
-  if (Platform.OS === 'android') {
-    try {
-      // If pdf file generated via expo-print URI
-      if (
-        format === 'pdf' &&
-        (fileContentOrUri.startsWith('file://') || fileContentOrUri.startsWith('content://'))
-      ) {
-        if (fs.getInfoAsync) {
-          const info = await fs.getInfoAsync(fileContentOrUri);
-          if (info.exists) {
-            return {
-              success: true,
-              fileUri: fileContentOrUri,
-              fileName,
-              mimeType,
-              displayPath: `Downloads/${fileName}`,
-            };
-          }
-        }
-      }
-
-      // Try Storage Access Framework (SAF) for public Downloads directory
-      if (fs.StorageAccessFramework && fs.writeAsStringAsync) {
-        try {
-          const permissions = await fs.StorageAccessFramework.requestDirectoryPermissionsAsync();
-          if (permissions.granted) {
-            const createdUri = await fs.StorageAccessFramework.createFileAsync(
-              permissions.directoryUri,
-              fileName,
-              mimeType
-            );
-            const encoding = isBase64
-              ? fs.EncodingType?.Base64 || 'base64'
-              : fs.EncodingType?.UTF8 || 'utf8';
-
-            await fs.writeAsStringAsync(createdUri, fileContentOrUri, { encoding });
-
-            // Verify file exists
-            if (fs.getInfoAsync) {
-              const info = await fs.getInfoAsync(createdUri);
-              if (!info.exists) {
-                throw new Error('File verification failed after SAF write');
-              }
-            }
-
-            return {
-              success: true,
-              fileUri: createdUri,
-              fileName,
-              mimeType,
-              displayPath: `Downloads/${fileName}`,
-            };
-          }
-        } catch {
-          // Fallback to cache/document directory if SAF permission was dismissed
-        }
-      }
-
-      // Fallback: Save to Local Device App Cache / Document Directory
-      const targetDir = fs.cacheDirectory || fs.documentDirectory;
-      if (!targetDir || !fs.writeAsStringAsync) {
-        return {
-          success: false,
-          error: 'Mobile device storage is unavailable',
-        };
-      }
-
-      const fileUri = `${targetDir}${fileName}`;
-      const encoding = isBase64
-        ? fs.EncodingType?.Base64 || 'base64'
-        : fs.EncodingType?.UTF8 || 'utf8';
-
-      await fs.writeAsStringAsync(fileUri, fileContentOrUri, { encoding });
-
-      // Verify existence
-      if (fs.getInfoAsync) {
-        const info = await fs.getInfoAsync(fileUri);
-        if (!info.exists) {
-          return {
-            success: false,
-            error: 'File verification failed after writing to device storage',
-          };
-        }
-      }
-
-      return {
-        success: true,
-        fileUri,
-        fileName,
-        mimeType,
-        displayPath: `Downloads/${fileName}`,
-      };
-    } catch (err: unknown) {
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : 'Android storage save failed',
-      };
-    }
-  }
-
-  // 3. IOS ENVIRONMENT
+  // 2. MOBILE ENVIRONMENT (Android & iOS)
   try {
-    const targetDir = fs.documentDirectory || fs.cacheDirectory;
-    if (!targetDir || !fs.writeAsStringAsync) {
+    const targetDir = FileSystem.documentDirectory;
+    if (!targetDir) {
       return {
         success: false,
-        error: 'iOS device storage is unavailable',
+        error: 'Device storage is unavailable',
       };
     }
 
-    const fileUri = `${targetDir}${fileName}`;
-    const encoding = isBase64
-      ? fs.EncodingType?.Base64 || 'base64'
-      : fs.EncodingType?.UTF8 || 'utf8';
+    const localFileUri = `${targetDir}${fileName}`;
+    const encoding = isBase64 ? FileSystem.EncodingType.Base64 : FileSystem.EncodingType.UTF8;
 
-    await fs.writeAsStringAsync(fileUri, fileContentOrUri, { encoding });
+    // Save temporary local copy for preview / sharing
+    if (
+      format === 'pdf' &&
+      (fileContentOrUri.startsWith('file://') || fileContentOrUri.startsWith('content://'))
+    ) {
+      await FileSystem.copyAsync({ from: fileContentOrUri, to: localFileUri });
+    } else {
+      await FileSystem.writeAsStringAsync(localFileUri, fileContentOrUri, { encoding });
+    }
 
-    if (fs.getInfoAsync) {
-      const info = await fs.getInfoAsync(fileUri);
-      if (!info.exists) {
-        return {
-          success: false,
-          error: 'File verification failed on iOS storage',
-        };
+    // On Android, save directly to MediaStore Download/SplitShare/Transactions/ if native module is available
+    if (isAndroidDownloadsAvailable()) {
+      try {
+        await saveToAndroidDownloads({
+          sourceUri: localFileUri,
+          fileName,
+          mimeType,
+          relativePath: 'Download/SplitShare/Transactions/',
+        });
+      } catch (nativeErr: unknown) {
+        console.warn('Android MediaStore save notice:', nativeErr);
+        // Fallback gracefully if native module is unavailable (e.g. running in standard Expo Go)
       }
     }
 
     return {
       success: true,
-      fileUri,
+      fileUri: localFileUri,
       fileName,
       mimeType,
-      displayPath: `Documents/${fileName}`,
+      displayPath: `Download/SplitShare/Transactions/${fileName}`,
     };
   } catch (err: unknown) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'iOS storage save failed',
+      error: err instanceof Error ? err.message : 'Failed to save export file',
     };
   }
 };

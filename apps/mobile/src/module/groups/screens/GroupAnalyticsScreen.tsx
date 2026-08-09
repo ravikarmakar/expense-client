@@ -33,7 +33,7 @@ const PALETTE = [
 export default function GroupAnalyticsScreen() {
   const router = useRouter();
   const { id } = useRouteParams(idParamSchema);
-  const [timeframe, setTimeframe] = useState<'today' | 'week' | 'month' | 'year'>('month');
+  const [timeframe, setTimeframe] = useState<'today' | 'week' | 'month' | 'year' | 'all'>('month');
 
   // Local reference date formatted to YYYY-MM-DD
   const getTodayString = () => {
@@ -121,6 +121,7 @@ export default function GroupAnalyticsScreen() {
   // Format dates for subtitle display
   const formatPeriodLabel = () => {
     if (!startDate) return '—';
+    if (timeframe === 'all') return 'All Time';
     if (timeframe === 'today') {
       const d = new Date(startDate);
       return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -154,7 +155,7 @@ export default function GroupAnalyticsScreen() {
       >
         {/* ── Always-visible Timeframe Tabs ── */}
         <View style={styles.tabSelectorContainer}>
-          {(['today', 'week', 'month', 'year'] as const).map((t) => (
+          {(['today', 'week', 'month', 'year', 'all'] as const).map((t) => (
             <TouchableOpacity
               key={t}
               style={[styles.tabBtn, timeframe === t && styles.tabBtnActive]}

@@ -8,7 +8,7 @@ import {
 
 export const analyticsKeys = {
   all: ['analytics'] as const,
-  detail: (timeframe: 'today' | 'week' | 'month' | 'year', date?: string) =>
+  detail: (timeframe: 'today' | 'week' | 'month' | 'year' | 'all', date?: string) =>
     [...analyticsKeys.all, { timeframe, date }] as const,
   debts: () => [...analyticsKeys.all, 'debts'] as const,
   groups: () => [...analyticsKeys.all, 'groups'] as const,
@@ -20,7 +20,7 @@ export const analyticsKeys = {
  * Fetch user spent analytics data.
  */
 export const useExpenseAnalytics = (
-  timeframe: 'today' | 'week' | 'month' | 'year',
+  timeframe: 'today' | 'week' | 'month' | 'year' | 'all',
   date?: string
 ) =>
   useQuery({
@@ -32,7 +32,7 @@ export const useExpenseAnalytics = (
 import { useInfiniteQuery } from '@tanstack/react-query';
 
 export const useExpenseAnalyticsInfinite = (
-  timeframe: 'today' | 'week' | 'month' | 'year',
+  timeframe: 'today' | 'week' | 'month' | 'year' | 'all',
   date?: string,
   limit = 15,
   type?: 'all' | 'personal' | 'group'
@@ -71,7 +71,7 @@ export const useGroupAnalytics = () =>
  */
 export const useGroupDetailAnalytics = (
   groupId: string,
-  timeframe: 'today' | 'week' | 'month' | 'year',
+  timeframe: 'today' | 'week' | 'month' | 'year' | 'all',
   date?: string
 ) =>
   useQuery({

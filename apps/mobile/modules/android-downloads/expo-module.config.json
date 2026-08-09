@@ -1,0 +1,8 @@
+{
+  "name": "android-downloads",
+  "platforms": ["android"],
+  "android": {
+    "package": "com.ravikarmakar.splitshare.downloads",
+    "modules": ["com.ravikarmakar.splitshare.downloads.AndroidDownloadsModule"]
+  }
+}

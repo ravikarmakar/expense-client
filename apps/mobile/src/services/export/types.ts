@@ -1,5 +1,6 @@
 export type ExportDateRange = 'last-7-days' | 'last-30-days' | 'last-3-months' | 'custom';
 export type ExportFormat = 'pdf' | 'excel' | 'csv' | 'json';
+export type ExportContext = 'personal' | 'income' | 'group' | 'activity';
 
 export interface ExpenseExportItem {
   id: string;
@@ -27,6 +28,7 @@ export interface ExportOptions {
   customEndDate?: Date;
   format: ExportFormat;
   userName?: string;
+  context?: ExportContext;
 }
 
 export interface ExportResult {

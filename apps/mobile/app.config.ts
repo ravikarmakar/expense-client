@@ -8,6 +8,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   orientation: 'portrait',
   userInterfaceStyle: 'light',
   splash: {
+    image: './assets/adaptive-icon.png',
     backgroundColor: '#006948',
     resizeMode: 'contain',
   },

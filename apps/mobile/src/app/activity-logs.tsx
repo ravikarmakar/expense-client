@@ -35,6 +35,11 @@ import {
   type Settlement,
 } from '@workspace/api';
 import { getDateHeading } from '../utils/date';
+import { useExport } from '../hooks/useExport';
+import { ExportModalBottomSheet } from '../components/ExportModalBottomSheet';
+import { ExportProgressAndSuccessModal } from '../components/ExportProgressAndSuccessModal';
+import { hapticFeedback } from '../utils/haptics';
+import { BottomSheetModal } from '../components/BottomSheetModal';
 
 const DATE_RANGE_OPTIONS = [
   { label: 'All Time', value: 'all-time', icon: 'infinite-outline' },
@@ -42,6 +47,7 @@ const DATE_RANGE_OPTIONS = [
   { label: 'Last Month', value: 'last-month', icon: 'play-back-outline' },
   { label: 'Last 7 Days', value: 'last-7-days', icon: 'time-outline' },
   { label: 'Last 30 Days', value: 'last-30-days', icon: 'timer-outline' },
+  { label: 'Select Year', value: 'select-year', icon: 'ribbon-outline' },
 ] as const;
 
 const SORT_OPTIONS = [
@@ -52,6 +58,10 @@ const SORT_OPTIONS = [
 ] as const;
 
 export default function ActivityLogsScreen() {
+  const { isDark } = useTheme();
+  const variant = isDark ? 'dark' : 'light';
+  const exportHook = useExport();
+
   const { data: categoriesData } = useCategories();
   const customCategories = useMemo(() => categoriesData?.custom || [], [categoriesData]);
 
@@ -75,13 +85,13 @@ export default function ActivityLogsScreen() {
     return [...baseTabs, ...dynamicTabs];
   }, [customCategories]);
 
-  // Independent state for Activity Logs (defaults to All Time)
   const { data: user } = useMe();
   const [addExpenseVisible, setAddExpenseVisible] = useState(false);
+  const [addIncomeVisible, setAddIncomeVisible] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [activeFilter, setActiveFilter] = useState<ExpenseCategory | 'All'>('All');
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
-  const [dateRange, setDateRange] = useState<string>('all-time'); // Default to All Time!
+  const [dateRange, setDateRange] = useState<string>('all-time');
   const [isDateRangeDropdownOpen, setIsDateRangeDropdownOpen] = useState(false);
   const [paidByMe, setPaidByMe] = useState(false);
   const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'amount-asc' | 'amount-desc'>(
@@ -90,8 +100,17 @@ export default function ActivityLogsScreen() {
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const [useWalletOnly, setUseWalletOnly] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isYearPickerOpen, setIsYearPickerOpen] = useState(false);
 
-  const [searchVisible, setSearchVisible] = useState(false);
+  const currentYear = new Date().getFullYear();
+  const yearOptions = useMemo(() => {
+    const list = [];
+    for (let y = 2000; y <= 2100; y++) {
+      list.push(y);
+    }
+    return list;
+  }, []);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
 
@@ -125,6 +144,12 @@ export default function ActivityLogsScreen() {
       if (!isNaN(year) && !isNaN(month)) {
         start = new Date(year, month, 1, 0, 0, 0, 0);
         end = new Date(year, month + 1, 0, 23, 59, 59, 999);
+      }
+    } else if (dateRange.startsWith('year-')) {
+      const yr = parseInt(dateRange.replace('year-', ''), 10);
+      if (!isNaN(yr)) {
+        start = new Date(yr, 0, 1, 0, 0, 0, 0);
+        end = new Date(yr, 11, 31, 23, 59, 59, 999);
       }
     }
 
@@ -182,10 +207,6 @@ export default function ActivityLogsScreen() {
     setFilterModalVisible(false);
   }, []);
 
-  const { isDark } = useTheme();
-  const variant = isDark ? 'dark' : 'light';
-  const [addIncomeVisible, setAddIncomeVisible] = useState(false);
-
   // Pagination count: 15 items per batch
   const BATCH_SIZE = 15;
   const [displayLimit, setDisplayLimit] = useState<number>(BATCH_SIZE);
@@ -229,6 +250,9 @@ export default function ActivityLogsScreen() {
         } else if (dateRange === 'last-30-days') {
           const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
           if (incDate < thirtyDaysAgo) return false;
+        } else if (dateRange.startsWith('year-')) {
+          const yr = parseInt(dateRange.replace('year-', ''), 10);
+          if (incDate.getFullYear() !== yr) return false;
         } else if (dateRange.startsWith('month-')) {
           const parts = dateRange.replace('month-', '').split('-');
           const year = parseInt(parts[0], 10);
@@ -273,6 +297,9 @@ export default function ActivityLogsScreen() {
         } else if (dateRange === 'last-30-days') {
           const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
           if (setDate < thirtyDaysAgo) return false;
+        } else if (dateRange.startsWith('year-')) {
+          const yr = parseInt(dateRange.replace('year-', ''), 10);
+          if (setDate.getFullYear() !== yr) return false;
         } else if (dateRange.startsWith('month-')) {
           const parts = dateRange.replace('month-', '').split('-');
           const year = parseInt(parts[0], 10);
@@ -284,7 +311,7 @@ export default function ActivityLogsScreen() {
     });
   }, [rawSettlements, activeFilter, useWalletOnly, paidByMe, searchQuery, dateRange]);
 
-  type ActivityFeedItem =
+  type ActivityFeedItemType =
     | {
         kind: 'expense';
         id: string;
@@ -297,21 +324,21 @@ export default function ActivityLogsScreen() {
 
   // Full mixed activity feed
   const fullActivityFeed = useMemo(() => {
-    const expensesList: ActivityFeedItem[] = sortedExpenses.map((e) => ({
+    const expensesList: ActivityFeedItemType[] = sortedExpenses.map((e) => ({
       kind: 'expense' as const,
       id: e.id,
       date: e.date,
       amount: e.amount,
       item: e,
     }));
-    const incomesList: ActivityFeedItem[] = filteredIncomes.map((i) => ({
+    const incomesList: ActivityFeedItemType[] = filteredIncomes.map((i) => ({
       kind: 'income' as const,
       id: i.id,
       date: i.date,
       amount: i.amount,
       item: i,
     }));
-    const settlementsList: ActivityFeedItem[] = filteredSettlements.map((s) => ({
+    const settlementsList: ActivityFeedItemType[] = filteredSettlements.map((s) => ({
       kind: 'settlement' as const,
       id: s.id,
       date: s.createdAt,
@@ -337,6 +364,43 @@ export default function ActivityLogsScreen() {
   const paginatedFeed = useMemo(() => {
     return fullActivityFeed.slice(0, displayLimit);
   }, [fullActivityFeed, displayLimit]);
+
+  // Mapped activity items for export
+  const exportItems = useMemo(() => {
+    return fullActivityFeed.map((entry) => {
+      if (entry.kind === 'expense') {
+        return {
+          id: entry.id,
+          title: entry.item.title || 'Expense',
+          amount: entry.amount,
+          category: entry.item.category || 'Other',
+          date: entry.date,
+          notes: entry.item.notes || '',
+          type: 'PERSONAL' as const,
+        };
+      } else if (entry.kind === 'income') {
+        return {
+          id: entry.id,
+          title: entry.item.notes || entry.item.source || 'Income',
+          amount: entry.amount,
+          category: entry.item.source || 'Income',
+          date: entry.date,
+          notes: entry.item.notes || '',
+          type: 'PERSONAL' as const,
+        };
+      } else {
+        return {
+          id: entry.id,
+          title: `Settlement (${entry.item.from?.name || 'User'} -> ${entry.item.to?.name || 'User'})`,
+          amount: entry.amount,
+          category: 'Settlement',
+          date: entry.date,
+          notes: 'Settlement',
+          type: 'PERSONAL' as const,
+        };
+      }
+    });
+  }, [fullActivityFeed]);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -364,104 +428,113 @@ export default function ActivityLogsScreen() {
   };
 
   const insets = useSafeAreaInsets();
+  const isFiltered =
+    activeFilter !== 'All' ||
+    sortBy !== 'date-desc' ||
+    paidByMe ||
+    useWalletOnly ||
+    dateRange !== 'all-time';
 
   return (
     <View style={[styles.container, isDark && styles.containerDark]}>
-      {/* Top Header */}
+      {/* Header Bar */}
       <View style={[styles.headerContainer, { paddingTop: insets.top + 12 }]}>
         <View style={styles.tabHeaderRow}>
-          {searchVisible ? (
-            <View style={styles.searchInputContainer}>
-              <Ionicons
-                name="search"
-                size={20}
-                color={COLORS.primary}
-                style={styles.searchIconInline}
-              />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search transactions..."
-                placeholderTextColor={COLORS.outline}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoFocus
-              />
-              <TouchableOpacity
-                onPress={() => {
-                  setSearchQuery('');
-                  setSearchVisible(false);
-                }}
-                style={styles.clearSearchBtn}
-              >
-                <Ionicons name="close-circle" size={22} color={COLORS.outline} />
-              </TouchableOpacity>
+          <View style={styles.headerLeftRow}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backBtn}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="arrow-back" size={24} color={isDark ? '#F3F4F6' : COLORS.onSurface} />
+            </TouchableOpacity>
+            <View>
+              <Text style={[styles.tabTitle, isDark && styles.tabTitleDark]}>Activity Logs</Text>
             </View>
-          ) : (
-            <>
-              <View style={styles.headerLeftRow}>
-                <TouchableOpacity
-                  onPress={() => router.back()}
-                  style={styles.backBtn}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name="arrow-back"
-                    size={24}
-                    color={isDark ? '#F3F4F6' : COLORS.onSurface}
-                  />
-                </TouchableOpacity>
-                <View>
-                  <Text style={[styles.tabTitle, isDark && styles.tabTitleDark]}>
-                    Activity Logs
-                  </Text>
-                </View>
-              </View>
+          </View>
 
-              <View style={styles.headerRightActions}>
-                <TouchableOpacity
-                  style={styles.searchIconBtn}
-                  activeOpacity={0.8}
-                  onPress={() => setSearchVisible(true)}
-                >
-                  <Ionicons name="search" size={22} color={COLORS.primary} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.filterBtn,
-                    (activeFilter !== 'All' ||
-                      sortBy !== 'date-desc' ||
-                      paidByMe ||
-                      useWalletOnly ||
-                      dateRange !== 'all-time') &&
-                      styles.filterBtnActive,
-                  ]}
-                  onPress={() => setFilterModalVisible(true)}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons
-                    name="funnel"
-                    size={20}
-                    color={
-                      activeFilter !== 'All' ||
-                      sortBy !== 'date-desc' ||
-                      paidByMe ||
-                      useWalletOnly ||
-                      dateRange !== 'all-time'
-                        ? '#ffffff'
-                        : COLORS.primary
-                    }
-                  />
-                </TouchableOpacity>
-              </View>
-            </>
+          <View style={styles.headerRightActions}>
+            {/* Analytics Icon Button */}
+            <TouchableOpacity
+              style={styles.iconBtn}
+              activeOpacity={0.7}
+              onPress={() => {
+                hapticFeedback.selection();
+                router.push('/activity-analytics');
+              }}
+            >
+              <Ionicons
+                name="bar-chart-outline"
+                size={24}
+                color={isDark ? '#F3F4F6' : COLORS.onSurface}
+              />
+            </TouchableOpacity>
+
+            {/* Filter Icon Button */}
+            <TouchableOpacity
+              style={[styles.iconBtn, isFiltered && styles.filterBtnActive]}
+              onPress={() => {
+                hapticFeedback.selection();
+                setFilterModalVisible(true);
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="options-outline"
+                size={24}
+                color={isFiltered ? COLORS.primary : isDark ? '#F3F4F6' : COLORS.onSurface}
+              />
+            </TouchableOpacity>
+
+            {/* Download / Export Icon Button */}
+            <TouchableOpacity
+              style={styles.iconBtn}
+              activeOpacity={0.7}
+              onPress={() => {
+                hapticFeedback.selection();
+                exportHook.setExportModalVisible(true);
+              }}
+            >
+              <Ionicons
+                name="download-outline"
+                size={26}
+                color={isDark ? '#F3F4F6' : COLORS.onSurface}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Search Input Box */}
+        <View style={[styles.alwaysSearchContainer, isDark && styles.alwaysSearchContainerDark]}>
+          <Ionicons
+            name="search-outline"
+            size={22}
+            color={isDark ? 'rgba(255, 255, 255, 0.45)' : COLORS.outline}
+            style={{ marginRight: 10 }}
+          />
+          <TextInput
+            style={[styles.alwaysSearchInput, isDark && { color: '#ffffff' }]}
+            placeholder="Search transactions & activity..."
+            placeholderTextColor={isDark ? 'rgba(255, 255, 255, 0.45)' : COLORS.outline}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.trim().length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons
+                name="close-circle"
+                size={18}
+                color={isDark ? 'rgba(255, 255, 255, 0.45)' : COLORS.outline}
+              />
+            </TouchableOpacity>
           )}
         </View>
 
         {/* Active Filters Bar */}
-        {(activeFilter !== 'All' ||
-          useWalletOnly ||
-          sortBy !== 'date-desc' ||
-          dateRange !== 'all-time') && (
+        {isFiltered && (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -469,7 +542,11 @@ export default function ActivityLogsScreen() {
           >
             {dateRange !== 'all-time' && (
               <View style={styles.activeFilterBadge}>
-                <Text style={styles.activeFilterBadgeText}>{getDateRangeLabel(dateRange)}</Text>
+                <Text style={styles.activeFilterBadgeText}>
+                  {dateRange.startsWith('year-')
+                    ? `Year ${dateRange.replace('year-', '')}`
+                    : getDateRangeLabel(dateRange)}
+                </Text>
                 <TouchableOpacity onPress={() => setDateRange('all-time')}>
                   <Ionicons name="close-circle" size={14} color={COLORS.primary} />
                 </TouchableOpacity>
@@ -541,8 +618,8 @@ export default function ActivityLogsScreen() {
             iconLib="MaterialIcons"
             title="No activity logs found"
             description={
-              activeFilter !== 'All'
-                ? `No ${activeFilter} transactions found.`
+              activeFilter !== 'All' || searchQuery.trim()
+                ? 'No transactions match your search or filters.'
                 : 'No transactions recorded for the selected period.'
             }
             ctaText={activeFilter === 'All' ? 'Add Expense' : undefined}
@@ -744,16 +821,20 @@ export default function ActivityLogsScreen() {
                     >
                       <Ionicons
                         name={
-                          (DATE_RANGE_OPTIONS.find((o) => o.value === dateRange)?.icon ||
-                            'calendar-outline') as never
+                          (dateRange.startsWith('year-')
+                            ? 'ribbon-outline'
+                            : DATE_RANGE_OPTIONS.find((o) => o.value === dateRange)?.icon ||
+                              'calendar-outline') as never
                         }
                         size={18}
                         color={COLORS.secondary}
                       />
                     </View>
                     <Text style={styles.dropdownHeaderText}>
-                      {DATE_RANGE_OPTIONS.find((o) => o.value === dateRange)?.label ||
-                        getDateRangeLabel(dateRange)}
+                      {dateRange.startsWith('year-')
+                        ? `Year ${dateRange.replace('year-', '')}`
+                        : DATE_RANGE_OPTIONS.find((o) => o.value === dateRange)?.label ||
+                          getDateRangeLabel(dateRange)}
                     </Text>
                   </View>
                   <Ionicons
@@ -766,14 +847,22 @@ export default function ActivityLogsScreen() {
                 {isDateRangeDropdownOpen && (
                   <View style={styles.dropdownList}>
                     {DATE_RANGE_OPTIONS.map((opt) => {
-                      const isSelected = dateRange === opt.value;
+                      const isSelected =
+                        dateRange === opt.value ||
+                        (opt.value === 'select-year' && dateRange.startsWith('year-'));
                       return (
                         <TouchableOpacity
                           key={opt.value}
                           style={[styles.dropdownItem, isSelected && styles.dropdownItemActive]}
                           onPress={() => {
-                            setDateRange(opt.value);
-                            setIsDateRangeDropdownOpen(false);
+                            if (opt.value === 'select-year') {
+                              setIsDateRangeDropdownOpen(false);
+                              setFilterModalVisible(false);
+                              setTimeout(() => setIsYearPickerOpen(true), 350);
+                            } else {
+                              setDateRange(opt.value);
+                              setIsDateRangeDropdownOpen(false);
+                            }
                           }}
                           activeOpacity={0.8}
                         >
@@ -949,6 +1038,105 @@ export default function ActivityLogsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Export History Selection Bottom Sheet Modal */}
+      <ExportModalBottomSheet
+        visible={exportHook.exportModalVisible}
+        onClose={() => exportHook.setExportModalVisible(false)}
+        dateRange={exportHook.dateRange}
+        setDateRange={exportHook.setDateRange}
+        customStartDate={exportHook.customStartDate}
+        setCustomStartDate={exportHook.setCustomStartDate}
+        customEndDate={exportHook.customEndDate}
+        setCustomEndDate={exportHook.setCustomEndDate}
+        format={exportHook.format}
+        setFormat={exportHook.setFormat}
+        onConfirmExport={() =>
+          exportHook.executeExport(exportItems, user?.name || user?.email || 'User', 'activity')
+        }
+      />
+
+      {/* Export Progress & Success Modal */}
+      <ExportProgressAndSuccessModal
+        isGenerating={exportHook.isGenerating}
+        progressMessage={exportHook.progressMessage}
+        successVisible={exportHook.successModalVisible}
+        onCloseSuccess={() => exportHook.setSuccessModalVisible(false)}
+        exportResult={exportHook.exportResult}
+        onOpenFile={exportHook.handleOpenFile}
+        onShareFile={exportHook.handleShareFile}
+        onSaveToDownloads={exportHook.handleSaveToDownloads}
+      />
+
+      {/* Select Year Modal */}
+      <BottomSheetModal
+        visible={isYearPickerOpen}
+        onClose={() => setIsYearPickerOpen(false)}
+        title="Select Year"
+        description={`Choose a year from 2000 to ${currentYear} (future years disabled)`}
+        variant={isDark ? 'dark' : 'light'}
+      >
+        <ScrollView style={{ maxHeight: 340 }} showsVerticalScrollIndicator={true}>
+          <View
+            style={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              gap: 10,
+              paddingVertical: 12,
+              justifyContent: 'space-between',
+            }}
+          >
+            {yearOptions.map((year) => {
+              const isFutureYear = year > currentYear;
+              const isSelected = dateRange === `year-${year}`;
+              return (
+                <TouchableOpacity
+                  key={year}
+                  disabled={isFutureYear}
+                  style={[
+                    {
+                      width: '30%',
+                      paddingVertical: 14,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: 14,
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F9FAFB',
+                      borderWidth: 1,
+                      borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#E5E7EB',
+                    },
+                    isFutureYear && {
+                      opacity: 0.3,
+                      backgroundColor: isDark ? '#111816' : '#F3F4F6',
+                    },
+                    isSelected && { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+                  ]}
+                  onPress={() => {
+                    if (isFutureYear) return;
+                    hapticFeedback.selection();
+                    setDateRange(`year-${year}`);
+                    setIsYearPickerOpen(false);
+                  }}
+                  activeOpacity={0.75}
+                >
+                  <Text
+                    style={[
+                      {
+                        fontSize: 15,
+                        fontWeight: '700',
+                        color: isDark ? '#ffffff' : COLORS.onSurface,
+                      },
+                      isFutureYear && { color: isDark ? '#4B5563' : COLORS.outline },
+                      isSelected && { color: '#ffffff', fontWeight: '800' },
+                    ]}
+                  >
+                    {year}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </ScrollView>
+      </BottomSheetModal>
     </View>
   );
 }
@@ -964,15 +1152,14 @@ const styles = StyleSheet.create({
   headerContainer: {
     backgroundColor: COLORS.surface,
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.surfaceContainer,
+    borderBottomColor: '#f1f1f1',
   },
   tabHeaderRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 44,
+    alignItems: 'center',
   },
   headerLeftRow: {
     flexDirection: 'row',
@@ -986,85 +1173,74 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '800',
     color: COLORS.onSurface,
+    letterSpacing: -0.3,
   },
   tabTitleDark: {
     color: '#F9FAFB',
   },
-  tabSubtitle: {
-    fontSize: 12,
-    color: COLORS.outline,
-    fontWeight: '500',
-    marginTop: 1,
-  },
   headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 4,
   },
-  searchIconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: COLORS.surfaceContainerLow,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filterBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: COLORS.surfaceContainerLow,
-    alignItems: 'center',
-    justifyContent: 'center',
+  iconBtn: {
+    padding: 8,
+    borderRadius: 12,
   },
   filterBtnActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#e2dfff',
   },
-  searchInputContainer: {
-    flex: 1,
+  alwaysSearchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surfaceContainerLow,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    height: 40,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginTop: 8,
+    minHeight: 50,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainer,
   },
-  searchIconInline: {
-    marginRight: 6,
+  alwaysSearchContainerDark: {
+    backgroundColor: '#101917',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  searchInput: {
+  alwaysSearchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: '600',
     color: COLORS.onSurface,
-  },
-  clearSearchBtn: {
-    padding: 4,
+    padding: 0,
   },
   activeFiltersRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     gap: 8,
     marginTop: 10,
+    paddingHorizontal: 2,
   },
   activeFilterBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.primaryFixed,
+    gap: 6,
+    backgroundColor: '#e2dfff',
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 16,
-    gap: 4,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#c5c1ff',
   },
   activeFilterBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.onPrimaryFixedVariant,
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
   scrollContent: {
+    paddingTop: 0,
     paddingBottom: 40,
   },
   activityFeed: {
-    paddingTop: 8,
+    paddingTop: 0,
   },
   loadingMore: {
     flexDirection: 'row',

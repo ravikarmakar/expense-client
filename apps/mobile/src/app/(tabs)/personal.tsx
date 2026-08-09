@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  StyleSheet,
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  Modal,
-} from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -18,13 +10,14 @@ import { ExpenseItemSkeleton } from '../../components/ExpenseItemSkeleton';
 import { SkeletonLoader } from '../../components/SkeletonLoader';
 import { ErrorView } from '../../components/ErrorView';
 import { EmptyState } from '../../components/EmptyState';
-import { usePersonalController, useCategories } from '@workspace/api';
+import { usePersonalController, useCategories, type Expense } from '@workspace/api';
 import { getDateHeading } from '../../utils/date';
 import { getCategoryVisuals } from '../../constants/categories';
 import { getDateRangeLabel } from '../../components/ActivityOverviewChartCard';
 import { useExport } from '../../hooks/useExport';
 import { ExportModalBottomSheet } from '../../components/ExportModalBottomSheet';
 import { ExportProgressAndSuccessModal } from '../../components/ExportProgressAndSuccessModal';
+import { FloatingDropdownMenu } from '../../components/FloatingDropdownMenu';
 
 const PERIOD_OPTIONS = [
   { label: 'This Month', value: 'this-month', icon: 'calendar-number-outline' },
@@ -32,6 +25,8 @@ const PERIOD_OPTIONS = [
   { label: 'Last 30 Days', value: 'last-30-days', icon: 'timer-outline' },
   { label: 'Last Month', value: 'last-month', icon: 'play-back-outline' },
   { label: 'All Time', value: 'all-time', icon: 'infinite-outline' },
+  { label: 'Select Month', value: 'custom_month', icon: 'calendar-outline' },
+  { label: 'Select Year', value: 'custom_year', icon: 'ribbon-outline' },
 ] as const;
 
 export default function PersonalTabScreen() {
@@ -51,8 +46,7 @@ export default function PersonalTabScreen() {
   } = usePersonalController();
 
   const [selectedDateRange, setSelectedDateRange] = React.useState<string>('this-month');
-  const [periodModalVisible, setPeriodModalVisible] = React.useState(false);
-  const [pickerYear, setPickerYear] = React.useState<number>(new Date().getFullYear());
+  const [isPeriodDropdownOpen, setIsPeriodDropdownOpen] = React.useState(false);
 
   const { data: categoriesData } = useCategories();
   const customCategories = React.useMemo(() => categoriesData?.custom || [], [categoriesData]);
@@ -108,18 +102,27 @@ export default function PersonalTabScreen() {
         start = new Date(year, month, 1, 0, 0, 0, 0);
         end = new Date(year, month + 1, 0, 23, 59, 59, 999);
       }
+    } else if (selectedDateRange.startsWith('year-')) {
+      const year = parseInt(selectedDateRange.replace('year-', ''), 10);
+      if (!isNaN(year)) {
+        start = new Date(year, 0, 1, 0, 0, 0, 0);
+        end = new Date(year, 11, 31, 23, 59, 59, 999);
+      }
     }
 
-    return allExpenses.filter((exp) => {
+    return allExpenses.filter((exp: Expense) => {
       const expDate = new Date(exp.date);
       return expDate >= start && expDate <= end;
     });
   }, [allExpenses, selectedDateRange]);
 
-  // Compute total spent in the selected period
+  // Compute total spent in the selected period (uses full server aggregate for all-time)
   const periodTotal = React.useMemo(() => {
-    return periodFilteredExpenses.reduce((sum, item) => sum + item.amount, 0);
-  }, [periodFilteredExpenses]);
+    if (selectedDateRange === 'all-time') {
+      return totalSpent;
+    }
+    return periodFilteredExpenses.reduce((sum: number, item: Expense) => sum + item.amount, 0);
+  }, [periodFilteredExpenses, selectedDateRange, totalSpent]);
 
   // Compute category totals strictly for the SELECTED PERIOD from periodFilteredExpenses
   const categoryTotals = React.useMemo(() => {
@@ -128,7 +131,7 @@ export default function PersonalTabScreen() {
       totals[cat] = 0;
     });
 
-    periodFilteredExpenses.forEach((exp) => {
+    periodFilteredExpenses.forEach((exp: Expense) => {
       const cat = exp.category;
       if (cat && cat in totals) {
         totals[cat] += exp.amount;
@@ -163,15 +166,18 @@ export default function PersonalTabScreen() {
 
     if (selectedCategoryFilter === 'Other') {
       return periodFilteredExpenses.filter(
-        (e) => !e.category || e.category === 'Other' || !allCategoryNames.includes(e.category)
+        (e: Expense) =>
+          !e.category || e.category === 'Other' || !allCategoryNames.includes(e.category)
       );
     }
 
-    return periodFilteredExpenses.filter((e) => e.category === selectedCategoryFilter);
+    return periodFilteredExpenses.filter((e: Expense) => e.category === selectedCategoryFilter);
   }, [periodFilteredExpenses, selectedCategoryFilter, allCategoryNames]);
 
-  // Display expenses for the selected filter period in the tab
-  const recentExpenses = filteredFeedExpenses;
+  // Display expenses for the selected filter period in the tab (limited to 15 items)
+  const recentExpenses = React.useMemo(() => {
+    return filteredFeedExpenses.slice(0, 15);
+  }, [filteredFeedExpenses]);
 
   return (
     <View style={styles.container}>
@@ -186,7 +192,7 @@ export default function PersonalTabScreen() {
             <TouchableOpacity
               style={styles.headerIconBtn}
               activeOpacity={0.7}
-              onPress={() => router.push('/total-spent')}
+              onPress={() => router.push('/personal-analytics')}
             >
               <Ionicons name="bar-chart-outline" size={24} color={COLORS.onSurface} />
             </TouchableOpacity>
@@ -216,11 +222,15 @@ export default function PersonalTabScreen() {
             <TouchableOpacity
               style={styles.cardPeriodBtn}
               activeOpacity={0.8}
-              onPress={() => setPeriodModalVisible(true)}
+              onPress={() => setIsPeriodDropdownOpen(!isPeriodDropdownOpen)}
             >
               <Ionicons name="calendar-outline" size={13} color="#ffffff" />
               <Text style={styles.cardPeriodBtnText}>{periodLabelText}</Text>
-              <Ionicons name="chevron-down" size={12} color="rgba(255, 255, 255, 0.8)" />
+              <Ionicons
+                name={isPeriodDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                size={12}
+                color="rgba(255, 255, 255, 0.8)"
+              />
             </TouchableOpacity>
           </View>
 
@@ -369,7 +379,7 @@ export default function PersonalTabScreen() {
           <View style={styles.expensesFeed}>
             {(() => {
               let lastDateHeading = '';
-              return recentExpenses.map((expense) => {
+              return recentExpenses.map((expense: Expense) => {
                 const currentHeading = getDateHeading(expense.date);
                 const showHeading = currentHeading !== lastDateHeading;
                 lastDateHeading = currentHeading;
@@ -392,14 +402,22 @@ export default function PersonalTabScreen() {
         {/* Subtle Caught Up & View History Text Link */}
         {!isLoading && !isError && filteredFeedExpenses.length > 0 && (
           <View style={styles.caughtUpContainer}>
-            <Ionicons name="checkmark-circle-outline" size={16} color={COLORS.outline} />
-            <Text style={styles.caughtUpText}>You{"'"}re all caught up!</Text>
+            <Text style={styles.caughtUpText}>
+              {filteredFeedExpenses.length > 15
+                ? `Showing 15 of ${filteredFeedExpenses.length} personal expenses`
+                : "You're all caught up!"}
+            </Text>
             <TouchableOpacity
-              onPress={() => router.push('/personal-history')}
+              onPress={() =>
+                router.push({
+                  pathname: '/personal-history',
+                  params: { dateRange: selectedDateRange },
+                })
+              }
               activeOpacity={0.7}
               style={styles.historyLinkBtn}
             >
-              <Text style={styles.historyLinkText}>View history</Text>
+              <Text style={styles.historyLinkText}>See all history</Text>
               <Ionicons name="arrow-forward" size={15} color={COLORS.secondary} />
             </TouchableOpacity>
           </View>
@@ -436,7 +454,7 @@ export default function PersonalTabScreen() {
         format={exportHook.format}
         setFormat={exportHook.setFormat}
         onConfirmExport={() =>
-          exportHook.executeExport(allExpenses, user?.name || user?.email || 'User')
+          exportHook.executeExport(allExpenses, user?.name || user?.email || 'User', 'personal')
         }
       />
 
@@ -449,166 +467,29 @@ export default function PersonalTabScreen() {
         exportResult={exportHook.exportResult}
         onOpenFile={exportHook.handleOpenFile}
         onShareFile={exportHook.handleShareFile}
-        onSaveAgain={() =>
-          exportHook.executeExport(allExpenses, user?.name || user?.email || 'User')
-        }
+        onSaveToDownloads={exportHook.handleSaveToDownloads}
       />
 
-      {/* Period Filter Modal */}
-      <Modal
-        visible={periodModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setPeriodModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity
-            style={styles.modalBackdrop}
-            activeOpacity={1}
-            onPress={() => setPeriodModalVisible(false)}
-          />
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHandle} />
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Choose Filter Period</Text>
-              <TouchableOpacity
-                onPress={() => setPeriodModalVisible(false)}
-                style={styles.modalCloseBtn}
-              >
-                <Ionicons name="close" size={22} color={COLORS.onSurface} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.periodModalScroll}
-            >
-              {/* Presets Section */}
-              <Text style={styles.modalSectionTitle}>Quick Presets</Text>
-              <View style={styles.presetsGrid}>
-                {PERIOD_OPTIONS.map((opt) => {
-                  const isSelected = selectedDateRange === opt.value;
-                  return (
-                    <TouchableOpacity
-                      key={opt.value}
-                      style={[
-                        styles.periodOptionItem,
-                        isSelected && styles.periodOptionItemSelected,
-                      ]}
-                      activeOpacity={0.7}
-                      onPress={() => {
-                        setSelectedDateRange(opt.value);
-                        setPeriodModalVisible(false);
-                      }}
-                    >
-                      <View style={styles.periodOptionLeft}>
-                        <View
-                          style={[
-                            styles.periodOptionIconBg,
-                            isSelected && { backgroundColor: COLORS.secondary },
-                          ]}
-                        >
-                          <Ionicons
-                            name={opt.icon as never}
-                            size={16}
-                            color={isSelected ? '#ffffff' : COLORS.secondary}
-                          />
-                        </View>
-                        <Text
-                          style={[
-                            styles.periodOptionLabel,
-                            isSelected && { color: COLORS.secondary, fontWeight: '800' },
-                          ]}
-                        >
-                          {opt.label}
-                        </Text>
-                      </View>
-                      {isSelected ? (
-                        <Ionicons name="checkmark-circle" size={18} color={COLORS.secondary} />
-                      ) : (
-                        <Ionicons name="chevron-forward" size={16} color={COLORS.outline} />
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {/* Specific Month Selector */}
-              <Text style={[styles.modalSectionTitle, { marginTop: 18 }]}>Specific Month</Text>
-
-              {/* Year Switcher Header */}
-              <View style={styles.yearSelectorRow}>
-                <TouchableOpacity
-                  onPress={() => setPickerYear((y) => y - 1)}
-                  style={styles.yearNavBtn}
-                >
-                  <Ionicons name="chevron-back" size={18} color={COLORS.onSurface} />
-                </TouchableOpacity>
-                <Text style={styles.yearText}>{pickerYear}</Text>
-                <TouchableOpacity
-                  onPress={() => setPickerYear((y) => y + 1)}
-                  style={styles.yearNavBtn}
-                >
-                  <Ionicons name="chevron-forward" size={18} color={COLORS.onSurface} />
-                </TouchableOpacity>
-              </View>
-
-              {/* 12 Month Grid */}
-              <View style={styles.monthGrid}>
-                {[
-                  'Jan',
-                  'Feb',
-                  'Mar',
-                  'Apr',
-                  'May',
-                  'Jun',
-                  'Jul',
-                  'Aug',
-                  'Sep',
-                  'Oct',
-                  'Nov',
-                  'Dec',
-                ].map((mName, idx) => {
-                  const mNum = idx + 1;
-                  const monthVal = `month-${pickerYear}-${mNum}`;
-                  const now = new Date();
-                  const isCurrentMonthNow =
-                    pickerYear === now.getFullYear() && idx === now.getMonth();
-                  const isSelected =
-                    selectedDateRange === monthVal ||
-                    (isCurrentMonthNow && selectedDateRange === 'this-month');
-
-                  return (
-                    <TouchableOpacity
-                      key={mName}
-                      style={[styles.monthGridCell, isSelected && styles.monthGridCellSelected]}
-                      onPress={() => {
-                        setSelectedDateRange(isCurrentMonthNow ? 'this-month' : monthVal);
-                        setPeriodModalVisible(false);
-                      }}
-                      activeOpacity={0.75}
-                    >
-                      <Text
-                        style={[styles.monthCellText, isSelected && styles.monthCellTextSelected]}
-                      >
-                        {mName}
-                      </Text>
-                      {isCurrentMonthNow && (
-                        <View
-                          style={[
-                            styles.currentMonthDot,
-                            isSelected && { backgroundColor: '#ffffff' },
-                          ]}
-                        />
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+      {/* Reusable Floating Dropdown Overlay Menu with built-in Month & Year sub-views */}
+      <FloatingDropdownMenu
+        visible={isPeriodDropdownOpen}
+        onClose={() => setIsPeriodDropdownOpen(false)}
+        title="Timeframe Options"
+        options={PERIOD_OPTIONS}
+        selectedValue={selectedDateRange}
+        isSelected={(opt) => {
+          if (opt.value === 'custom_month') {
+            return selectedDateRange.startsWith('month-');
+          }
+          if (opt.value === 'custom_year') {
+            return selectedDateRange.startsWith('year-');
+          }
+          return selectedDateRange === opt.value;
+        }}
+        onSelect={(opt) => {
+          setSelectedDateRange(opt.value);
+        }}
+      />
     </View>
   );
 }
@@ -624,11 +505,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   headerContainer: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.background,
     paddingHorizontal: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f1f1',
+    paddingBottom: 12,
   },
   headerRow: {
     flexDirection: 'row',
@@ -868,93 +747,53 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     zIndex: 40,
   },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalSheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 12,
-    paddingBottom: 34,
-  },
-  modalHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.outlineVariant,
-    alignSelf: 'center',
-    marginBottom: 12,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.surfaceContainer,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: COLORS.onSurface,
-  },
-  modalCloseBtn: {
-    padding: 4,
-  },
   modalSectionTitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: COLORS.outline,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-    marginBottom: 8,
-    marginTop: 4,
+    marginBottom: 6,
+    marginTop: 2,
   },
   periodModalScroll: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 24,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 16,
   },
   presetsGrid: {
-    gap: 8,
+    gap: 6,
   },
   yearSelectorRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: COLORS.surfaceContainerLow,
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    borderRadius: 10,
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    marginTop: 6,
-    marginBottom: 12,
+    marginTop: 4,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: COLORS.surfaceContainer,
   },
   yearNavBtn: {
-    padding: 4,
+    padding: 3,
   },
   yearText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '800',
     color: COLORS.onSurface,
   },
   monthGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   monthGridCell: {
-    width: '31%',
-    paddingVertical: 12,
-    borderRadius: 12,
+    width: '31.5%',
+    paddingVertical: 10,
+    borderRadius: 10,
     backgroundColor: COLORS.surfaceContainerLow,
     alignItems: 'center',
     justifyContent: 'center',
@@ -967,7 +806,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.secondary,
   },
   monthCellText: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '700',
     color: COLORS.onSurface,
   },
@@ -976,45 +815,41 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   currentMonthDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: COLORS.secondary,
     position: 'absolute',
-    bottom: 5,
+    bottom: 3,
   },
-  periodOptionItem: {
+  pillsContainer: {
+    gap: 10,
+    paddingRight: 10,
+    paddingBottom: 4,
+  },
+  pillCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
     backgroundColor: COLORS.surfaceContainerLow,
-    borderRadius: 14,
     borderWidth: 1,
     borderColor: COLORS.surfaceContainer,
   },
-  periodOptionItemSelected: {
+  pillCardActive: {
     backgroundColor: COLORS.secondaryFixed + '50',
     borderColor: COLORS.secondary,
   },
-  periodOptionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  pillText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.onSurfaceVariant,
   },
-  periodOptionIconBg: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: COLORS.secondaryFixed,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  periodOptionLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.onSurface,
+  pillTextActive: {
+    fontWeight: '800',
+    color: COLORS.secondary,
   },
   dropdownMenu: {
     position: 'absolute',

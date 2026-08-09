@@ -8,11 +8,13 @@ interface TopAppBarProps {
   onNotificationPress?: () => void;
   onAddFriendPress?: () => void;
   title?: string;
+  titleAlign?: 'left' | 'center';
   showBack?: boolean;
   onBack?: () => void;
   unreadCount?: number;
   rightActionIcon?: keyof typeof Ionicons.glyphMap;
   onRightActionPress?: () => void;
+  rightActions?: React.ReactNode;
   variant?: 'light' | 'dark';
 }
 
@@ -20,11 +22,13 @@ export function TopAppBar({
   onNotificationPress,
   onAddFriendPress,
   title,
+  titleAlign = 'left',
   showBack,
   onBack,
   unreadCount,
   rightActionIcon,
   onRightActionPress,
+  rightActions,
   variant = 'light',
 }: TopAppBarProps) {
   const insets = useSafeAreaInsets();
@@ -45,9 +49,22 @@ export function TopAppBar({
     >
       <View style={styles.header}>
         {showBack ? (
-          <TouchableOpacity onPress={onBack} style={styles.iconButton}>
-            <Ionicons name="arrow-back" size={24} color={textColor} />
-          </TouchableOpacity>
+          <View style={styles.leftHeaderGroup}>
+            <TouchableOpacity onPress={onBack} style={styles.iconButton} activeOpacity={0.7}>
+              <Ionicons name="arrow-back" size={24} color={textColor} />
+            </TouchableOpacity>
+            {title && (
+              <Text
+                style={[
+                  titleAlign === 'center' ? styles.centerTitle : styles.leftTitle,
+                  { color: textColor },
+                ]}
+                numberOfLines={1}
+              >
+                {title}
+              </Text>
+            )}
+          </View>
         ) : (
           <TouchableOpacity style={styles.headerLogoContainer} activeOpacity={0.75}>
             <View
@@ -69,14 +86,10 @@ export function TopAppBar({
           </TouchableOpacity>
         )}
 
-        {title && showBack && (
-          <Text style={[styles.centerTitle, { color: textColor }]} numberOfLines={1}>
-            {title}
-          </Text>
-        )}
-
         {showBack &&
-          (rightActionIcon && onRightActionPress ? (
+          (rightActions ? (
+            <View style={styles.rightActions}>{rightActions}</View>
+          ) : rightActionIcon && onRightActionPress ? (
             <TouchableOpacity
               onPress={onRightActionPress}
               style={styles.iconButton}
@@ -85,7 +98,7 @@ export function TopAppBar({
               <Ionicons name={rightActionIcon} size={24} color={iconColor} />
             </TouchableOpacity>
           ) : (
-            <View style={{ width: 40 }} />
+            <View style={{ width: 10 }} />
           ))}
 
         {!showBack && (
@@ -128,9 +141,15 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     height: 64,
     justifyContent: 'space-between',
+  },
+  leftHeaderGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 8,
   },
   headerLogoContainer: {
     flexDirection: 'row',
@@ -153,11 +172,17 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     letterSpacing: -0.8,
   },
+  leftTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: COLORS.onSurface,
+    letterSpacing: -0.4,
+  },
   centerTitle: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
     color: COLORS.onSurface,
   },
   rightActions: {

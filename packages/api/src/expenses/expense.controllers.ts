@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useExpenses } from './expense.hooks';
+import { useExpenses, useExpensesSummary } from './expense.hooks';
 import { useMe } from '../auth/auth.hooks';
-import { type ExpenseCategory } from './expense.types';
+import { type Expense, type ExpenseCategory } from './expense.types';
 
 export const PERSONAL_CATEGORIES = [
   'Food',
@@ -109,7 +109,7 @@ export function useActivityController() {
       if (sortBy === 'date-asc') {
         const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
         if (dateDiff !== 0) return dateDiff;
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        return new Date(a.createdAt).getTime() - new Date(a.createdAt).getTime();
       }
       if (sortBy === 'amount-asc') {
         return a.amount - b.amount;
@@ -174,6 +174,7 @@ export function useActivityController() {
 
 export function usePersonalController() {
   const { data: user } = useMe();
+  const { data: summary } = useExpensesSummary();
   const [addExpenseVisible, setAddExpenseVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
@@ -209,13 +210,16 @@ export function usePersonalController() {
 
   const expensesList = useMemo(() => {
     if (!selectedCategoryFilter) return allExpenses;
-    return allExpenses.filter((e) => e.category === selectedCategoryFilter);
+    return allExpenses.filter((e: Expense) => e.category === selectedCategoryFilter);
   }, [allExpenses, selectedCategoryFilter]);
 
-  // Compute total spent on personal expenses (overall)
+  // Compute total spent on personal expenses (overall from server aggregate)
   const totalSpent = useMemo(() => {
-    return allExpenses.reduce((sum, item) => sum + item.amount, 0);
-  }, [allExpenses]);
+    if (summary?.totalPersonalSpent !== undefined) {
+      return summary.totalPersonalSpent;
+    }
+    return allExpenses.reduce((sum: number, item: Expense) => sum + item.amount, 0);
+  }, [summary, allExpenses]);
 
   // Compute total spent on personal expenses (this month)
   const totalThisMonth = useMemo(() => {
@@ -223,7 +227,7 @@ export function usePersonalController() {
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    return allExpenses.reduce((sum, item) => {
+    return allExpenses.reduce((sum: number, item: Expense) => {
       const expDate = new Date(item.date);
       if (expDate.getMonth() === currentMonth && expDate.getFullYear() === currentYear) {
         return sum + item.amount;
@@ -239,7 +243,7 @@ export function usePersonalController() {
       totals[cat] = 0;
     });
 
-    allExpenses.forEach((exp) => {
+    allExpenses.forEach((exp: Expense) => {
       const cat = exp.category;
       if (cat in totals) {
         totals[cat] += exp.amount;

@@ -10,7 +10,7 @@ interface SpentHeroCardProps {
   prevSpent: number;
   percentChange: number;
   spendingIncreased: boolean;
-  timeframe: 'today' | 'week' | 'month' | 'year';
+  timeframe: 'today' | 'week' | 'month' | 'year' | 'all';
   activePersonalSpent: number;
   activeGroupSpent: number;
   myPayments: number;
@@ -31,10 +31,10 @@ export const SpentHeroCard: React.FC<SpentHeroCardProps> = ({
 }) => {
   return (
     <LinearGradient
-      colors={[COLORS.primary, '#004d34']}
+      colors={filterType === 'personal' ? ['#4b41e1', '#2c22a3'] : [COLORS.primary, '#004d34']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      style={styles.heroCard}
+      style={[styles.heroCard, filterType === 'personal' && { shadowColor: COLORS.secondary }]}
     >
       <View style={styles.heroCardMain}>
         <View>

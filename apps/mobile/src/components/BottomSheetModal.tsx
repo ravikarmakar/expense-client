@@ -19,6 +19,8 @@ interface BottomSheetModalProps {
   visible: boolean;
   onClose: () => void;
   title: string;
+  subtitle?: string;
+  description?: string;
   children: React.ReactNode;
   behavior?: 'padding' | 'height' | 'position';
   keyboardVerticalOffset?: number;
@@ -31,6 +33,8 @@ export const BottomSheetModal = React.memo(function BottomSheetModal({
   visible,
   onClose,
   title,
+  subtitle,
+  description,
   children,
   behavior = Platform.OS === 'ios' ? 'padding' : undefined,
   keyboardVerticalOffset = 0,
@@ -44,6 +48,7 @@ export const BottomSheetModal = React.memo(function BottomSheetModal({
 
   const isDark = variant === 'dark';
   const isCloseLeft = closeButtonPosition === 'left';
+  const subText = subtitle || description;
 
   const renderCloseButton = (marginStyle?: object) => (
     <TouchableOpacity
@@ -120,7 +125,19 @@ export const BottomSheetModal = React.memo(function BottomSheetModal({
             <View style={styles.header}>
               <View style={styles.headerLeft}>
                 {isCloseLeft && renderCloseButton({ marginRight: 12 })}
-                <Text style={[styles.sheetTitle, isDark && { color: '#FFFFFF' }]}>{title}</Text>
+                <View style={styles.titleWrapper}>
+                  <Text style={[styles.sheetTitle, isDark && { color: '#FFFFFF' }]}>{title}</Text>
+                  {subText ? (
+                    <Text
+                      style={[
+                        styles.sheetSubtitle,
+                        isDark && { color: 'rgba(255, 255, 255, 0.65)' },
+                      ]}
+                    >
+                      {subText}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
               <View style={styles.headerRight}>
                 {headerRight}
@@ -166,7 +183,19 @@ export const BottomSheetModal = React.memo(function BottomSheetModal({
             <View style={styles.header}>
               <View style={styles.headerLeft}>
                 {isCloseLeft && renderCloseButton({ marginRight: 12 })}
-                <Text style={[styles.sheetTitle, isDark && { color: '#FFFFFF' }]}>{title}</Text>
+                <View style={styles.titleWrapper}>
+                  <Text style={[styles.sheetTitle, isDark && { color: '#FFFFFF' }]}>{title}</Text>
+                  {subText ? (
+                    <Text
+                      style={[
+                        styles.sheetSubtitle,
+                        isDark && { color: 'rgba(255, 255, 255, 0.65)' },
+                      ]}
+                    >
+                      {subText}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
               <View style={styles.headerRight}>
                 {headerRight}
@@ -225,15 +254,26 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  titleWrapper: {
+    flexDirection: 'column',
+    flex: 1,
+  },
   sheetTitle: {
     fontSize: 24,
     fontWeight: '800',
     color: COLORS.onSurface,
+  },
+  sheetSubtitle: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: COLORS.outline,
+    marginTop: 2,
   },
   closeBtn: {
     padding: 4,

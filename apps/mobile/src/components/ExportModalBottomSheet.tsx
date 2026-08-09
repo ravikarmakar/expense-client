@@ -1,9 +1,10 @@
 import React from 'react';
-import { StyleSheet, View, Text, Modal, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 import { ExportDateRange, ExportFormat } from '../services/export/types';
 import { getDateRangeLabelText } from '../hooks/useExport';
+import { BottomSheetModal } from './BottomSheetModal';
 
 interface ExportModalBottomSheetProps {
   visible: boolean;
@@ -43,18 +44,18 @@ const FORMAT_OPTIONS: {
     sub: 'Formatted statement report with summary & tables',
     iconLib: 'Ionicons',
     icon: 'document-text-outline',
-    color: '#d32f2f',
-    bg: '#fbe9e7',
+    color: '#dc2626',
+    bg: '#fee2e2',
   },
   {
     label: 'Excel Sheet',
     value: 'excel',
     ext: '.xlsx',
-    sub: 'Multi-column spreadsheet workbook',
+    sub: 'Multi-column spreadsheet workbook for analytics',
     iconLib: 'MaterialIcons',
     icon: 'grid-on',
-    color: '#2e7d32',
-    bg: '#e8f5e9',
+    color: '#16a34a',
+    bg: '#dcfce7',
   },
   {
     label: 'CSV Data',
@@ -63,18 +64,8 @@ const FORMAT_OPTIONS: {
     sub: 'Universal raw comma-separated dataset',
     iconLib: 'Ionicons',
     icon: 'grid-outline',
-    color: '#1565c0',
-    bg: '#e3f2fd',
-  },
-  {
-    label: 'JSON Document',
-    value: 'json',
-    ext: '.json',
-    sub: 'Structured developer data payload',
-    iconLib: 'Ionicons',
-    icon: 'code-slash-outline',
-    color: '#e65100',
-    bg: '#fff3e0',
+    color: '#2563eb',
+    bg: '#dbeafe',
   },
 ];
 
@@ -94,242 +85,154 @@ export const ExportModalBottomSheet: React.FC<ExportModalBottomSheetProps> = ({
   const currentRangeLabel = getDateRangeLabelText(dateRange, customStartDate, customEndDate);
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={onClose} />
-        <View style={styles.modalSheet}>
-          <View style={styles.modalHandle} />
-
-          {/* Minimalist Header */}
-          <View style={styles.modalHeader}>
-            <View style={styles.headerTitleRow}>
-              <View style={styles.headerBadge}>
-                <Ionicons name="download-outline" size={18} color={COLORS.secondary} />
-              </View>
-              <View>
-                <Text style={styles.modalTitle}>Export History</Text>
-                <Text style={styles.modalSubtitle}>Save statements directly to device storage</Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              onPress={onClose}
-              style={styles.modalCloseBtn}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="close" size={20} color={COLORS.outline} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-          >
-            {/* Step 1: Date Range Horizontal Pills */}
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Select Period</Text>
-              <Text style={styles.selectedBadgeText}>{currentRangeLabel}</Text>
-            </View>
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.pillsContainer}
-            >
-              {DATE_RANGE_OPTIONS.map((opt) => {
-                const isSelected = dateRange === opt.value;
-                return (
-                  <TouchableOpacity
-                    key={opt.value}
-                    style={[styles.pillCard, isSelected && styles.pillCardActive]}
-                    activeOpacity={0.75}
-                    onPress={() => setDateRange(opt.value)}
-                  >
-                    <Ionicons
-                      name={opt.icon as never}
-                      size={15}
-                      color={isSelected ? COLORS.secondary : COLORS.outline}
-                    />
-                    <Text style={[styles.pillText, isSelected && styles.pillTextActive]}>
-                      {opt.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-
-            {/* Custom Date Pickers if 'custom' is active */}
-            {dateRange === 'custom' && (
-              <View style={styles.customRangeCard}>
-                <Text style={styles.customRangeTitle}>Pick Custom Date Range</Text>
-                <View style={styles.customDateRow}>
-                  <TouchableOpacity
-                    style={styles.dateSelectorBtn}
-                    onPress={() => {
-                      setCustomStartDate(
-                        new Date(customStartDate.getTime() - 7 * 24 * 60 * 60 * 1000)
-                      );
-                    }}
-                  >
-                    <Text style={styles.dateSelectorLabel}>From</Text>
-                    <Text style={styles.dateSelectorValue}>
-                      {customStartDate.toLocaleDateString('en-IN', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <Ionicons name="arrow-forward" size={16} color={COLORS.outline} />
-
-                  <TouchableOpacity
-                    style={styles.dateSelectorBtn}
-                    onPress={() => setCustomEndDate(new Date())}
-                  >
-                    <Text style={styles.dateSelectorLabel}>To</Text>
-                    <Text style={styles.dateSelectorValue}>
-                      {customEndDate.toLocaleDateString('en-IN', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-
-            {/* Step 2: Format Selection Cards */}
-            <Text style={[styles.sectionTitle, { marginTop: 22, marginBottom: 10 }]}>
-              Choose File Format
-            </Text>
-
-            <View style={styles.formatCardsGrid}>
-              {FORMAT_OPTIONS.map((opt) => {
-                const isSelected = format === opt.value;
-                return (
-                  <TouchableOpacity
-                    key={opt.value}
-                    style={[styles.formatCard, isSelected && styles.formatCardActive]}
-                    activeOpacity={0.8}
-                    onPress={() => setFormat(opt.value)}
-                  >
-                    <View style={styles.formatLeftRow}>
-                      <View style={[styles.formatIconCircle, { backgroundColor: opt.bg }]}>
-                        {opt.iconLib === 'Ionicons' ? (
-                          <Ionicons name={opt.icon as never} size={18} color={opt.color} />
-                        ) : (
-                          <MaterialIcons name={opt.icon as never} size={18} color={opt.color} />
-                        )}
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <View style={styles.formatLabelRow}>
-                          <Text
-                            style={[
-                              styles.formatTitle,
-                              isSelected && { color: COLORS.secondary, fontWeight: '800' },
-                            ]}
-                          >
-                            {opt.label}
-                          </Text>
-                          <Text style={styles.formatExtBadge}>{opt.ext}</Text>
-                        </View>
-                        <Text style={styles.formatSubText}>{opt.sub}</Text>
-                      </View>
-                    </View>
-
-                    <Ionicons
-                      name={isSelected ? 'checkmark-circle' : 'radio-button-off'}
-                      size={18}
-                      color={isSelected ? COLORS.secondary : COLORS.outlineVariant}
-                    />
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            {/* Premium Confirm Export Button */}
-            <TouchableOpacity
-              style={styles.exportSubmitBtn}
-              activeOpacity={0.85}
-              onPress={onConfirmExport}
-            >
-              <Ionicons name="cloud-download-outline" size={22} color="#ffffff" />
-              <Text style={styles.exportSubmitBtnText}>Export Statement ({currentRangeLabel})</Text>
-            </TouchableOpacity>
-          </ScrollView>
+    <BottomSheetModal
+      visible={visible}
+      onClose={onClose}
+      title="Export Statement"
+      description="Select date range and format to save statement to device"
+    >
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Step 1: Date Range Horizontal Pills */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Select Timeframe</Text>
+          <Text style={styles.selectedBadgeText}>{currentRangeLabel}</Text>
         </View>
-      </View>
-    </Modal>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.pillsContainer}
+        >
+          {DATE_RANGE_OPTIONS.map((opt) => {
+            const isSelected = dateRange === opt.value;
+            return (
+              <TouchableOpacity
+                key={opt.value}
+                style={[styles.pillCard, isSelected && styles.pillCardActive]}
+                activeOpacity={0.75}
+                onPress={() => setDateRange(opt.value)}
+              >
+                <Ionicons
+                  name={opt.icon as never}
+                  size={15}
+                  color={isSelected ? COLORS.secondary : COLORS.outline}
+                />
+                <Text style={[styles.pillText, isSelected && styles.pillTextActive]}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {/* Custom Date Pickers if 'custom' is active */}
+        {dateRange === 'custom' && (
+          <View style={styles.customRangeCard}>
+            <Text style={styles.customRangeTitle}>Pick Custom Date Range</Text>
+            <View style={styles.customDateRow}>
+              <TouchableOpacity
+                style={styles.dateSelectorBtn}
+                onPress={() => {
+                  setCustomStartDate(new Date(customStartDate.getTime() - 7 * 24 * 60 * 60 * 1000));
+                }}
+              >
+                <Text style={styles.dateSelectorLabel}>From Date</Text>
+                <Text style={styles.dateSelectorValue}>
+                  {customStartDate.toLocaleDateString('en-IN', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </Text>
+              </TouchableOpacity>
+
+              <Ionicons name="arrow-forward" size={16} color={COLORS.outline} />
+
+              <TouchableOpacity
+                style={styles.dateSelectorBtn}
+                onPress={() => setCustomEndDate(new Date())}
+              >
+                <Text style={styles.dateSelectorLabel}>To Date</Text>
+                <Text style={styles.dateSelectorValue}>
+                  {customEndDate.toLocaleDateString('en-IN', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Step 2: Format Selection Cards */}
+        <Text style={[styles.sectionTitle, { marginTop: 22, marginBottom: 12 }]}>
+          Select File Format
+        </Text>
+
+        <View style={styles.formatCardsGrid}>
+          {FORMAT_OPTIONS.map((opt) => {
+            const isSelected = format === opt.value;
+            return (
+              <TouchableOpacity
+                key={opt.value}
+                style={[styles.formatCard, isSelected && styles.formatCardActive]}
+                activeOpacity={0.8}
+                onPress={() => setFormat(opt.value)}
+              >
+                <View style={styles.formatLeftRow}>
+                  <View style={[styles.formatIconCircle, { backgroundColor: opt.bg }]}>
+                    {opt.iconLib === 'Ionicons' ? (
+                      <Ionicons name={opt.icon as never} size={19} color={opt.color} />
+                    ) : (
+                      <MaterialIcons name={opt.icon as never} size={19} color={opt.color} />
+                    )}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.formatLabelRow}>
+                      <Text
+                        style={[
+                          styles.formatTitle,
+                          isSelected && { color: COLORS.secondary, fontWeight: '800' },
+                        ]}
+                      >
+                        {opt.label}
+                      </Text>
+                      <Text style={styles.formatExtBadge}>{opt.ext}</Text>
+                    </View>
+                    <Text style={styles.formatSubText}>{opt.sub}</Text>
+                  </View>
+                </View>
+
+                <Ionicons
+                  name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
+                  size={20}
+                  color={isSelected ? COLORS.secondary : COLORS.outlineVariant}
+                />
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Premium Confirm Export Button */}
+        <TouchableOpacity
+          style={styles.exportSubmitBtn}
+          activeOpacity={0.85}
+          onPress={onConfirmExport}
+        >
+          <Ionicons name="cloud-download-outline" size={22} color="#ffffff" />
+          <Text style={styles.exportSubmitBtnText}>Download {format.toUpperCase()} Statement</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </BottomSheetModal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-  },
-  modalSheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingTop: 10,
-    paddingBottom: 28,
-    maxHeight: '88%',
-  },
-  modalHandle: {
-    width: 38,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.outlineVariant,
-    alignSelf: 'center',
-    marginBottom: 12,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.surfaceContainerLow,
-  },
-  headerTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  headerBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: COLORS.secondaryFixed + '40',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: COLORS.onSurface,
-    letterSpacing: -0.3,
-  },
-  modalSubtitle: {
-    fontSize: 11,
-    color: COLORS.outline,
-    fontWeight: '500',
-    marginTop: 1,
-  },
-  modalCloseBtn: {
-    padding: 6,
-  },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 20,
+    paddingTop: 12,
+    paddingBottom: 24,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -338,7 +241,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '800',
     color: COLORS.outline,
     textTransform: 'uppercase',
@@ -349,9 +252,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.secondary,
     backgroundColor: COLORS.secondaryFixed + '40',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
   },
   pillsContainer: {
     gap: 10,
@@ -384,9 +287,9 @@ const styles = StyleSheet.create({
   },
   customRangeCard: {
     marginTop: 12,
-    padding: 12,
+    padding: 14,
     backgroundColor: COLORS.surfaceContainerLow,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: COLORS.surfaceContainer,
   },
@@ -404,10 +307,10 @@ const styles = StyleSheet.create({
   },
   dateSelectorBtn: {
     flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
     backgroundColor: COLORS.surface,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.outlineVariant,
   },
@@ -417,7 +320,7 @@ const styles = StyleSheet.create({
     color: COLORS.outline,
   },
   dateSelectorValue: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '800',
     color: COLORS.onSurface,
     marginTop: 2,
@@ -429,9 +332,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 12,
+    padding: 14,
     backgroundColor: COLORS.surfaceContainerLow,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: COLORS.surfaceContainer,
   },
@@ -447,8 +350,8 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   formatIconCircle: {
-    width: 36,
-    height: 36,
+    width: 38,
+    height: 38,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -459,7 +362,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   formatTitle: {
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: '700',
     color: COLORS.onSurface,
   },
@@ -468,8 +371,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.outline,
     backgroundColor: COLORS.surfaceContainer,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
     borderRadius: 4,
   },
   formatSubText: {
@@ -484,7 +387,7 @@ const styles = StyleSheet.create({
     gap: 10,
     backgroundColor: COLORS.secondary,
     paddingVertical: 16,
-    borderRadius: 18,
+    borderRadius: 20,
     marginTop: 24,
     elevation: 4,
     shadowColor: COLORS.secondary,

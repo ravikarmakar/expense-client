@@ -83,13 +83,35 @@ export function DatePickerModal({
     }
   };
 
+  const today = new Date();
+  const todayYear = today.getFullYear();
+  const todayMonth = today.getMonth();
+  const todayDay = today.getDate();
+
+  const isNextMonthDisabled =
+    currentYear > todayYear || (currentYear === todayYear && currentMonth >= todayMonth);
+
   const handleNextMonth = () => {
+    if (isNextMonthDisabled) return;
     if (currentMonth === 11) {
       setCurrentMonth(0);
       setCurrentYear((y) => y + 1);
     } else {
       setCurrentMonth((m) => m + 1);
     }
+  };
+
+  const isMonthFuture = (monthIdx: number) => {
+    if (currentYear > todayYear) return true;
+    if (currentYear === todayYear && monthIdx > todayMonth) return true;
+    return false;
+  };
+
+  const isDayFuture = (dayNum: number) => {
+    if (currentYear > todayYear) return true;
+    if (currentYear === todayYear && currentMonth > todayMonth) return true;
+    if (currentYear === todayYear && currentMonth === todayMonth && dayNum > todayDay) return true;
+    return false;
   };
 
   const formatShortDate = (dateObj: Date) => {
@@ -277,11 +299,16 @@ export function DatePickerModal({
               />
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={handleNextMonth} style={styles.navBtn} activeOpacity={0.7}>
+            <TouchableOpacity
+              onPress={handleNextMonth}
+              disabled={isNextMonthDisabled}
+              style={[styles.navBtn, isNextMonthDisabled && { opacity: 0.3 }]}
+              activeOpacity={0.7}
+            >
               <Ionicons
                 name="chevron-forward"
                 size={20}
-                color={isDark ? '#FFFFFF' : COLORS.onSurface}
+                color={isNextMonthDisabled ? COLORS.outline : isDark ? '#FFFFFF' : COLORS.onSurface}
               />
             </TouchableOpacity>
           </View>
@@ -307,31 +334,46 @@ export function DatePickerModal({
             >
               <View style={styles.monthsGrid}>
                 {MONTH_NAMES.map((monthName, idx) => {
-                  const isSelected = currentMonth === idx;
+                  const isFuture = isMonthFuture(idx);
+                  const isSelected = currentMonth === idx && !isFuture;
                   return (
                     <TouchableOpacity
                       key={monthName}
+                      disabled={isFuture}
                       style={[
                         styles.monthChip,
                         isDark && {
                           backgroundColor: '#131D1A',
                           borderColor: 'rgba(255, 255, 255, 0.08)',
                         },
+                        isFuture && { opacity: 0.35 },
                         isSelected &&
                           (isDark
                             ? { backgroundColor: '#10B981', borderColor: '#10B981' }
                             : { backgroundColor: COLORS.primary, borderColor: COLORS.primary }),
                       ]}
                       onPress={() => {
-                        setCurrentMonth(idx);
-                        toggleMonthPicker();
+                        if (!isFuture) {
+                          setCurrentMonth(idx);
+                          toggleMonthPicker();
+                        }
                       }}
                       activeOpacity={0.75}
                     >
                       <Text
                         style={[
                           styles.monthChipText,
-                          { color: isSelected ? '#FFFFFF' : isDark ? '#9CA3AF' : '#374151' },
+                          {
+                            color: isFuture
+                              ? isDark
+                                ? '#4B5563'
+                                : COLORS.outline
+                              : isSelected
+                                ? '#FFFFFF'
+                                : isDark
+                                  ? '#9CA3AF'
+                                  : '#374151',
+                          },
                           isSelected && { fontWeight: '800' },
                         ]}
                       >
@@ -364,24 +406,29 @@ export function DatePickerModal({
           {/* Days 1..N */}
           {Array.from({ length: daysInMonth }).map((_, idx) => {
             const dayNum = idx + 1;
-            const isSelected = activeDay === dayNum;
+            const isFuture = isDayFuture(dayNum);
+            const isSelected = activeDay === dayNum && !isFuture;
             return (
               <TouchableOpacity
                 key={`day-${dayNum}`}
+                disabled={isFuture}
                 style={[
                   styles.dayCell,
+                  isFuture && { opacity: 0.25 },
                   isSelected && styles.dayCellActive,
                   isSelected && isDark && styles.dayCellActiveDark,
                 ]}
-                onPress={() => setActiveDay(dayNum)}
+                onPress={() => !isFuture && setActiveDay(dayNum)}
                 activeOpacity={0.75}
               >
                 <Text
                   style={[
                     styles.dayNumText,
-                    isDark
-                      ? { color: isSelected ? '#FFFFFF' : '#9CA3AF' }
-                      : { color: isSelected ? '#FFFFFF' : '#191C1D' },
+                    isFuture
+                      ? { color: isDark ? '#4B5563' : COLORS.outline }
+                      : isDark
+                        ? { color: isSelected ? '#FFFFFF' : '#9CA3AF' }
+                        : { color: isSelected ? '#FFFFFF' : '#191C1D' },
                     isSelected && styles.dayNumTextActive,
                   ]}
                 >

@@ -236,7 +236,7 @@ export default function PersonalHistoryScreen() {
             <TouchableOpacity
               style={styles.iconBtn}
               activeOpacity={0.7}
-              onPress={() => router.push('/total-spent')}
+              onPress={() => router.push('/personal-analytics')}
             >
               <Ionicons
                 name="bar-chart-outline"
@@ -408,15 +408,6 @@ export default function PersonalHistoryScreen() {
           </View>
         )}
       </ScrollView>
-
-      {/* Floating Action Button (FAB) */}
-      <TouchableOpacity
-        style={styles.fab}
-        activeOpacity={0.85}
-        onPress={() => setAddExpenseVisible(true)}
-      >
-        <Ionicons name="add" size={32} color="#ffffff" />
-      </TouchableOpacity>
 
       <AddExpenseModal
         visible={addExpenseVisible}
@@ -738,7 +729,7 @@ export default function PersonalHistoryScreen() {
         format={exportHook.format}
         setFormat={exportHook.setFormat}
         onConfirmExport={() =>
-          exportHook.executeExport(sortedExpenses, user?.name || user?.email || 'User')
+          exportHook.executeExport(sortedExpenses, user?.name || user?.email || 'User', 'personal')
         }
       />
 
@@ -751,9 +742,7 @@ export default function PersonalHistoryScreen() {
         exportResult={exportHook.exportResult}
         onOpenFile={exportHook.handleOpenFile}
         onShareFile={exportHook.handleShareFile}
-        onSaveAgain={() =>
-          exportHook.executeExport(sortedExpenses, user?.name || user?.email || 'User')
-        }
+        onSaveToDownloads={exportHook.handleSaveToDownloads}
       />
     </View>
   );
@@ -830,7 +819,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    marginTop: 12,
+    marginTop: 8,
     minHeight: 50,
     borderWidth: 1,
     borderColor: COLORS.surfaceContainer,
@@ -904,23 +893,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.outline,
     fontWeight: '500',
-  },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 30,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 6,
-    shadowColor: COLORS.secondary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    zIndex: 40,
   },
   modalOverlay: {
     flex: 1,

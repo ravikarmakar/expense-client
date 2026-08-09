@@ -20,7 +20,7 @@ const screenWidth = Dimensions.get('window').width;
 
 export default function TotalSpentScreen() {
   const router = useRouter();
-  const [timeframe, setTimeframe] = useState<'today' | 'week' | 'month' | 'year'>('month');
+  const [timeframe, setTimeframe] = useState<'today' | 'week' | 'month' | 'year' | 'all'>('month');
   const [filterType, setFilterType] = useState<'all' | 'personal' | 'group'>('all');
 
   // Format today's date to YYYY-MM-DD in local time
@@ -90,6 +90,7 @@ export default function TotalSpentScreen() {
   // Format dates for header subtitle
   const formatPeriodLabel = () => {
     if (!startDate || !endDate) return '';
+    if (timeframe === 'all') return 'All Time';
     if (timeframe === 'today') {
       const d = new Date(startDate);
       return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -113,9 +114,9 @@ export default function TotalSpentScreen() {
         contentContainerStyle={globalStyles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Timeframe Selector (Today, Week, Month, Year) */}
+        {/* Timeframe Selector (Today, Week, Month, Year, All) */}
         <View style={styles.tabSelectorContainer}>
-          {(['today', 'week', 'month', 'year'] as const).map((t) => (
+          {(['today', 'week', 'month', 'year', 'all'] as const).map((t) => (
             <TouchableOpacity
               key={t}
               style={[styles.tabBtn, timeframe === t && styles.tabBtnActive]}

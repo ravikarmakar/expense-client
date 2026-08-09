@@ -16,7 +16,7 @@ export const categoryAnalyticsItemSchema = z.object({
 export const expenseAnalyticsResponseSchema = z.object({
   success: z.boolean(),
   data: z.object({
-    timeframe: z.enum(['today', 'week', 'month', 'year']),
+    timeframe: z.enum(['today', 'week', 'month', 'year', 'all']),
     startDate: z.string(),
     endDate: z.string(),
     totalSpent: z.number(),
@@ -101,7 +101,7 @@ export const groupDetailAnalyticsResponseSchema = z.object({
     groupId: z.string(),
     groupName: z.string(),
     groupEmoji: z.string(),
-    timeframe: z.enum(['today', 'week', 'month', 'year']),
+    timeframe: z.enum(['today', 'week', 'month', 'year', 'all']),
     startDate: z.string(),
     endDate: z.string(),
     totalGroupSpent: z.number(),

@@ -14,7 +14,7 @@ import {
  * Get spent analytics by timeframe and date.
  */
 export const getExpenseAnalyticsApi = async (
-  timeframe: 'today' | 'week' | 'month' | 'year',
+  timeframe: 'today' | 'week' | 'month' | 'year' | 'all',
   date?: string,
   cursor?: string,
   limit?: number,
@@ -50,7 +50,7 @@ export const getGroupAnalyticsApi = async (): Promise<GroupSpentItem[]> => {
  */
 export const getGroupDetailAnalyticsApi = async (
   groupId: string,
-  timeframe: 'today' | 'week' | 'month' | 'year',
+  timeframe: 'today' | 'week' | 'month' | 'year' | 'all',
   date?: string
 ): Promise<GroupDetailAnalytics> => {
   const { data } = await getApiClient().get<unknown>(`/analytics/groups/${groupId}`, {

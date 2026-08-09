@@ -7,10 +7,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   TextInput,
-  Modal,
   ScrollView,
-  Animated,
-  Keyboard,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,9 +28,18 @@ import {
   ActivityItem,
 } from '@workspace/api';
 import { getDateHeading } from '../../../utils/date';
+import { useTheme } from '../../../context/ThemeContext';
+import { useExport } from '../../../hooks/useExport';
+import { ExportModalBottomSheet } from '../../../components/ExportModalBottomSheet';
+import { ExportProgressAndSuccessModal } from '../../../components/ExportProgressAndSuccessModal';
+import { BottomSheetModal } from '../../../components/BottomSheetModal';
+import { hapticFeedback } from '../../../utils/haptics';
 
 export default function GroupExpensesScreen() {
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
+  const exportHook = useExport();
+
   const rawParams = useLocalSearchParams<{ id?: string; name?: string; type?: string }>();
   const groupId = rawParams.id || '';
   const groupName = rawParams.name;
@@ -48,29 +54,6 @@ export default function GroupExpensesScreen() {
   const [activityFilter, setActivityFilter] = React.useState<
     'all' | 'expenses' | 'settlements' | 'wallet'
   >('all');
-  const [isSearching, setIsSearching] = React.useState(false);
-  const searchInputRef = React.useRef<TextInput>(null);
-  const searchWidth = React.useRef(new Animated.Value(0)).current;
-
-  const openSearch = () => {
-    setIsSearching(true);
-    Animated.timing(searchWidth, {
-      toValue: 1,
-      duration: 220,
-      useNativeDriver: false,
-    }).start(() => searchInputRef.current?.focus());
-  };
-
-  const closeSearch = () => {
-    Keyboard.dismiss();
-    setSearchQuery('');
-    setIsSearching(false);
-    Animated.timing(searchWidth, {
-      toValue: 0,
-      duration: 180,
-      useNativeDriver: false,
-    }).start();
-  };
 
   // Advanced Filters State
   const [filterModalVisible, setFilterModalVisible] = React.useState(false);
@@ -345,6 +328,58 @@ export default function GroupExpensesScreen() {
     sortBy,
   ]);
 
+  // Export Mapped Items
+  const exportItems = React.useMemo(() => {
+    return displayedItems.map((item) => {
+      if (isActivity) {
+        const act = item as ActivityItem;
+        if (act.type === 'expense') {
+          return {
+            id: act.data.id,
+            title: act.data.title || 'Expense',
+            amount: act.data.amount,
+            category: act.data.category || 'Other',
+            date: act.data.date,
+            notes: act.data.notes || '',
+            type: 'GROUP' as const,
+          };
+        } else {
+          return {
+            id: act.data.id,
+            title: `Settlement (${act.data.from.name} -> ${act.data.to.name})`,
+            amount: act.data.amount,
+            category: 'Settlement',
+            date: act.data.createdAt,
+            notes: 'Settlement',
+            type: 'GROUP' as const,
+          };
+        }
+      } else if (isSettlements) {
+        const s = item as Settlement;
+        return {
+          id: s.id,
+          title: `Settlement (${s.from.name} -> ${s.to.name})`,
+          amount: s.amount,
+          category: 'Settlement',
+          date: s.createdAt,
+          notes: 'Settlement',
+          type: 'GROUP' as const,
+        };
+      } else {
+        const e = item as Expense;
+        return {
+          id: e.id,
+          title: e.title || 'Expense',
+          amount: e.amount,
+          category: e.category || 'Other',
+          date: e.date,
+          notes: e.notes || '',
+          type: 'GROUP' as const,
+        };
+      }
+    });
+  }, [displayedItems, isActivity, isSettlements]);
+
   const handleLoadMore = () => {
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
@@ -352,6 +387,7 @@ export default function GroupExpensesScreen() {
   };
 
   const handleResetFilters = () => {
+    setActivityFilter('all');
     setSortBy('date_desc');
     setSelectedMemberId(null);
     setSelectedCategory(null);
@@ -359,6 +395,7 @@ export default function GroupExpensesScreen() {
   };
 
   const hasActiveFilters =
+    activityFilter !== 'all' ||
     sortBy !== 'date_desc' ||
     selectedMemberId !== null ||
     selectedCategory !== null ||
@@ -371,131 +408,182 @@ export default function GroupExpensesScreen() {
   const categoriesList = Object.keys(CATEGORY_ICONS);
 
   return (
-    <View style={styles.container}>
-      {/* ── Header ── */}
-      <View style={[styles.header, { paddingTop: insets.top, height: 56 + insets.top }]}>
-        {/* Back / Cancel button */}
-        <TouchableOpacity
-          onPress={isSearching ? closeSearch : () => router.back()}
-          style={styles.backBtn}
-        >
-          <Ionicons
-            name={isSearching ? 'close' : 'arrow-back'}
-            size={24}
-            color={COLORS.onSurface}
-          />
-        </TouchableOpacity>
-
-        {/* Title or Expanded Search Input */}
-        {isSearching ? (
-          <Animated.View style={[styles.headerSearchInner]}>
-            <Ionicons
-              name="search-outline"
-              size={20}
-              color={COLORS.outline}
-              style={{ marginRight: 8 }}
-            />
-            <TextInput
-              ref={searchInputRef}
-              placeholder={isActivity ? 'Search activity...' : 'Search expenses...'}
-              placeholderTextColor={COLORS.outline}
-              style={styles.headerSearchInput}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoCorrect={false}
-              returnKeyType="search"
-            />
-            {searchQuery.trim() !== '' && (
-              <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 4 }}>
-                <Ionicons name="close-circle" size={16} color={COLORS.outline} />
-              </TouchableOpacity>
-            )}
-          </Animated.View>
-        ) : (
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {groupName
-              ? `${groupName} ${isSettlements ? 'Settlements' : isActivity ? 'Activity' : 'Expenses'}`
-              : `${isSettlements ? 'Settlement' : isActivity ? 'Activity' : 'Expense'} History`}
-          </Text>
-        )}
-
-        {/* Right action buttons */}
-        <View style={styles.headerActions}>
-          {!isSettlements && (
+    <View style={[styles.container, isDark && styles.containerDark]}>
+      {/* ── Top Header ── */}
+      <View style={[styles.headerContainer, { paddingTop: insets.top + 12 }]}>
+        <View style={styles.tabHeaderRow}>
+          <View style={styles.headerLeftRow}>
             <TouchableOpacity
-              onPress={isSearching ? () => {} : openSearch}
-              style={styles.headerActionBtn}
+              onPress={() => router.back()}
+              style={styles.backBtn}
               activeOpacity={0.7}
             >
+              <Ionicons name="arrow-back" size={24} color={isDark ? '#F3F4F6' : COLORS.onSurface} />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.tabTitle, isDark && styles.tabTitleDark]} numberOfLines={1}>
+                {groupName
+                  ? `${groupName} ${isSettlements ? 'Settlements' : isActivity ? 'Activity' : 'Expenses'}`
+                  : `${isSettlements ? 'Settlement' : isActivity ? 'Activity' : 'Expense'} History`}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.headerRightActions}>
+            {/* Analytics Icon Button */}
+            <TouchableOpacity
+              style={styles.iconBtn}
+              activeOpacity={0.7}
+              onPress={() => {
+                hapticFeedback.selection();
+                router.push({
+                  pathname: '/groups/[id]/analytics',
+                  params: { id: groupId, name: groupName },
+                });
+              }}
+            >
               <Ionicons
-                name={isSearching ? 'search' : 'search-outline'}
+                name="bar-chart-outline"
                 size={24}
-                color={isSearching ? COLORS.primary : COLORS.onSurface}
+                color={isDark ? '#F3F4F6' : COLORS.onSurface}
               />
             </TouchableOpacity>
-          )}
-          {(isActivity || isSearching) && (
+
+            {/* Filter Icon Button */}
             <TouchableOpacity
-              onPress={() => setFilterModalVisible(true)}
-              style={[
-                styles.headerActionBtn,
-                hasActiveFilters && { backgroundColor: COLORS.primaryFixed },
-              ]}
+              style={[styles.iconBtn, hasActiveFilters && styles.filterBtnActive]}
+              onPress={() => {
+                hapticFeedback.selection();
+                setFilterModalVisible(true);
+              }}
               activeOpacity={0.7}
             >
               <Ionicons
                 name="options-outline"
                 size={24}
-                color={hasActiveFilters ? COLORS.primary : COLORS.onSurface}
+                color={hasActiveFilters ? COLORS.primary : isDark ? '#F3F4F6' : COLORS.onSurface}
               />
-              {hasActiveFilters && <View style={styles.headerFilterBadge} />}
+            </TouchableOpacity>
+
+            {/* Download / Export Icon Button */}
+            <TouchableOpacity
+              style={styles.iconBtn}
+              activeOpacity={0.7}
+              onPress={() => {
+                hapticFeedback.selection();
+                exportHook.setExportModalVisible(true);
+              }}
+            >
+              <Ionicons
+                name="download-outline"
+                size={26}
+                color={isDark ? '#F3F4F6' : COLORS.onSurface}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Always-visible Search Input Box */}
+        <View style={[styles.alwaysSearchContainer, isDark && styles.alwaysSearchContainerDark]}>
+          <Ionicons
+            name="search-outline"
+            size={22}
+            color={isDark ? 'rgba(255, 255, 255, 0.45)' : COLORS.outline}
+            style={{ marginRight: 10 }}
+          />
+          <TextInput
+            style={[styles.alwaysSearchInput, isDark && { color: '#ffffff' }]}
+            placeholder={isActivity ? 'Search group activity...' : 'Search group expenses...'}
+            placeholderTextColor={isDark ? 'rgba(255, 255, 255, 0.45)' : COLORS.outline}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.trim().length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons
+                name="close-circle"
+                size={18}
+                color={isDark ? 'rgba(255, 255, 255, 0.45)' : COLORS.outline}
+              />
             </TouchableOpacity>
           )}
         </View>
-      </View>
 
-      {/* ── Filter Pills (only for activity) ── */}
-      {isActivity && (
-        <View style={styles.pillsPanel}>
+        {/* Active Filters Bar */}
+        {hasActiveFilters && (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filtersContainer}
-            style={styles.filtersScrollView}
+            contentContainerStyle={styles.activeFiltersRow}
           >
-            {(['all', 'expenses', 'settlements', 'wallet'] as const).map((filter) => {
-              const isActive = activityFilter === filter;
-              const label =
-                filter === 'all'
-                  ? 'All'
-                  : filter === 'expenses'
-                    ? 'Expenses'
-                    : filter === 'settlements'
-                      ? 'Settlements'
-                      : 'Wallet';
-              return (
-                <TouchableOpacity
-                  key={filter}
-                  style={[styles.filterPill, isActive && styles.filterPillActive]}
-                  onPress={() => setActivityFilter(filter)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.filterPillText, isActive && styles.filterPillTextActive]}>
-                    {label}
-                  </Text>
+            {activityFilter !== 'all' && (
+              <View style={styles.activeFilterBadge}>
+                <Text style={styles.activeFilterBadgeText}>
+                  {activityFilter === 'expenses'
+                    ? 'Expenses Only'
+                    : activityFilter === 'settlements'
+                      ? 'Settlements Only'
+                      : 'Wallet Payments'}
+                </Text>
+                <TouchableOpacity onPress={() => setActivityFilter('all')}>
+                  <Ionicons name="close-circle" size={14} color={COLORS.primary} />
                 </TouchableOpacity>
-              );
-            })}
+              </View>
+            )}
+            {sortBy !== 'date_desc' && (
+              <View style={styles.activeFilterBadge}>
+                <Text style={styles.activeFilterBadgeText}>
+                  {sortBy === 'date_asc' ? 'Oldest First' : 'Highest Amount'}
+                </Text>
+                <TouchableOpacity onPress={() => setSortBy('date_desc')}>
+                  <Ionicons name="close-circle" size={14} color={COLORS.primary} />
+                </TouchableOpacity>
+              </View>
+            )}
+            {selectedMemberId && (
+              <View style={styles.activeFilterBadge}>
+                <Text style={styles.activeFilterBadgeText}>
+                  Member:{' '}
+                  {groupMembers.find((m) => m.userId === selectedMemberId)?.name.split(' ')[0] ||
+                    'Member'}
+                </Text>
+                <TouchableOpacity onPress={() => setSelectedMemberId(null)}>
+                  <Ionicons name="close-circle" size={14} color={COLORS.primary} />
+                </TouchableOpacity>
+              </View>
+            )}
+            {selectedCategory && (
+              <View style={styles.activeFilterBadge}>
+                <Text style={styles.activeFilterBadgeText}>{selectedCategory}</Text>
+                <TouchableOpacity onPress={() => setSelectedCategory(null)}>
+                  <Ionicons name="close-circle" size={14} color={COLORS.primary} />
+                </TouchableOpacity>
+              </View>
+            )}
+            {amountRange !== 'any' && (
+              <View style={styles.activeFilterBadge}>
+                <Text style={styles.activeFilterBadgeText}>
+                  {amountRange === 'under_500'
+                    ? `< ${CURRENCY_SYMBOL}500`
+                    : amountRange === '500_2000'
+                      ? `${CURRENCY_SYMBOL}500-2k`
+                      : `> ${CURRENCY_SYMBOL}2k`}
+                </Text>
+                <TouchableOpacity onPress={() => setAmountRange('any')}>
+                  <Ionicons name="close-circle" size={14} color={COLORS.primary} />
+                </TouchableOpacity>
+              </View>
+            )}
           </ScrollView>
-        </View>
-      )}
+        )}
+      </View>
 
       {/* ── List View ── */}
       {isLoading ? (
         <View style={{ paddingHorizontal: 16 }}>
-          <ExpenseItemSkeleton />
-          <ExpenseItemSkeleton />
-          <ExpenseItemSkeleton />
           <ExpenseItemSkeleton />
           <ExpenseItemSkeleton />
           <ExpenseItemSkeleton />
@@ -538,13 +626,11 @@ export default function GroupExpensesScreen() {
             if (isSettlements) {
               const s = item as Settlement;
               return (
-                <View style={{ marginHorizontal: -16 }}>
-                  <SettlementItem
-                    settlement={s}
-                    currentUserId={userData?.id}
-                    onDelete={handleDeleteSettlement}
-                  />
-                </View>
+                <SettlementItem
+                  settlement={s}
+                  currentUserId={userData?.id}
+                  onDelete={handleDeleteSettlement}
+                />
               );
             }
 
@@ -566,7 +652,7 @@ export default function GroupExpensesScreen() {
               const showHeading = currentHeading !== prevHeading;
 
               return (
-                <View style={{ marginHorizontal: -16 }}>
+                <View>
                   {showHeading && (
                     <View style={styles.dateHeaderContainer}>
                       <Text style={styles.dateHeaderText}>{currentHeading}</Text>
@@ -597,7 +683,7 @@ export default function GroupExpensesScreen() {
             const showHeading = currentHeading !== prevHeading;
 
             return (
-              <View style={{ marginHorizontal: -16 }}>
+              <View>
                 {showHeading && (
                   <View style={styles.dateHeaderContainer}>
                     <Text style={styles.dateHeaderText}>{currentHeading}</Text>
@@ -626,198 +712,237 @@ export default function GroupExpensesScreen() {
         />
       )}
 
-      {/* ── Advanced Filter Modal ── */}
-      <Modal
+      {/* ── Advanced Filter Bottom Sheet Modal ── */}
+      <BottomSheetModal
         visible={filterModalVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setFilterModalVisible(false)}
+        onClose={() => setFilterModalVisible(false)}
+        title="Advanced Filters"
+        variant={isDark ? 'dark' : 'light'}
+        headerRight={
+          <TouchableOpacity
+            onPress={handleResetFilters}
+            style={[styles.resetFiltersBtn, isDark && styles.resetFiltersBtnDark]}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.resetFiltersBtnText}>Reset</Text>
+          </TouchableOpacity>
+        }
       >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContentContainer, { paddingBottom: insets.bottom + 24 }]}>
-            {/* Modal Header */}
-            <View style={styles.modalHeader}>
-              <TouchableOpacity
-                onPress={() => setFilterModalVisible(false)}
-                style={styles.closeModalBtn}
-              >
-                <Ionicons name="close" size={24} color={COLORS.onSurface} />
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>Advanced Filters</Text>
-              <TouchableOpacity onPress={handleResetFilters}>
-                <Text style={styles.resetFiltersBtnText}>Reset</Text>
-              </TouchableOpacity>
+        <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+          {/* Section: Activity Type */}
+          {isActivity && (
+            <View style={styles.modalSection}>
+              <Text style={styles.modalSectionTitle}>Activity Type</Text>
+              <View style={styles.chipsRow}>
+                {(
+                  [
+                    { key: 'all', label: 'All Activity' },
+                    { key: 'expenses', label: 'Expenses Only' },
+                    { key: 'settlements', label: 'Settlements Only' },
+                    { key: 'wallet', label: 'Wallet Payments' },
+                  ] as const
+                ).map((opt) => {
+                  const isActive = activityFilter === opt.key;
+                  return (
+                    <TouchableOpacity
+                      key={opt.key}
+                      style={[styles.modalChip, isActive && styles.modalChipActive]}
+                      onPress={() => setActivityFilter(opt.key)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.modalChipText, isActive && styles.modalChipTextActive]}>
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
+          )}
 
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-              {/* Section: Sort By */}
-              <View style={styles.modalSection}>
-                <Text style={styles.modalSectionTitle}>Sort By</Text>
-                <View style={styles.chipsRow}>
-                  {(
-                    [
-                      { key: 'date_desc', label: 'Newest First' },
-                      { key: 'date_asc', label: 'Oldest First' },
-                      { key: 'amount_desc', label: 'Highest Amount' },
-                    ] as const
-                  ).map((opt) => {
-                    const isActive = sortBy === opt.key;
-                    return (
-                      <TouchableOpacity
-                        key={opt.key}
-                        style={[styles.modalChip, isActive && styles.modalChipActive]}
-                        onPress={() => setSortBy(opt.key)}
-                        activeOpacity={0.7}
-                      >
-                        <Text
-                          style={[styles.modalChipText, isActive && styles.modalChipTextActive]}
-                        >
-                          {opt.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-
-              {/* Section: Paid By / Member */}
-              {groupMembers.length > 0 && (
-                <View style={styles.modalSection}>
-                  <Text style={styles.modalSectionTitle}>Filter by Member</Text>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.chipsRow}
+          {/* Section: Sort By */}
+          <View style={styles.modalSection}>
+            <Text style={styles.modalSectionTitle}>Sort By</Text>
+            <View style={styles.chipsRow}>
+              {(
+                [
+                  { key: 'date_desc', label: 'Newest First' },
+                  { key: 'date_asc', label: 'Oldest First' },
+                  { key: 'amount_desc', label: 'Highest Amount' },
+                ] as const
+              ).map((opt) => {
+                const isActive = sortBy === opt.key;
+                return (
+                  <TouchableOpacity
+                    key={opt.key}
+                    style={[styles.modalChip, isActive && styles.modalChipActive]}
+                    onPress={() => setSortBy(opt.key)}
+                    activeOpacity={0.7}
                   >
-                    <TouchableOpacity
-                      style={[
-                        styles.modalChip,
-                        selectedMemberId === null && styles.modalChipActive,
-                      ]}
-                      onPress={() => setSelectedMemberId(null)}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.modalChipText,
-                          selectedMemberId === null && styles.modalChipTextActive,
-                        ]}
-                      >
-                        All Members
-                      </Text>
-                    </TouchableOpacity>
-                    {groupMembers.map((m) => {
-                      const isActive = selectedMemberId === m.userId;
-                      return (
-                        <TouchableOpacity
-                          key={m.userId}
-                          style={[styles.modalChip, isActive && styles.modalChipActive]}
-                          onPress={() => setSelectedMemberId(m.userId)}
-                          activeOpacity={0.7}
-                        >
-                          <Text
-                            style={[styles.modalChipText, isActive && styles.modalChipTextActive]}
-                          >
-                            {m.name.split(' ')[0]}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-              )}
-
-              {/* Section: Category (Not for settlements) */}
-              {!isSettlements && categoriesList.length > 0 && (
-                <View style={styles.modalSection}>
-                  <Text style={styles.modalSectionTitle}>Filter by Category</Text>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.chipsRow}
-                  >
-                    <TouchableOpacity
-                      style={[
-                        styles.modalChip,
-                        selectedCategory === null && styles.modalChipActive,
-                      ]}
-                      onPress={() => setSelectedCategory(null)}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.modalChipText,
-                          selectedCategory === null && styles.modalChipTextActive,
-                        ]}
-                      >
-                        All Categories
-                      </Text>
-                    </TouchableOpacity>
-                    {categoriesList.map((cat) => {
-                      const isActive = selectedCategory === cat;
-                      const iconCfg = CATEGORY_ICONS[cat] ?? CATEGORY_ICONS.Other;
-                      return (
-                        <TouchableOpacity
-                          key={cat}
-                          style={[styles.modalChip, isActive && styles.modalChipActive]}
-                          onPress={() => setSelectedCategory(cat)}
-                          activeOpacity={0.7}
-                        >
-                          <Text
-                            style={[styles.modalChipText, isActive && styles.modalChipTextActive]}
-                          >
-                            {iconCfg.icon} {cat}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-              )}
-
-              {/* Section: Amount Range */}
-              <View style={styles.modalSection}>
-                <Text style={styles.modalSectionTitle}>Amount Range</Text>
-                <View style={styles.chipsRow}>
-                  {(
-                    [
-                      { key: 'any', label: 'Any Amount' },
-                      { key: 'under_500', label: `Under ${CURRENCY_SYMBOL}500` },
-                      { key: '500_2000', label: `${CURRENCY_SYMBOL}500 - ${CURRENCY_SYMBOL}2,000` },
-                      { key: 'over_2000', label: `Over ${CURRENCY_SYMBOL}2,000` },
-                    ] as const
-                  ).map((opt) => {
-                    const isActive = amountRange === opt.key;
-                    return (
-                      <TouchableOpacity
-                        key={opt.key}
-                        style={[styles.modalChip, isActive && styles.modalChipActive]}
-                        onPress={() => setAmountRange(opt.key)}
-                        activeOpacity={0.7}
-                      >
-                        <Text
-                          style={[styles.modalChipText, isActive && styles.modalChipTextActive]}
-                        >
-                          {opt.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-            </ScrollView>
-
-            {/* Apply Button */}
-            <TouchableOpacity
-              style={styles.applyFiltersBtn}
-              onPress={() => setFilterModalVisible(false)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.applyFiltersBtnText}>Apply Filters</Text>
-            </TouchableOpacity>
+                    <Text style={[styles.modalChipText, isActive && styles.modalChipTextActive]}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
-        </View>
-      </Modal>
+
+          {/* Section: Paid By / Member */}
+          {groupMembers.length > 0 && (
+            <View style={styles.modalSection}>
+              <Text style={styles.modalSectionTitle}>Filter by Member</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipsRow}
+              >
+                <TouchableOpacity
+                  style={[styles.modalChip, selectedMemberId === null && styles.modalChipActive]}
+                  onPress={() => setSelectedMemberId(null)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.modalChipText,
+                      selectedMemberId === null && styles.modalChipTextActive,
+                    ]}
+                  >
+                    All Members
+                  </Text>
+                </TouchableOpacity>
+                {groupMembers.map((m) => {
+                  const isActive = selectedMemberId === m.userId;
+                  return (
+                    <TouchableOpacity
+                      key={m.userId}
+                      style={[styles.modalChip, isActive && styles.modalChipActive]}
+                      onPress={() => setSelectedMemberId(m.userId)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.modalChipText, isActive && styles.modalChipTextActive]}>
+                        {m.name.split(' ')[0]}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Section: Category (Not for settlements) */}
+          {!isSettlements && categoriesList.length > 0 && (
+            <View style={styles.modalSection}>
+              <Text style={styles.modalSectionTitle}>Filter by Category</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipsRow}
+              >
+                <TouchableOpacity
+                  style={[styles.modalChip, selectedCategory === null && styles.modalChipActive]}
+                  onPress={() => setSelectedCategory(null)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.modalChipText,
+                      selectedCategory === null && styles.modalChipTextActive,
+                    ]}
+                  >
+                    All Categories
+                  </Text>
+                </TouchableOpacity>
+                {categoriesList.map((cat) => {
+                  const isActive = selectedCategory === cat;
+                  const iconCfg = CATEGORY_ICONS[cat] ?? CATEGORY_ICONS.Other;
+                  return (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[styles.modalChip, isActive && styles.modalChipActive]}
+                      onPress={() => setSelectedCategory(cat)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.modalChipText, isActive && styles.modalChipTextActive]}>
+                        {iconCfg.icon} {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Section: Amount Range */}
+          <View style={styles.modalSection}>
+            <Text style={styles.modalSectionTitle}>Amount Range</Text>
+            <View style={styles.chipsRow}>
+              {(
+                [
+                  { key: 'any', label: 'Any Amount' },
+                  { key: 'under_500', label: `Under ${CURRENCY_SYMBOL}500` },
+                  { key: '500_2000', label: `${CURRENCY_SYMBOL}500 - ${CURRENCY_SYMBOL}2,000` },
+                  { key: 'over_2000', label: `Over ${CURRENCY_SYMBOL}2,000` },
+                ] as const
+              ).map((opt) => {
+                const isActive = amountRange === opt.key;
+                return (
+                  <TouchableOpacity
+                    key={opt.key}
+                    style={[styles.modalChip, isActive && styles.modalChipActive]}
+                    onPress={() => setAmountRange(opt.key)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.modalChipText, isActive && styles.modalChipTextActive]}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </ScrollView>
+
+        <TouchableOpacity
+          style={styles.applyFiltersBtn}
+          onPress={() => setFilterModalVisible(false)}
+        >
+          <Text style={styles.applyFiltersBtnText}>Apply Filters</Text>
+        </TouchableOpacity>
+      </BottomSheetModal>
+
+      {/* Export History Selection Bottom Sheet Modal */}
+      <ExportModalBottomSheet
+        visible={exportHook.exportModalVisible}
+        onClose={() => exportHook.setExportModalVisible(false)}
+        dateRange={exportHook.dateRange}
+        setDateRange={exportHook.setDateRange}
+        customStartDate={exportHook.customStartDate}
+        setCustomStartDate={exportHook.setCustomStartDate}
+        customEndDate={exportHook.customEndDate}
+        setCustomEndDate={exportHook.setCustomEndDate}
+        format={exportHook.format}
+        setFormat={exportHook.setFormat}
+        onConfirmExport={() =>
+          exportHook.executeExport(
+            exportItems,
+            userData?.name || userData?.email || 'User',
+            'group'
+          )
+        }
+      />
+
+      {/* Export Progress & Success Modal */}
+      <ExportProgressAndSuccessModal
+        isGenerating={exportHook.isGenerating}
+        progressMessage={exportHook.progressMessage}
+        successVisible={exportHook.successModalVisible}
+        onCloseSuccess={() => exportHook.setSuccessModalVisible(false)}
+        exportResult={exportHook.exportResult}
+        onOpenFile={exportHook.handleOpenFile}
+        onShareFile={exportHook.handleShareFile}
+        onSaveToDownloads={exportHook.handleSaveToDownloads}
+      />
     </View>
   );
 }
@@ -827,157 +952,98 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  // Old search panel styles no longer needed — search is in the header
-  searchAndFiltersPanel: { display: 'none' },
-  searchBarContainer: { display: 'none' },
-  searchInner: { display: 'none' },
-  searchIcon: {},
-  searchInput: { display: 'none' },
-  clearButton: {},
-  header: {
+  containerDark: {
+    backgroundColor: '#08110F',
+  },
+  headerContainer: {
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f1f1',
+  },
+  tabHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.outlineVariant,
-    paddingHorizontal: 12,
-    gap: 4,
+    justifyContent: 'space-between',
+  },
+  headerLeftRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
   },
   backBtn: {
+    padding: 4,
+  },
+  tabTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: COLORS.onSurface,
+    letterSpacing: -0.3,
+  },
+  tabTitleDark: {
+    color: '#F9FAFB',
+  },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  iconBtn: {
     padding: 8,
-    marginRight: 2,
+    borderRadius: 12,
   },
-  headerTitle: {
-    flex: 1,
-    fontSize: 17,
-    fontWeight: '700',
-    color: COLORS.onSurface,
-    marginHorizontal: 4,
+  filterBtnActive: {
+    backgroundColor: '#e2dfff',
   },
-  headerSearchInner: {
-    flex: 1,
+  alwaysSearchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surfaceContainerLow,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 38,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceContainer,
-    marginHorizontal: 4,
-  },
-  headerSearchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: COLORS.onSurface,
-    fontWeight: '500',
-    paddingVertical: 0,
-    height: '100%',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  headerActionBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: COLORS.surfaceContainerLow,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  headerFilterBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.primary,
-    borderWidth: 1.5,
-    borderColor: COLORS.surface,
-  },
-  rightPlaceholder: {
-    width: 0,
-  },
-  pillsPanel: {
-    backgroundColor: COLORS.surface,
-    paddingTop: 8,
-    paddingBottom: 4,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  errorText: {
-    color: COLORS.error,
-    fontSize: 15,
-    marginBottom: 16,
-  },
-  retryBtn: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  retryBtnText: {
-    color: '#ffffff',
-    fontWeight: '600',
-  },
-  emptyText: {
-    color: COLORS.outline,
-    fontSize: 16,
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingTop: 0,
-    paddingBottom: 16,
-  },
-  itemWrapper: {
-    marginBottom: 0,
-  },
-  settlementItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    padding: 14,
     borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minHeight: 50,
+    marginTop: 8,
     borderWidth: 1,
     borderColor: COLORS.surfaceContainer,
-    marginBottom: 12,
   },
-  settlementIconBg: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: COLORS.primaryFixed,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+  alwaysSearchContainerDark: {
+    backgroundColor: '#101917',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  settlementInfo: {
+  alwaysSearchInput: {
     flex: 1,
-  },
-  settlementText: {
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '600',
     color: COLORS.onSurface,
+    padding: 0,
   },
-  boldText: {
-    fontWeight: '700',
+  activeFiltersRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
   },
-  settlementDate: {
-    fontSize: 12,
-    color: COLORS.outline,
-    marginTop: 2,
+  activeFilterBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#e2dfff',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#c5c1ff',
   },
-  settlementAmount: {
-    fontSize: 16,
+  activeFilterBadgeText: {
+    fontSize: 11.5,
     fontWeight: '700',
     color: COLORS.primary,
+  },
+  listContent: {
+    paddingTop: 0,
   },
   dateHeaderContainer: {
     backgroundColor: COLORS.surfaceContainerLow,
@@ -993,126 +1059,100 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
-  filtersScrollView: {
-    maxHeight: 44,
-  },
-  filtersContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 8,
+  centerContainer: {
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    minHeight: 250,
   },
-  filterPill: {
+  errorText: {
+    fontSize: 15,
+    color: COLORS.error,
+    marginBottom: 12,
+  },
+  retryBtn: {
+    backgroundColor: COLORS.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 8,
+  },
+  retryBtnText: {
+    color: '#ffffff',
+    fontWeight: '600',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: COLORS.outline,
+    textAlign: 'center',
+  },
+  resetFiltersBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 12,
     backgroundColor: COLORS.surfaceContainerLow,
     borderWidth: 1,
     borderColor: COLORS.surfaceContainer,
   },
-  filterPillActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  filterPillText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.outline,
-  },
-  filterPillTextActive: {
-    color: '#ffffff',
-  },
-  filterIconButton: {},
-  filterActiveBadge: {},
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContentContainer: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    maxHeight: '85%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.surfaceContainerLow,
-  },
-  closeModalBtn: {
-    padding: 4,
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.onSurface,
+  resetFiltersBtnDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   resetFiltersBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.error,
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
   modalBody: {
     paddingHorizontal: 20,
     paddingTop: 12,
   },
   modalSection: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   modalSectionTitle: {
     fontSize: 14,
     fontWeight: '700',
     color: COLORS.onSurface,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   chipsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    paddingVertical: 4,
   },
   modalChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: COLORS.surfaceContainerLow,
     borderWidth: 1,
     borderColor: COLORS.surfaceContainer,
   },
   modalChipActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.primaryFixed,
     borderColor: COLORS.primary,
   },
   modalChipText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.outline,
+    fontWeight: '500',
+    color: COLORS.onSurfaceVariant,
   },
   modalChipTextActive: {
-    color: '#ffffff',
+    fontWeight: '700',
+    color: COLORS.primary,
   },
   applyFiltersBtn: {
+    backgroundColor: COLORS.primary,
     marginHorizontal: 20,
     marginTop: 8,
-    backgroundColor: COLORS.primary,
     paddingVertical: 14,
     borderRadius: 16,
     alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
   applyFiltersBtnText: {
-    color: '#ffffff',
     fontSize: 15,
     fontWeight: '700',
+    color: '#ffffff',
   },
 });

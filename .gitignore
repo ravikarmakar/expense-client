@@ -11,7 +11,10 @@ out/
 dist/
 web-build/
 ios/build/
-android/build/
+android/
+.gradle/
+**/.gradle/
+**/android/build/
 *.jks
 *.p12
 *.key

@@ -12,7 +12,7 @@ interface ExportProgressAndSuccessModalProps {
   exportResult: ExportResult | null;
   onOpenFile: () => void;
   onShareFile: () => void;
-  onSaveAgain: () => void;
+  onSaveToDownloads?: () => void;
 }
 
 export const ExportProgressAndSuccessModal: React.FC<ExportProgressAndSuccessModalProps> = ({
@@ -23,7 +23,6 @@ export const ExportProgressAndSuccessModal: React.FC<ExportProgressAndSuccessMod
   exportResult,
   onOpenFile,
   onShareFile,
-  onSaveAgain,
 }) => {
   return (
     <>
@@ -31,7 +30,9 @@ export const ExportProgressAndSuccessModal: React.FC<ExportProgressAndSuccessMod
       <Modal visible={isGenerating} transparent animationType="fade">
         <View style={styles.modalOverlayCenter}>
           <View style={styles.progressCard}>
-            <ActivityIndicator size="large" color={COLORS.secondary} />
+            <View style={styles.progressIconRing}>
+              <ActivityIndicator size="large" color={COLORS.secondary} />
+            </View>
             <Text style={styles.progressTitle}>Generating Export</Text>
             <Text style={styles.progressSub}>{progressMessage}</Text>
           </View>
@@ -58,34 +59,36 @@ export const ExportProgressAndSuccessModal: React.FC<ExportProgressAndSuccessMod
               <View style={styles.checkBadge}>
                 <Ionicons name="checkmark-circle" size={48} color={COLORS.secondary} />
               </View>
-              <Text style={styles.successTitle}>Export Saved Successfully!</Text>
+              <Text style={styles.successTitle}>Export Ready!</Text>
               <Text style={styles.successSub}>
-                Your expense statement file is ready and saved on your device.
+                Your file has been saved to your device. Use the options below to open or share it.
               </Text>
             </View>
 
-            {/* Exact Location Box */}
+            {/* File Info Box */}
             <View style={styles.pathBox}>
-              <Ionicons name="folder-open-outline" size={20} color={COLORS.secondary} />
+              <Ionicons name="document-text-outline" size={22} color={COLORS.secondary} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.pathBoxLabel}>Saved Location</Text>
-                <Text style={styles.pathBoxValue} numberOfLines={2}>
-                  {exportResult?.displayPath || exportResult?.fileName || 'Downloads/'}
+                <Text style={styles.pathBoxLabel}>File Name</Text>
+                <Text style={styles.pathBoxValue} numberOfLines={1}>
+                  {exportResult?.fileName || 'Statement Export'}
                 </Text>
               </View>
             </View>
 
-            {/* Actions: Open File, Share File, Save Again */}
+            {/* Actions */}
             <View style={styles.actionsContainer}>
+              {/* Open File — primary action */}
               <TouchableOpacity
                 style={styles.actionBtnPrimary}
                 activeOpacity={0.85}
                 onPress={onOpenFile}
               >
-                <Ionicons name="open-outline" size={18} color="#ffffff" />
+                <Ionicons name="open-outline" size={20} color="#ffffff" />
                 <Text style={styles.actionBtnPrimaryText}>Open File</Text>
               </TouchableOpacity>
 
+              {/* Share File — secondary action */}
               <TouchableOpacity
                 style={styles.actionBtnSecondary}
                 activeOpacity={0.85}
@@ -94,19 +97,10 @@ export const ExportProgressAndSuccessModal: React.FC<ExportProgressAndSuccessMod
                 <Ionicons name="share-social-outline" size={18} color={COLORS.secondary} />
                 <Text style={styles.actionBtnSecondaryText}>Share File</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtnOutline}
-                activeOpacity={0.85}
-                onPress={onSaveAgain}
-              >
-                <Ionicons name="save-outline" size={18} color={COLORS.onSurfaceVariant} />
-                <Text style={styles.actionBtnOutlineText}>Save Again</Text>
-              </TouchableOpacity>
             </View>
 
             <TouchableOpacity style={styles.doneBtn} onPress={onCloseSuccess}>
-              <Text style={styles.doneBtnText}>Done</Text>
+              <Text style={styles.doneBtnText}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -142,6 +136,14 @@ const styles = StyleSheet.create({
     maxWidth: 320,
     elevation: 8,
   },
+  progressIconRing: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.secondaryFixed + '30',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   progressTitle: {
     fontSize: 16,
     fontWeight: '800',
@@ -171,7 +173,7 @@ const styles = StyleSheet.create({
   },
   successHeader: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   checkBadge: {
     marginBottom: 6,
@@ -182,11 +184,12 @@ const styles = StyleSheet.create({
     color: COLORS.onSurface,
   },
   successSub: {
-    fontSize: 12,
+    fontSize: 12.5,
     color: COLORS.outline,
     textAlign: 'center',
     marginTop: 4,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
+    lineHeight: 18,
   },
   pathBox: {
     flexDirection: 'row',
@@ -200,7 +203,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   pathBoxLabel: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '700',
     color: COLORS.outline,
     textTransform: 'uppercase',
