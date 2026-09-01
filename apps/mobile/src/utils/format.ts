@@ -32,3 +32,15 @@ export const formatRupees = (text: string): string | null => {
 
   return null;
 };
+
+/**
+ * Formats a numeric value into a comma-separated currency string (e.g. 12,345.67).
+ */
+export const formatAmount = (value: number | string | undefined | null): string => {
+  const num = typeof value === 'number' ? value : parseFloat(String(value || 0));
+  const safeNum = isNaN(num) ? 0 : num;
+  return safeNum.toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};

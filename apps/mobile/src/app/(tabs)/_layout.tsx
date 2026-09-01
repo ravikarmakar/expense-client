@@ -9,26 +9,33 @@ import { useTheme } from '../../context/ThemeContext';
 
 function GlassTabBar() {
   const { isDark } = useTheme();
+  const isAndroid = Platform.OS === 'android';
 
   return (
     <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}>
-      <BlurView intensity={100} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
-      {/* Frosted glass overlay */}
+      {!isAndroid && (
+        <BlurView
+          intensity={100}
+          tint={isDark ? 'dark' : 'light'}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
+      {/* Background overlay */}
       <View
         style={[
           StyleSheet.absoluteFill,
           {
             backgroundColor: isDark
-              ? Platform.OS === 'ios'
-                ? 'rgba(8, 17, 15, 0.82)'
-                : 'rgba(8, 17, 15, 0.92)'
-              : Platform.OS === 'ios'
-                ? 'rgba(255, 255, 255, 0.85)'
-                : 'rgba(255, 255, 255, 0.95)',
+              ? isAndroid
+                ? '#08110F'
+                : 'rgba(8, 17, 15, 0.82)'
+              : isAndroid
+                ? '#ffffff'
+                : 'rgba(255, 255, 255, 0.85)',
           },
         ]}
       />
-      {/* Subtle top glass border */}
+      {/* Subtle top border */}
       <View
         style={{
           position: 'absolute',

@@ -5,16 +5,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../styles/dashboard.styles';
 import { SkeletonLoader } from '../../../components/SkeletonLoader';
 import { CURRENCY_SYMBOL } from '../../../constants/theme';
+import { formatAmount } from '../../../utils/format';
 import { SparklineChart } from './SparklineChart';
+import type { TransactionInputItem } from '../utils/sparklineUtils';
 
 interface BalanceCardProps {
   totalSpent: number;
   totalIncome?: number;
+  incomes?: TransactionInputItem[];
   totalOwedToMe: number;
   totalIOwe: number;
   netBalance: number;
   totalGroupSpent: number;
-  expenses?: Array<Record<string, unknown>>;
+  expenses?: TransactionInputItem[];
   statsLoading: boolean;
   groupsLoading: boolean;
   groupsEmpty: boolean;
@@ -33,6 +36,7 @@ interface BalanceCardProps {
 export const BalanceCard = React.memo(function BalanceCard({
   totalSpent,
   totalIncome = 0,
+  incomes = [],
   totalOwedToMe,
   totalIOwe,
   netBalance,
@@ -74,7 +78,7 @@ export const BalanceCard = React.memo(function BalanceCard({
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: 10,
+          marginBottom: 20,
         }}
       >
         {/* Income Block (Green) */}
@@ -87,24 +91,25 @@ export const BalanceCard = React.memo(function BalanceCard({
             style={[
               styles.balanceLabel,
               !isDark && { color: 'rgba(255, 255, 255, 0.75)' },
-              { marginBottom: 4, textTransform: 'none' },
+              { fontSize: 10, marginBottom: 2, textTransform: 'none', letterSpacing: 1.2 },
             ]}
           >
             INCOME /m
           </Text>
           {showStatsSkeleton ? (
-            <SkeletonLoader width={100} height={28} style={styles.skeletonBalanceOnDark} />
+            <SkeletonLoader width={105} height={32} style={styles.skeletonBalanceOnDark} />
           ) : (
             <Text
               style={{
-                fontSize: 22,
+                fontSize: 25,
                 fontWeight: '800',
                 color: isDark ? '#10B981' : '#85f8c4',
                 textAlign: 'center',
+                letterSpacing: -0.6,
               }}
             >
               {CURRENCY_SYMBOL}
-              {totalIncome.toFixed(2)}
+              {formatAmount(totalIncome)}
             </Text>
           )}
         </TouchableOpacity>
@@ -113,7 +118,7 @@ export const BalanceCard = React.memo(function BalanceCard({
         <View
           style={{
             width: 1,
-            height: 38,
+            height: 42,
             backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.2)',
             marginHorizontal: 8,
           }}
@@ -129,24 +134,25 @@ export const BalanceCard = React.memo(function BalanceCard({
             style={[
               styles.balanceLabel,
               !isDark && { color: 'rgba(255, 255, 255, 0.75)' },
-              { marginBottom: 4, textTransform: 'none' },
+              { fontSize: 10, marginBottom: 2, textTransform: 'none', letterSpacing: 1.2 },
             ]}
           >
             EXPENSE /m
           </Text>
           {showStatsSkeleton ? (
-            <SkeletonLoader width={100} height={28} style={styles.skeletonBalanceOnDark} />
+            <SkeletonLoader width={105} height={32} style={styles.skeletonBalanceOnDark} />
           ) : (
             <Text
               style={{
-                fontSize: 22,
+                fontSize: 25,
                 fontWeight: '800',
                 color: isDark ? '#EF4444' : '#ffb4ab',
                 textAlign: 'center',
+                letterSpacing: -0.6,
               }}
             >
               {CURRENCY_SYMBOL}
-              {totalSpent.toFixed(2)}
+              {formatAmount(totalSpent)}
             </Text>
           )}
         </TouchableOpacity>
@@ -154,7 +160,7 @@ export const BalanceCard = React.memo(function BalanceCard({
 
       {/* Minimal Sparkline Trend Line */}
       {!showStatsSkeleton && (
-        <SparklineChart variant={variant} monthlyIncome={totalIncome} expenses={expenses} />
+        <SparklineChart variant={variant} incomes={incomes} expenses={expenses} />
       )}
 
       <View
@@ -195,7 +201,7 @@ export const BalanceCard = React.memo(function BalanceCard({
               ) : (
                 <Text style={[styles.statValue, { color: isDark ? '#10B981' : '#85f8c4' }]}>
                   {CURRENCY_SYMBOL}
-                  {totalOwedToMe.toFixed(2)}
+                  {formatAmount(totalOwedToMe)}
                 </Text>
               )}
             </View>
@@ -232,7 +238,7 @@ export const BalanceCard = React.memo(function BalanceCard({
               ) : (
                 <Text style={[styles.statValue, { color: isDark ? '#f87171' : '#ffb4ab' }]}>
                   {CURRENCY_SYMBOL}
-                  {totalIOwe.toFixed(2)}
+                  {formatAmount(totalIOwe)}
                 </Text>
               )}
             </View>
@@ -277,7 +283,7 @@ export const BalanceCard = React.memo(function BalanceCard({
               ) : (
                 <Text style={[styles.statValue, !isDark && { color: '#ffffff' }]}>
                   {CURRENCY_SYMBOL}
-                  {netBalance.toFixed(2)}
+                  {formatAmount(netBalance)}
                 </Text>
               )}
             </View>
@@ -320,7 +326,7 @@ export const BalanceCard = React.memo(function BalanceCard({
               ) : (
                 <Text style={[styles.statValue, !isDark && { color: '#ffffff' }]}>
                   {CURRENCY_SYMBOL}
-                  {totalGroupSpent.toFixed(2)}
+                  {formatAmount(totalGroupSpent)}
                 </Text>
               )}
             </View>

@@ -87,17 +87,7 @@ export default function IncomeDetailScreen() {
           deleteIncome.mutate(income.id, {
             onSuccess: () => {
               hapticFeedback.success();
-              setAlertConfig({
-                visible: true,
-                title: 'Success',
-                message: 'Income entry deleted successfully',
-                icon: 'checkmark-circle',
-                iconColor: '#10B981',
-                onConfirm: () => {
-                  setAlertConfig((prev) => ({ ...prev, visible: false }));
-                  router.back();
-                },
-              });
+              router.back();
             },
             onError: (err) => {
               setAlertConfig({

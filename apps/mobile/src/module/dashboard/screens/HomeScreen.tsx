@@ -30,7 +30,7 @@ import { GroupCardSkeleton } from '../../groups/components/GroupCardSkeleton';
 import { ExpenseItemSkeleton } from '../../../components/ExpenseItemSkeleton';
 import { EmptyState } from '../../../components/EmptyState';
 import { SkeletonLoader } from '../../../components/SkeletonLoader';
-import { useDashboardController } from '@workspace/api';
+import { useDashboardController, useIncomes } from '@workspace/api';
 import { router } from 'expo-router';
 import { resolveAvatar, CURRENCY_SYMBOL } from '../../../constants/theme';
 import { globalStyles } from '../../../styles/globalStyles';
@@ -42,6 +42,9 @@ import { useTheme } from '../../../context/ThemeContext';
 import { AppBackground } from '../../../components/AppBackground';
 
 export default function HomeScreen() {
+  const { data: incomeData } = useIncomes();
+  const incomesList = incomeData?.incomes ?? [];
+
   const {
     addExpenseVisible,
     setAddExpenseVisible,
@@ -239,6 +242,7 @@ export default function HomeScreen() {
           netBalance={filteredNetBalance}
           totalGroupSpent={filteredTotalGroupSpent}
           expenses={filteredExpenses}
+          incomes={incomesList}
           statsLoading={statsLoading && !stats}
           groupsLoading={groupsLoading}
           groupsEmpty={groups.length === 0}

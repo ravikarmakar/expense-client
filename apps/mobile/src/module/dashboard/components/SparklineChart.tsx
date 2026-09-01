@@ -1,181 +1,83 @@
-import React, { useState, useRef } from 'react';
-import { View, StyleSheet, Dimensions, Text, PanResponder } from 'react-native';
+import React from 'react';
+import { View, StyleSheet, Dimensions, Text, TouchableOpacity } from 'react-native';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path, Defs, LinearGradient, Stop, Line, Circle } from 'react-native-svg';
 import { CURRENCY_SYMBOL } from '../../../constants/theme';
+import { formatAmount } from '../../../utils/format';
 import { hapticFeedback } from '../../../utils/haptics';
+import {
+  getCurveY,
+  prepareSparklineTimeline,
+  type PaymentTransaction,
+  type TransactionInputItem,
+} from '../utils/sparklineUtils';
+import { useSparklineScrub } from '../hooks/useSparklineScrub';
 
-import { useIncomes } from '@workspace/api';
-
-interface SparklineChartProps {
-  monthlyIncome?: number;
-  expenses?: Array<Record<string, unknown>>;
+export interface SparklineChartProps {
+  incomes?: TransactionInputItem[];
+  expenses?: TransactionInputItem[];
+  transactions?: PaymentTransaction[];
   variant?: 'light' | 'dark';
 }
 
-interface PaymentTransaction {
-  type: 'income' | 'expense' | 'group_expense';
-  amount: number;
-  ratio: number;
-}
-
 /**
- * Clean single-line sparkline chart with transaction-specific single-color tooltips:
- * - Green tooltip for Income payments
- * - Red tooltip for Personal Expense payments
- * - Amber/Orange tooltip for Group Expense payments
+ * Pure Presentational Sparkline Chart Component.
+ * Can render from explicit `transactions` prop or from `incomes` & `expenses` arrays.
+ * 100% decoupled from network API queries.
  */
 export const SparklineChart = React.memo(function SparklineChart({
-  monthlyIncome = 0,
+  incomes = [],
   expenses = [],
+  transactions: propTransactions,
 }: SparklineChartProps) {
-  const screenWidth = Dimensions.get('window').width - 80; // Account for BalanceCard padding
+  const screenWidth = Dimensions.get('window').width - 80;
   const height = 44;
 
-  const [isScrubbing, setIsScrubbing] = useState(false);
-  const [activeTransactionIndex, setActiveTransactionIndex] = useState(0);
+  const transactions = React.useMemo(() => {
+    if (propTransactions) return propTransactions;
+    return prepareSparklineTimeline(incomes, expenses);
+  }, [propTransactions, incomes, expenses]);
 
-  const { data: incomeData } = useIncomes();
-  const rawIncomes = incomeData?.incomes ?? [];
+  const { isScrubbing, activeTransactionIndex, panResponder } = useSparklineScrub({
+    transactions,
+    screenWidth,
+  });
 
-  // Single clean emerald green trend line path adjusted with padding so top stroke never clips
+  const handleNavigate = (tx?: PaymentTransaction) => {
+    if (!tx || !tx.id) return;
+    hapticFeedback.selection();
+    if (tx.type === 'income') {
+      router.push(`/income/${tx.id}` as never);
+    } else {
+      router.push(`/expense/${tx.id}` as never);
+    }
+  };
+
   const linePath = `M 0 32 Q ${screenWidth * 0.25} 18, ${screenWidth * 0.5} 25 T ${screenWidth * 0.75} 14 T ${screenWidth} 10`;
   const areaPath = `${linePath} L ${screenWidth} ${height} L 0 ${height} Z`;
 
-  // Filter transactions for the current month only
-  const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
-
-  const currentMonthIncomes = rawIncomes.filter((inc) => {
-    if (!inc.date && !inc.createdAt) return true;
-    const d = new Date(String(inc.date || inc.createdAt));
-    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-  });
-
-  const currentMonthExpenses = (expenses || []).filter((e: Record<string, unknown>) => {
-    if (!e.date && !e.createdAt) return true;
-    const d = new Date(String(e.date || e.createdAt));
-    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-  });
-
-  interface RawTimelineItem {
-    type: 'income' | 'expense' | 'group_expense';
-    amount: number;
-    timestamp: number;
+  // Render clean dashed baseline when user has 0 transactions
+  if (transactions.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.chartWrapper}>
+          <Svg height={height} width={screenWidth}>
+            <Line
+              x1={0}
+              y1={height / 2}
+              x2={screenWidth}
+              y2={height / 2}
+              stroke="#10B981"
+              strokeWidth={1.5}
+              strokeDasharray="4 4"
+              opacity={0.4}
+            />
+          </Svg>
+        </View>
+      </View>
+    );
   }
-
-  const incomeItems: RawTimelineItem[] = currentMonthIncomes.map((inc) => {
-    const dStr = String(inc.createdAt || inc.date || '');
-    const t = new Date(dStr).getTime();
-    return {
-      type: 'income' as const,
-      amount: typeof inc.amount === 'number' ? inc.amount : parseFloat(String(inc.amount)) || 0,
-      timestamp: isNaN(t) ? 0 : t,
-    };
-  });
-
-  const expenseItems: RawTimelineItem[] = currentMonthExpenses.map((e: Record<string, unknown>) => {
-    const amt = typeof e.amount === 'number' ? e.amount : parseFloat(String(e.amount)) || 0;
-    const isGroup = Boolean(e.groupId || e.group || e.isGroup);
-    const dStr = String(e.createdAt || e.date || '');
-    const t = new Date(dStr).getTime();
-    return {
-      type: isGroup ? ('group_expense' as const) : ('expense' as const),
-      amount: amt,
-      timestamp: isNaN(t) ? 0 : t,
-    };
-  });
-
-  // Strict Chronological Order: Oldest on the LEFT (index 0), Newest/Latest on the RIGHT (index N-1)
-  const combinedTimeline = [...incomeItems, ...expenseItems].sort(
-    (a, b) => a.timestamp - b.timestamp
-  );
-
-  const activeTimeline =
-    combinedTimeline.length > 0
-      ? combinedTimeline
-      : [
-          ...(monthlyIncome > 0
-            ? [{ type: 'income' as const, amount: monthlyIncome, timestamp: 1 }]
-            : []),
-          { type: 'group_expense' as const, amount: 30, timestamp: 2 },
-          { type: 'expense' as const, amount: 90, timestamp: 3 },
-        ];
-
-  const transactions: PaymentTransaction[] = activeTimeline.map((item, idx) => ({
-    type: item.type,
-    amount: item.amount,
-    ratio: activeTimeline.length === 1 ? 0.5 : 0.05 + (idx * 0.9) / (activeTimeline.length - 1),
-  }));
-
-  // Y position along the curve matching exact 3-segment SVG Bezier linePath
-  const getCurveY = (r: number) => {
-    const clampedR = Math.max(0, Math.min(1, r));
-    if (clampedR <= 0.5) {
-      // Segment 1: r from 0 to 0.5
-      const t = clampedR / 0.5;
-      return (1 - t) * (1 - t) * 32 + 2 * (1 - t) * t * 18 + t * t * 25;
-    } else if (clampedR <= 0.75) {
-      // Segment 2: r from 0.5 to 0.75
-      const t = (clampedR - 0.5) / 0.25;
-      return (1 - t) * (1 - t) * 25 + 2 * (1 - t) * t * 32 + t * t * 14;
-    } else {
-      // Segment 3: r from 0.75 to 1.0
-      const t = (clampedR - 0.75) / 0.25;
-      return (1 - t) * (1 - t) * 14 + 2 * (1 - t) * t * -4 + t * t * 10;
-    }
-  };
-
-  const lastTxRef = useRef<number>(-1);
-
-  const handleTouch = (locationX: number) => {
-    const x = Math.max(0, Math.min(screenWidth, locationX));
-    const ratio = x / screenWidth;
-
-    // Find closest payment transaction
-    let closestIndex = 0;
-    let minDistance = Math.abs(ratio - transactions[0].ratio);
-
-    for (let i = 1; i < transactions.length; i++) {
-      const dist = Math.abs(ratio - transactions[i].ratio);
-      if (dist < minDistance) {
-        minDistance = dist;
-        closestIndex = i;
-      }
-    }
-
-    setActiveTransactionIndex(closestIndex);
-
-    if (!isScrubbing) {
-      setIsScrubbing(true);
-    }
-
-    if (closestIndex !== lastTxRef.current) {
-      lastTxRef.current = closestIndex;
-      hapticFeedback.selection();
-    }
-  };
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (evt) => {
-        handleTouch(evt.nativeEvent.locationX);
-      },
-      onPanResponderMove: (evt) => {
-        handleTouch(evt.nativeEvent.locationX);
-      },
-      onPanResponderRelease: () => {
-        setIsScrubbing(false);
-        lastTxRef.current = -1;
-      },
-      onPanResponderTerminate: () => {
-        setIsScrubbing(false);
-        lastTxRef.current = -1;
-      },
-    })
-  ).current;
 
   const currentTx = transactions[activeTransactionIndex] || transactions[0];
   const snappedX = currentTx.ratio * screenWidth;
@@ -184,13 +86,14 @@ export const SparklineChart = React.memo(function SparklineChart({
   const isIncome = currentTx.type === 'income';
   const isGroupExpense = currentTx.type === 'group_expense';
 
-  const badgeColor = isIncome ? '#10B981' : isGroupExpense ? '#F59E0B' : '#EF4444';
-  const badgeBg = isIncome ? '#064e3b' : isGroupExpense ? '#78350f' : '#7f1d1d';
+  // High contrast palette: Mint Green (#34D399) for Income, Bright Amber (#FBBF24) for Group, Coral Red (#F87171) for Personal
+  const badgeColor = isIncome ? '#34D399' : isGroupExpense ? '#FBBF24' : '#F87171';
+  const badgeBg = isIncome ? '#04382c' : isGroupExpense ? '#542308' : '#5c1313';
   const badgeBorder = isIncome
-    ? 'rgba(16, 185, 129, 0.6)'
+    ? 'rgba(52, 211, 153, 0.8)'
     : isGroupExpense
-      ? 'rgba(245, 158, 11, 0.6)'
-      : 'rgba(239, 68, 68, 0.6)';
+      ? 'rgba(251, 191, 36, 0.8)'
+      : 'rgba(248, 113, 113, 0.8)';
 
   const labelText = isIncome ? 'Income' : isGroupExpense ? 'Group Exp' : 'Personal Exp';
 
@@ -198,17 +101,19 @@ export const SparklineChart = React.memo(function SparklineChart({
   const lastTxX = lastTx.ratio * screenWidth;
   const lastTxY = getCurveY(lastTx.ratio);
   const lastTxColor =
-    lastTx.type === 'income' ? '#10B981' : lastTx.type === 'group_expense' ? '#F59E0B' : '#EF4444';
+    lastTx.type === 'income' ? '#34D399' : lastTx.type === 'group_expense' ? '#FBBF24' : '#F87171';
 
   return (
     <View style={styles.container}>
-      {/* Floating Single-Color Tooltip: GREEN for Income, AMBER for Group Expense, RED for Personal Expense */}
+      {/* Floating Tooltip Capsule */}
       {isScrubbing && (
-        <View
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => handleNavigate(currentTx)}
           style={[
             styles.tooltip,
             {
-              left: Math.max(0, Math.min(screenWidth - 145, snappedX - 70)),
+              left: Math.max(0, Math.min(screenWidth - 150, snappedX - 75)),
               backgroundColor: badgeBg,
               borderColor: badgeBorder,
             },
@@ -218,42 +123,49 @@ export const SparklineChart = React.memo(function SparklineChart({
           <Text style={[styles.tooltipText, { color: '#FFFFFF' }]}>
             {labelText}: {isIncome ? '+' : '-'}
             {CURRENCY_SYMBOL}
-            {currentTx.amount.toFixed(2)}
+            {formatAmount(currentTx.amount)}
           </Text>
-        </View>
+          <Ionicons
+            name="chevron-forward"
+            size={11}
+            color="rgba(255, 255, 255, 0.7)"
+            style={{ marginLeft: 3 }}
+          />
+        </TouchableOpacity>
       )}
 
-      {/* Touch Interactive Chart Area */}
+      {/* Interactive SVG Chart Area */}
       <View {...panResponder.panHandlers} style={styles.chartWrapper}>
         <Svg height={height} width={screenWidth}>
           <Defs>
             <LinearGradient id="glowGrad" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor="#10B981" stopOpacity="0.20" />
-              <Stop offset="1" stopColor="#10B981" stopOpacity="0.00" />
+              <Stop offset="0" stopColor="#34D399" stopOpacity="0.25" />
+              <Stop offset="1" stopColor="#34D399" stopOpacity="0.00" />
             </LinearGradient>
           </Defs>
 
-          {/* Emerald Green Area Gradient Fill */}
+          {/* Area Fill */}
           <Path d={areaPath} fill="url(#glowGrad)" />
 
-          {/* Single Crisp Emerald Green Line Stroke */}
-          <Path d={linePath} fill="none" stroke="#10B981" strokeWidth={2.5} strokeLinecap="round" />
+          {/* Trend Line */}
+          <Path d={linePath} fill="none" stroke="#34D399" strokeWidth={2.5} strokeLinecap="round" />
 
-          {/* Single Endpoint Dot for Latest Payment */}
+          {/* Single Endpoint Dot when NOT scrubbing */}
           {!isScrubbing && (
             <Circle
               cx={lastTxX}
               cy={lastTxY}
-              r={4}
+              r={4.5}
               fill={lastTxColor}
               stroke="#FFFFFF"
-              strokeWidth={1.5}
+              strokeWidth={2}
             />
           )}
 
-          {/* Scrubber Guide Line & Cursor Dot */}
+          {/* Scrubbing Transaction Dots */}
           {isScrubbing && (
             <>
+              {/* Vertical Dashed Guide Line */}
               <Line
                 x1={snappedX}
                 y1={0}
@@ -262,16 +174,34 @@ export const SparklineChart = React.memo(function SparklineChart({
                 stroke={badgeColor}
                 strokeWidth={1.5}
                 strokeDasharray="3 3"
-                opacity={0.85}
+                opacity={0.9}
               />
-              <Circle
-                cx={snappedX}
-                cy={currentCurveY}
-                r={5.5}
-                fill={badgeColor}
-                stroke="#FFFFFF"
-                strokeWidth={2}
-              />
+
+              {/* All Transaction Dots with Type-Specific Colors & Crisp Contrast */}
+              {transactions.map((tx, idx) => {
+                const txX = tx.ratio * screenWidth;
+                const txY = getCurveY(tx.ratio);
+                const txColor =
+                  tx.type === 'income'
+                    ? '#34D399'
+                    : tx.type === 'group_expense'
+                      ? '#FBBF24'
+                      : '#F87171';
+                const isActive = idx === activeTransactionIndex;
+
+                return (
+                  <Circle
+                    key={idx}
+                    cx={txX}
+                    cy={txY}
+                    r={isActive ? 6.5 : 4}
+                    fill={txColor}
+                    stroke="#FFFFFF"
+                    strokeWidth={isActive ? 2 : 1}
+                    opacity={isActive ? 1 : 0.6}
+                  />
+                );
+              })}
             </>
           )}
         </Svg>

@@ -88,17 +88,32 @@ The repository leverages a modular architecture to maximize code sharing between
 
 ### Environment Setup
 
-Configure local environment files in both client directories before running the servers.
+Configure local environment files before running the applications:
 
-- **For Mobile (`apps/mobile/.env`):**
-  ```env
-  # 10.0.2.2 is local host mapping for Android emulators. For iOS use localhost or your local IP.
-  EXPO_PUBLIC_API_URL=http://localhost:4000
-  ```
 - **For Web (`apps/web/.env`):**
+
   ```env
   NEXT_PUBLIC_API_URL=http://localhost:4000
   ```
+
+- **For Mobile (`apps/mobile/.env`):**
+  ```env
+  EXPO_PUBLIC_API_URL=http://YOUR_LOCAL_IP:4000
+  ```
+
+> 💡 **Mobile Development & Dynamic IP Troubleshooting:**
+>
+> Physical mobile devices running Expo Go cannot access `localhost`. They require your computer's local Wi-Fi IP address. Because routers reassign IP addresses over time (via DHCP), your mobile client may fail to call the backend after a restart or network change.
+>
+> **How to fix when your IP changes:**
+>
+> 1. Get your current IP address by running:
+>    ```bash
+>    hostname -I | awk '{print $1}'
+>    ```
+> 2. Update `EXPO_PUBLIC_API_URL` in `apps/mobile/.env` with the new IP (e.g. `http://192.168.1.39:4000`).
+> 3. Update `BETTER_AUTH_URL` and `CORS_ORIGIN` in `expense-server/.env` with the new IP.
+> 4. Restart the servers. For mobile Metro bundler, restart with clear cache: `pnpm --filter mobile dev -- -c`.
 
 ---
 

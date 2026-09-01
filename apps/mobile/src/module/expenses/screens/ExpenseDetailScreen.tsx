@@ -17,6 +17,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import { AppBackground } from '../../../components/AppBackground';
 
 import { getCategoryVisuals } from '../../../constants/categories';
+import { hapticFeedback } from '../../../utils/haptics';
 
 export default function ExpenseDetailScreen() {
   const { id } = useRouteParams(idParamSchema);
@@ -69,17 +70,8 @@ export default function ExpenseDetailScreen() {
         if (expense) {
           deleteExpense.mutate(expense.id, {
             onSuccess: () => {
-              setAlertConfig({
-                visible: true,
-                title: 'Success',
-                message: 'Expense deleted successfully',
-                icon: 'checkmark-circle',
-                iconColor: COLORS.primary,
-                onConfirm: () => {
-                  setAlertConfig((prev) => ({ ...prev, visible: false }));
-                  router.back();
-                },
-              });
+              hapticFeedback.success();
+              router.back();
             },
             onError: (err) => {
               setAlertConfig({
