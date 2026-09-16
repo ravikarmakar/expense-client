@@ -1,9 +1,6 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import React from 'react';
 import './globals.css';
-
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'SplitShare - Financial Clarity & Shared Expenses',
@@ -22,11 +19,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body
-        className={inter.className}
         style={{
           margin: 0,
           backgroundColor: '#07090e',
           color: '#f3f4f6',
+          fontFamily:
+            'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
           overflowX: 'hidden',
         }}
       >
